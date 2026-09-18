@@ -1,0 +1,12 @@
+{
+  "name": "metronom",
+  "version": "1.0.0",
+  "description": "Browser metronome built on the Web Audio API",
+  "type": "module",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  }
+}

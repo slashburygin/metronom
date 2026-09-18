@@ -1,0 +1,100 @@
+#    Copyright 2026 Genesis Corporation.
+#    Licensed under the Apache License, Version 2.0 (the "License")
+
+# The metronome web app, served as static files from the realm core load
+# balancer. The path a request takes:
+#
+#   browser -> <realm>.exordos.com:443
+#           -> the installation's shared ingress LB (nginx on its core host)
+#                TLS terminates here, on the installation's own certificate
+#                server_name = the realm domain
+#                location / -> upstream(<realm node>:80)
+#           -> nginx on the realm node, which is the realm core's own LB
+#                server_name _ -- the ingress does not forward the original
+#                  Host header, so only the catch-all vhost ever matches
+#                location /api/core/ -> the realm API, untouched
+#                location /          -> the route below
+#
+# Hence the shape of this element: it adds one route to the vhost the core
+# already runs, and creates no LB, DNS record or certificate of its own. It
+# claims the `/` prefix of that vhost, so it cannot share a realm with another
+# element serving `/`.
+#
+# The element owns everything it runs under: the organization, the project, the
+# owner user and that user's password, which the platform generates on install.
+
+name: "metronom"
+description: "Browser metronome served from the realm core load balancer"
+schema_version: 1
+version: "{{ version }}"
+api_version: "v1"
+
+imports:
+  # The catch-all HTTP vhost of the core LB -- the one the installation's
+  # ingress proxies the realm traffic into
+  core_http_vhost:
+    element: "$core"
+    kind: "resource"
+    link: "$core.network.lb.$core_lb.vhosts.$core_lb_core_http"
+
+requirements:
+  core:
+    from_version: "0.0.0"
+
+resources:
+  $core.iam.organizations:
+    metronom_org:
+      name: "metronom-org"
+      description: "Organization the metronome belongs to"
+
+  $core.iam.projects:
+    metronom_project:
+      name: "metronom"
+      description: "Project the metronome resources live in"
+      organization: "$core.iam.organizations.$metronom_org:uuid"
+
+  $core.secret.passwords:
+    metronom_owner_password:
+      name: "metronom-owner-password"
+      description: "Password of the metronome owner"
+      project_id: "$core.iam.projects.$metronom_project:uuid"
+      method: AUTO_HEX
+      constructor:
+        kind: plain
+
+  $core.iam.users:
+    metronom_owner:
+      username: "metronom-owner"
+      email: "metronom-owner@example.com"
+      password: $core.secret.passwords.$metronom_owner_password:value
+      first_name: "Metronom"
+      last_name: "Owner"
+      description: "Owner of the metronome"
+
+  $core.iam.organizations.$metronom_org.members:
+    metronom_owner_member:
+      organization: "$core.iam.organizations.$metronom_org:uuid"
+      user: "$core.iam.users.$metronom_owner:uuid"
+      role: "OWNER"
+
+  $core.iam.role_bindings:
+    metronom_owner_project_role:
+      # Built-in `owner` role
+      role: "726f6c65-0000-0000-0000-000000000002"
+      user: "$core.iam.users.$metronom_owner:uuid"
+      project: "$core.iam.projects.$metronom_project:uuid"
+
+  $metronom.imports.$core_http_vhost.routes:
+    metronom_route:
+      project_id: "$core.iam.projects.$metronom_project:uuid"
+      parent: $metronom.imports.$core_http_vhost:uuid
+      condition:
+        kind: prefix
+        value: /
+        actions:
+          # The agent on the LB downloads this archive and unpacks it into
+          # /var/www/gc_downloaded/<uuid5 of the vhost and condition>/, which
+          # nginx then serves with `alias`. It re-downloads whenever the URL
+          # changes -- which is why the element version is part of it.
+          - kind: local_dir_download
+            url: "{{ repository | default('https://repo.exordos.com/exordos-elements') }}/metronom/{{ version }}/artifacts/site.tar.zst"

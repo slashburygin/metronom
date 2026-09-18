@@ -1,0 +1,56 @@
+name: build
+
+on:
+  push:
+  pull_request:
+    types: [ opened, synchronize ]
+  workflow_dispatch:
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # `exordos get-version` derives the version from git tags and history
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Unit tests
+        run: node --test
+
+      - name: Install Exordos CLI
+        run: |
+          curl -fsSL https://repo.exordos.com/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build element
+        id: build_element
+        run: |
+          set -eux
+          exordos --no-check-updates build -f "$(pwd)"
+          echo "version=$(exordos --no-check-updates get-version .)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: metronom-${{ steps.build_element.outputs.version }}
+          path: output/
+
+      # Publishing needs the repository credentials, so it only runs when the
+      # PUSH_CFG secret is set: base64 of an `exordos push` config.
+      - name: Push element
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          PUSH_CFG: ${{ secrets.PUSH_CFG }}
+        run: |
+          if [ -z "$PUSH_CFG" ]; then
+            echo "PUSH_CFG secret is not set, skipping push"
+            exit 0
+          fi
+          echo "$PUSH_CFG" | base64 -d > exordos/exordos.push.yaml
+          exordos --no-check-updates push -c exordos/exordos.push.yaml -t local -f --latest
