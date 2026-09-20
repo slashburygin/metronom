@@ -76,6 +76,10 @@
 
       <div id="beats" class="beats"></div>
       <p class="beats-hint" data-i18n="beatsHint"></p>
+      <label class="check">
+        <input type="checkbox" id="stress-first">
+        <span data-i18n="stressFirst">Stress first beat</span>
+      </label>
       <p class="remaining" id="remaining" role="timer" hidden>0:00</p>
 
       <div class="actions">
@@ -86,28 +90,28 @@
     </section>
 
     <section class="card settings">
-      <label><span data-i18n="timeSignature">Time signature</span>
+      <div class="field"><span class="field-label" data-i18n="timeSignature">Time signature</span>
         <span class="signature-pick">
-          <select id="beats-per-bar"></select>
+          <div id="beats-per-bar"></div>
           <span>/</span>
-          <select id="note-value"></select>
+          <div id="note-value"></div>
         </span>
-      </label>
-      <label><span data-i18n="subdivision">Rhythm</span>
-        <select id="subdivision"></select>
-      </label>
-      <label><span data-i18n="sound">Sound</span>
-        <select id="sound"></select>
-      </label>
-      <label><span data-i18n="pitch">Pitch</span>
-        <select id="pitch"></select>
-      </label>
-      <label><span data-i18n="timer">Practice timer</span>
-        <select id="timer"></select>
-      </label>
-      <label class="wide"><span data-i18n="volume">Volume</span>
-        <input type="range" id="volume" min="0" max="1" step="0.05" value="0.8">
-      </label>
+      </div>
+      <div class="field"><span class="field-label" data-i18n="sound">Sound</span>
+        <div id="sound"></div>
+      </div>
+      <div class="field"><span class="field-label" data-i18n="pitch">Pitch</span>
+        <div id="pitch"></div>
+      </div>
+      <div class="field"><span class="field-label" data-i18n="timer">Practice timer</span>
+        <div id="timer"></div>
+      </div>
+      <div class="field wide"><span class="field-label" data-i18n="subdivision">Rhythm</span>
+        <div id="subdivision" class="rhythm-grid" role="radiogroup" data-i18n-aria="subdivision"></div>
+      </div>
+      <div class="field wide"><span class="field-label" data-i18n="volume">Volume</span>
+        <input type="range" id="volume" min="0" max="1" step="0.05" value="0.8" data-i18n-aria="volume" aria-label="Volume">
+      </div>
     </section>
 
     <p class="hint">

@@ -1,5 +1,7 @@
 import { Metronome } from './metronome.js';
 import { STRINGS, detectLang } from './i18n.js';
+import { rhythmSvg } from './notation.js';
+import { createSelect } from './select.js';
 import {
   DEFAULTS, DENOMINATORS, MAX_BEATS, MAX_BPM, MIN_BPM, PITCHES, SOUNDS, SUBDIVISIONS,
   TIMER_MINUTES, TapTempo, formatClock, nextAccent, resizeAccents, tempoMarking,
@@ -18,20 +20,16 @@ const els = {
   up: $('bpm-up'),
   down: $('bpm-down'),
   beats: $('beats'),
+  stressFirst: $('stress-first'),
   play: $('play'),
   tap: $('tap'),
   reset: $('reset'),
-  beatsPerBar: $('beats-per-bar'),
-  noteValue: $('note-value'),
   subdivision: $('subdivision'),
-  sound: $('sound'),
-  pitch: $('pitch'),
-  volume: $('volume'),
-  timer: $('timer'),
   remaining: $('remaining'),
+  volume: $('volume'),
   lang: $('lang'),
-  fullscreen: $('fullscreen'),
   theme: $('theme'),
+  fullscreen: $('fullscreen'),
   display: $('display'),
   pendulumArm: $('pendulum-arm'),
   pendulumWeight: $('pendulum-weight'),
@@ -55,6 +53,39 @@ const metronome = new Metronome({
 });
 const tapper = new TapTempo();
 const t = () => STRINGS[ui.lang];
+
+const selects = {
+  beatsPerBar: createSelect($('beats-per-bar'), {
+    onChange(value) {
+      metronome.setBeatsPerBar(Number(value));
+      renderBeats();
+      renderSignature();
+      save();
+    },
+  }),
+  noteValue: createSelect($('note-value'), {
+    onChange(value) {
+      ui.noteValue = Number(value);
+      renderSignature();
+      save();
+    },
+  }),
+  sound: createSelect($('sound'), {
+    onChange(value) { metronome.sound = value; save(); },
+  }),
+  pitch: createSelect($('pitch'), {
+    onChange(value) { metronome.pitch = value; save(); },
+  }),
+  timer: createSelect($('timer'), {
+    onChange(value) {
+      metronome.timerMinutes = Number(value);
+      // A timer set mid-run counts from that run's first click, so it may
+      // already be over; the engine's own frame notices and stops.
+      renderRemaining();
+      save();
+    },
+  }),
+};
 
 // --- persistence ---
 
@@ -102,12 +133,6 @@ function reset() {
 
 // --- rendering ---
 
-function fillSelect(select, entries) {
-  const value = select.value;
-  select.replaceChildren(...entries.map(([v, label]) => new Option(label, v)));
-  if (value) select.value = value;
-}
-
 function renderText() {
   const s = t();
   document.documentElement.lang = ui.lang;
@@ -116,13 +141,49 @@ function renderText() {
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
     el.setAttribute('aria-label', s[el.dataset.i18nAria]);
   });
-  fillSelect(els.subdivision, Object.keys(SUBDIVISIONS).map((k) => [k, s.subdivisions[k]]));
-  fillSelect(els.sound, SOUNDS.map((k) => [k, s.sounds[k]]));
-  fillSelect(els.pitch, Object.keys(PITCHES).map((k) => [k, s.pitches[k]]));
-  fillSelect(els.timer, TIMER_MINUTES.map((m) => [m, m === 0 ? s.timerOff : `${m} ${s.minutesShort}`]));
+  selects.sound.setOptions(SOUNDS.map((k) => [k, s.sounds[k]]));
+  selects.pitch.setOptions(Object.keys(PITCHES).map((k) => [k, s.pitches[k]]));
+  selects.timer.setOptions(
+    TIMER_MINUTES.map((m) => [m, m === 0 ? s.timerOff : `${m} ${s.minutesShort}`]),
+  );
+  for (const [name, select] of Object.entries(selects)) select.setLabel(labelFor(name));
   for (const b of els.lang.children) b.setAttribute('aria-pressed', b.dataset.lang === ui.lang);
   renderPlay();
   renderBeats();
+  renderSubdivisions();
+}
+
+function labelFor(name) {
+  const s = t();
+  return { beatsPerBar: s.timeSignature, noteValue: s.timeSignature, sound: s.sound,
+    pitch: s.pitch, timer: s.timer }[name];
+}
+
+// Each rhythm is drawn from the very onsets the scheduler plays.
+function renderSubdivisions() {
+  els.subdivision.replaceChildren(...Object.entries(SUBDIVISIONS).map(([name, onsets]) => {
+    const button = document.createElement('button');
+    button.className = 'rhythm';
+    button.type = 'button';
+    button.dataset.subdivision = name;
+    button.setAttribute('role', 'radio');
+    button.title = t().subdivisions[name];
+    button.setAttribute('aria-label', t().subdivisions[name]);
+    button.innerHTML = rhythmSvg(onsets);
+    button.addEventListener('click', () => {
+      metronome.subdivision = name;
+      renderSubdivisionState();
+      save();
+    });
+    return button;
+  }));
+  renderSubdivisionState();
+}
+
+function renderSubdivisionState() {
+  for (const b of els.subdivision.children) {
+    b.setAttribute('aria-checked', b.dataset.subdivision === metronome.subdivision);
+  }
 }
 
 function renderTempo() {
@@ -153,11 +214,18 @@ function renderBeats() {
       metronome.accents[i] = next;
       dot.className = `beat ${next}${dot === activeDot ? ' active' : ''}`;
       dot.title = beatTitle(i, next);
+      renderStressFirst();
       save();
     });
     return dot;
   }));
   activeDot = null;
+  renderStressFirst();
+}
+
+// The checkbox is a shortcut for beat 1's accent, so the two stay in step.
+function renderStressFirst() {
+  els.stressFirst.checked = metronome.accents[0] === 'accent';
 }
 
 function renderPlay() {
@@ -187,24 +255,23 @@ function renderTheme() {
   els.theme.setAttribute('aria-pressed', dark);
 }
 
+function renderFullscreen() {
+  els.fullscreen.setAttribute('aria-pressed', document.fullscreenElement !== null);
+}
+
 function renderAll() {
-  els.beatsPerBar.value = metronome.beatsPerBar;
-  els.noteValue.value = ui.noteValue;
+  selects.beatsPerBar.setValue(metronome.beatsPerBar);
+  selects.noteValue.setValue(ui.noteValue);
+  selects.sound.setValue(metronome.sound);
+  selects.pitch.setValue(metronome.pitch);
+  selects.timer.setValue(metronome.timerMinutes);
   els.volume.value = metronome.volume;
   renderText();
-  els.timer.value = metronome.timerMinutes;
-  els.subdivision.value = metronome.subdivision;
-  els.sound.value = metronome.sound;
-  els.pitch.value = metronome.pitch;
   renderTempo();
   renderSignature();
   renderView();
   renderTheme();
   renderFullscreen();
-}
-
-function renderFullscreen() {
-  els.fullscreen.setAttribute('aria-pressed', document.fullscreenElement !== null);
 }
 
 // Pendulum is at an extreme on every click and swings through the centre
@@ -240,8 +307,10 @@ function tap() {
 
 // --- wiring ---
 
-for (let n = 1; n <= MAX_BEATS; n++) els.beatsPerBar.add(new Option(n, n));
-for (const d of DENOMINATORS) els.noteValue.add(new Option(d, d));
+selects.beatsPerBar.setOptions(
+  Array.from({ length: MAX_BEATS }, (_, i) => [i + 1, String(i + 1)]),
+);
+selects.noteValue.setOptions(DENOMINATORS.map((d) => [d, String(d)]));
 
 load();
 renderAll();
@@ -254,35 +323,12 @@ els.down.addEventListener('click', (e) => setBpm(metronome.bpm - (e.shiftKey ? 5
 els.play.addEventListener('click', togglePlay);
 els.tap.addEventListener('click', tap);
 els.reset.addEventListener('click', reset);
-
-els.beatsPerBar.addEventListener('change', () => {
-  metronome.setBeatsPerBar(Number(els.beatsPerBar.value));
-  renderBeats();
-  renderSignature();
-  save();
-});
-els.noteValue.addEventListener('change', () => {
-  ui.noteValue = Number(els.noteValue.value);
-  renderSignature();
-  save();
-});
-els.subdivision.addEventListener('change', () => { metronome.subdivision = els.subdivision.value; save(); });
-els.sound.addEventListener('change', () => { metronome.sound = els.sound.value; save(); });
-els.pitch.addEventListener('change', () => { metronome.pitch = els.pitch.value; save(); });
 els.volume.addEventListener('input', () => { metronome.setVolume(Number(els.volume.value)); save(); });
-els.timer.addEventListener('change', () => {
-  metronome.timerMinutes = Number(els.timer.value);
-  // A timer set mid-run counts from that run's first click, so it may already
-  // be over; the engine's own frame notices and stops.
-  renderRemaining();
+els.stressFirst.addEventListener('change', () => {
+  metronome.accents[0] = els.stressFirst.checked ? 'accent' : 'normal';
+  renderBeats();
   save();
 });
-
-els.fullscreen.addEventListener('click', () => {
-  if (document.fullscreenElement) document.exitFullscreen?.();
-  else document.documentElement.requestFullscreen?.().catch(() => { /* refused */ });
-});
-document.addEventListener('fullscreenchange', renderFullscreen);
 
 els.lang.addEventListener('click', (e) => {
   const lang = e.target.closest('[data-lang]')?.dataset.lang;
@@ -306,6 +352,12 @@ els.theme.addEventListener('click', () => {
   try { localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light'); } catch { /* not persisted */ }
   renderTheme();
 });
+
+els.fullscreen.addEventListener('click', () => {
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else document.documentElement.requestFullscreen?.().catch(() => { /* refused */ });
+});
+document.addEventListener('fullscreenchange', renderFullscreen);
 
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;

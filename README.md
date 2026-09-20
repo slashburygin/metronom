@@ -8,8 +8,9 @@ styling follows exordos.com.
 
 - Tempo from 30 to 300 BPM: slider, number field, −/+ buttons, tap tempo, and the Italian tempo name
 - Time signature from 1/1 to 32/32
-- 11 rhythm patterns: eighths, triplets, sixteenths, dotted notes, mixed groupings, swing, sextuplets
-- Accent per beat: click a beat to cycle accent → normal → mute
+- 11 rhythm patterns picked as musical notation: eighths, triplets, sixteenths, dotted notes, mixed
+  groupings, swing, sextuplets. Each picture is drawn from the same onsets the scheduler plays.
+- Accent per beat: click a beat to cycle accent → normal → mute, plus a stress-first-beat checkbox
 - 8 sounds (click, beep, wood block, drum, tick, cowbell, hi-hat, ping) and 5 pitch levels
 - Digital or animated pendulum display, and a fullscreen mode
 - Practice timer: stops the run after 1 to 60 minutes, with a countdown while it plays
@@ -25,6 +26,8 @@ scheduler runs in a Worker so it keeps time in background tabs.
 | Path | Purpose |
 |---|---|
 | `site/` | The app. Everything here is served at `/`. |
+| `site/src/notation.js` | Draws a rhythm pattern as notation: noteheads, stems, beams, dots, tuplets. |
+| `site/src/select.js` | Dropdown listbox, so the popup follows the site's tokens instead of the OS. |
 | `test/` | Unit tests for the tempo logic (`node --test`). |
 | `server.js` | Static server for local development. |
 | `exordos/exordos.yaml` | Build configuration of the element. |
