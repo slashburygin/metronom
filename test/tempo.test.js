@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  MAX_BPM, MIN_BPM, SUBDIVISIONS, TapTempo, clampBpm, nextAccent, resizeAccents, tempoMarking,
+  MAX_BPM, MIN_BPM, SUBDIVISIONS, TIMER_MINUTES, TapTempo, clampBpm, formatClock, nextAccent,
+  resizeAccents, tempoMarking,
 } from '../site/src/tempo.js';
 
 test('clampBpm rounds and clamps to the supported range', () => {
@@ -61,4 +62,20 @@ test('TapTempo only keeps the most recent taps', () => {
   [0, 1000, 2000].forEach((ms) => tapper.tap(ms)); // 60 BPM
   tapper.tap(2500);
   assert.equal(tapper.tap(3000), 120); // window is now 2000, 2500, 3000
+});
+
+test('formatClock rounds up to whole seconds', () => {
+  assert.equal(formatClock(0), '0:00');
+  assert.equal(formatClock(0.2), '0:01');
+  assert.equal(formatClock(59), '0:59');
+  assert.equal(formatClock(60), '1:00');
+  assert.equal(formatClock(605), '10:05');
+  assert.equal(formatClock(-5), '0:00');
+});
+
+test('the practice timer offers "off" plus ascending durations', () => {
+  assert.equal(TIMER_MINUTES[0], 0);
+  for (let i = 1; i < TIMER_MINUTES.length; i++) {
+    assert.ok(TIMER_MINUTES[i] > TIMER_MINUTES[i - 1]);
+  }
 });

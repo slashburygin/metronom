@@ -41,8 +41,9 @@ function createTicker(onTick) {
 }
 
 export class Metronome {
-  constructor({ onTick } = {}) {
+  constructor({ onTick, onStop } = {}) {
     this.onTick = onTick; // (beatIndex, subIndex) at the moment the click is heard
+    this.onStop = onStop; // called when the practice timer ends a run
     this.bpm = DEFAULTS.bpm;
     this.beatsPerBar = DEFAULTS.beatsPerBar;
     this.subdivision = DEFAULTS.subdivision;
@@ -50,7 +51,9 @@ export class Metronome {
     this.sound = DEFAULTS.sound;
     this.pitch = DEFAULTS.pitch;
     this.volume = DEFAULTS.volume;
+    this.timerMinutes = DEFAULTS.timerMinutes;
     this.playing = false;
+    this.startedAt = 0; // audio time of the first click of this run
 
     this.ctx = null;
     this.master = null;
@@ -63,6 +66,8 @@ export class Metronome {
     this.ticker = createTicker(() => this.schedule());
     this.frame = this.frame.bind(this);
   }
+
+  get timerSeconds() { return this.timerMinutes * 60; }
 
   setBpm(bpm) { this.bpm = clampBpm(bpm); }
 
@@ -86,6 +91,7 @@ export class Metronome {
     this.visualQueue = [];
     this.lastHeardBeat = null;
     this.nextBeatTime = this.ctx.currentTime + 0.05;
+    this.startedAt = this.nextBeatTime; // so the timer covers the full run
     this.schedule();
     this.ticker.start(LOOKAHEAD_MS);
     requestAnimationFrame(this.frame);
@@ -117,7 +123,11 @@ export class Metronome {
   schedule() {
     if (!this.playing) return;
     const horizon = this.ctx.currentTime + SCHEDULE_AHEAD_S;
+    const until = this.timerSeconds ? this.startedAt + this.timerSeconds : Infinity;
     while (this.nextBeatTime < horizon) {
+      // Don't schedule past the practice timer; frame() stops the run once the
+      // clicks already scheduled have been heard.
+      if (this.nextBeatTime > until) break;
       const beatDur = 60 / this.bpm;
       const onsets = SUBDIVISIONS[this.subdivision] ?? SUBDIVISIONS.quarter;
       const beat = this.beat % this.beatsPerBar;
@@ -190,10 +200,21 @@ export class Metronome {
     return count + Math.min(1, (this.ctx.currentTime - time) / beatDur);
   }
 
+  // Seconds left of the practice timer, or null when no timer is set.
+  remaining() {
+    if (!this.timerSeconds || !this.playing) return null;
+    return Math.max(0, this.startedAt + this.timerSeconds - this.ctx.currentTime);
+  }
+
   // Fires onTick in sync with what is heard, not when it was scheduled.
   frame() {
     if (!this.playing) return;
     const now = this.ctx.currentTime;
+    if (this.timerSeconds && now >= this.startedAt + this.timerSeconds) {
+      this.stop();
+      this.onStop?.();
+      return;
+    }
     while (this.visualQueue.length && this.visualQueue[0].time <= now) {
       const tick = this.visualQueue.shift();
       if (tick.sub === 0) this.lastHeardBeat = tick;

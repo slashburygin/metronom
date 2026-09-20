@@ -28,6 +28,9 @@ export const SOUNDS = ['click', 'beep', 'wood', 'drum', 'tick', 'cowbell', 'hiha
 
 export const PITCHES = { veryLow: 0.5, low: 0.75, normal: 1, high: 1.33, veryHigh: 2 };
 
+// Practice timer: how long a run lasts before it stops itself. 0 means off.
+export const TIMER_MINUTES = [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60];
+
 export const DEFAULTS = Object.freeze({
   bpm: DEFAULT_BPM,
   beatsPerBar: 4,
@@ -36,7 +39,14 @@ export const DEFAULTS = Object.freeze({
   sound: 'click',
   pitch: 'normal',
   volume: 0.8,
+  timerMinutes: 0,
 });
+
+// Seconds as m:ss, rounded up so a running countdown only shows 0:00 at the end.
+export function formatClock(seconds) {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
 
 export function clampBpm(value) {
   const n = Math.round(Number(value));

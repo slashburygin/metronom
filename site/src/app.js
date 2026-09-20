@@ -2,7 +2,7 @@ import { Metronome } from './metronome.js';
 import { STRINGS, detectLang } from './i18n.js';
 import {
   DEFAULTS, DENOMINATORS, MAX_BEATS, MAX_BPM, MIN_BPM, PITCHES, SOUNDS, SUBDIVISIONS,
-  TapTempo, nextAccent, resizeAccents, tempoMarking,
+  TIMER_MINUTES, TapTempo, formatClock, nextAccent, resizeAccents, tempoMarking,
 } from './tempo.js';
 
 const STORAGE_KEY = 'metronome-settings';
@@ -27,7 +27,10 @@ const els = {
   sound: $('sound'),
   pitch: $('pitch'),
   volume: $('volume'),
+  timer: $('timer'),
+  remaining: $('remaining'),
   lang: $('lang'),
+  fullscreen: $('fullscreen'),
   theme: $('theme'),
   display: $('display'),
   pendulumArm: $('pendulum-arm'),
@@ -45,6 +48,10 @@ const metronome = new Metronome({
     activeDot = els.beats.children[beat];
     activeDot?.classList.add('active');
   },
+  // The practice timer ended the run
+  onStop() {
+    renderPlay();
+  },
 });
 const tapper = new TapTempo();
 const t = () => STRINGS[ui.lang];
@@ -52,8 +59,8 @@ const t = () => STRINGS[ui.lang];
 // --- persistence ---
 
 function save() {
-  const { bpm, beatsPerBar, subdivision, accents, sound, pitch, volume } = metronome;
-  const data = { bpm, beatsPerBar, subdivision, accents, sound, pitch, volume, ...ui };
+  const { bpm, beatsPerBar, subdivision, accents, sound, pitch, volume, timerMinutes } = metronome;
+  const data = { bpm, beatsPerBar, subdivision, accents, sound, pitch, volume, timerMinutes, ...ui };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* not persisted */ }
 }
 
@@ -79,6 +86,7 @@ function apply(s) {
   if (SOUNDS.includes(s.sound)) metronome.sound = s.sound;
   if (s.pitch in PITCHES) metronome.pitch = s.pitch;
   if (typeof s.volume === 'number') metronome.setVolume(s.volume);
+  if (TIMER_MINUTES.includes(s.timerMinutes)) metronome.timerMinutes = s.timerMinutes;
   if (DENOMINATORS.includes(s.noteValue)) ui.noteValue = s.noteValue;
   if (s.lang in STRINGS) ui.lang = s.lang;
   if (s.view === 'digital' || s.view === 'pendulum') ui.view = s.view;
@@ -111,6 +119,7 @@ function renderText() {
   fillSelect(els.subdivision, Object.keys(SUBDIVISIONS).map((k) => [k, s.subdivisions[k]]));
   fillSelect(els.sound, SOUNDS.map((k) => [k, s.sounds[k]]));
   fillSelect(els.pitch, Object.keys(PITCHES).map((k) => [k, s.pitches[k]]));
+  fillSelect(els.timer, TIMER_MINUTES.map((m) => [m, m === 0 ? s.timerOff : `${m} ${s.minutesShort}`]));
   for (const b of els.lang.children) b.setAttribute('aria-pressed', b.dataset.lang === ui.lang);
   renderPlay();
   renderBeats();
@@ -159,6 +168,13 @@ function renderPlay() {
     activeDot = null;
     els.pendulumArm.removeAttribute('transform');
   }
+  renderRemaining();
+}
+
+function renderRemaining() {
+  const left = metronome.remaining();
+  els.remaining.hidden = left === null;
+  if (left !== null) els.remaining.textContent = formatClock(left);
 }
 
 function renderView() {
@@ -176,6 +192,7 @@ function renderAll() {
   els.noteValue.value = ui.noteValue;
   els.volume.value = metronome.volume;
   renderText();
+  els.timer.value = metronome.timerMinutes;
   els.subdivision.value = metronome.subdivision;
   els.sound.value = metronome.sound;
   els.pitch.value = metronome.pitch;
@@ -183,13 +200,20 @@ function renderAll() {
   renderSignature();
   renderView();
   renderTheme();
+  renderFullscreen();
+}
+
+function renderFullscreen() {
+  els.fullscreen.setAttribute('aria-pressed', document.fullscreenElement !== null);
 }
 
 // Pendulum is at an extreme on every click and swings through the centre
 // between clicks, alternating sides each beat.
-function animatePendulum() {
-  requestAnimationFrame(animatePendulum);
-  if (ui.view !== 'pendulum' || !metronome.playing) return;
+function animateFrame() {
+  requestAnimationFrame(animateFrame);
+  if (!metronome.playing) return;
+  renderRemaining();
+  if (ui.view !== 'pendulum') return;
   const pos = metronome.position();
   if (pos === null) return;
   const angle = -PENDULUM_MAX_DEG * Math.cos(Math.PI * pos);
@@ -221,7 +245,7 @@ for (const d of DENOMINATORS) els.noteValue.add(new Option(d, d));
 
 load();
 renderAll();
-requestAnimationFrame(animatePendulum);
+requestAnimationFrame(animateFrame);
 
 els.slider.addEventListener('input', () => setBpm(els.slider.value));
 els.bpm.addEventListener('change', () => setBpm(els.bpm.value));
@@ -246,6 +270,19 @@ els.subdivision.addEventListener('change', () => { metronome.subdivision = els.s
 els.sound.addEventListener('change', () => { metronome.sound = els.sound.value; save(); });
 els.pitch.addEventListener('change', () => { metronome.pitch = els.pitch.value; save(); });
 els.volume.addEventListener('input', () => { metronome.setVolume(Number(els.volume.value)); save(); });
+els.timer.addEventListener('change', () => {
+  metronome.timerMinutes = Number(els.timer.value);
+  // A timer set mid-run counts from that run's first click, so it may already
+  // be over; the engine's own frame notices and stops.
+  renderRemaining();
+  save();
+});
+
+els.fullscreen.addEventListener('click', () => {
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else document.documentElement.requestFullscreen?.().catch(() => { /* refused */ });
+});
+document.addEventListener('fullscreenchange', renderFullscreen);
 
 els.lang.addEventListener('click', (e) => {
   const lang = e.target.closest('[data-lang]')?.dataset.lang;

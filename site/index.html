@@ -33,6 +33,11 @@
         <button data-lang="ru">RU</button>
         <button data-lang="en">EN</button>
       </div>
+      <button class="icon-btn" id="fullscreen" data-i18n-aria="fullscreen" aria-label="Fullscreen">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 9V4h5M20 15v5h-5M20 9V4h-5M4 15v5h5"/>
+        </svg>
+      </button>
       <button class="icon-btn" id="theme" data-i18n-aria="theme" aria-label="Toggle theme">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" fill="currentColor"/></svg>
       </button>
@@ -71,6 +76,7 @@
 
       <div id="beats" class="beats"></div>
       <p class="beats-hint" data-i18n="beatsHint"></p>
+      <p class="remaining" id="remaining" role="timer" hidden>0:00</p>
 
       <div class="actions">
         <button id="play" class="btn btn--primary btn--lg" data-i18n="start">Start</button>
@@ -95,6 +101,9 @@
       </label>
       <label><span data-i18n="pitch">Pitch</span>
         <select id="pitch"></select>
+      </label>
+      <label><span data-i18n="timer">Practice timer</span>
+        <select id="timer"></select>
       </label>
       <label class="wide"><span data-i18n="volume">Volume</span>
         <input type="range" id="volume" min="0" max="1" step="0.05" value="0.8">
