@@ -13,7 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # `exordos get-version` derives the version from git tags and history
           fetch-depth: 0
 
       - uses: actions/setup-node@v7
@@ -28,29 +27,26 @@ jobs:
           curl -fsSL https://repo.exordos.com/install.sh | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Build element
+      - name: Build and push element
         id: build_element
+        env:
+          PUSH_CFG: ${{ secrets.PUSH_CFG }}
         run: |
-          set -eux
+          set -eu
           exordos --no-check-updates build -f "$(pwd)"
           echo "version=$(exordos --no-check-updates get-version .)" >> "$GITHUB_OUTPUT"
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            echo "pull request, skipping push"
+          elif [ -z "$PUSH_CFG" ]; then
+            echo "PUSH_CFG secret is not set, skipping push"
+          else
+            echo "$PUSH_CFG" | base64 -d > exordos/exordos.push.yaml
+            exordos --no-check-updates push -c exordos/exordos.push.yaml -t local -f --latest
+          fi
 
       - name: Upload build output
         uses: actions/upload-artifact@v7
         with:
           name: metronom-${{ steps.build_element.outputs.version }}
           path: output/
-
-      # Publishing needs the repository credentials, so it only runs when the
-      # PUSH_CFG secret is set: base64 of an `exordos push` config.
-      - name: Push element
-        if: ${{ github.event_name != 'pull_request' }}
-        env:
-          PUSH_CFG: ${{ secrets.PUSH_CFG }}
-        run: |
-          if [ -z "$PUSH_CFG" ]; then
-            echo "PUSH_CFG secret is not set, skipping push"
-            exit 0
-          fi
-          echo "$PUSH_CFG" | base64 -d > exordos/exordos.push.yaml
-          exordos --no-check-updates push -c exordos/exordos.push.yaml -t local -f --latest

@@ -42,51 +42,9 @@ requirements:
     from_version: "0.0.0"
 
 resources:
-  $core.iam.organizations:
-    metronom_org:
-      name: "metronom-org"
-      description: "Organization the metronome belongs to"
-
-  $core.iam.projects:
-    metronom_project:
-      name: "metronom"
-      description: "Project the metronome resources live in"
-      organization: "$core.iam.organizations.$metronom_org:uuid"
-
-  $core.secret.passwords:
-    metronom_owner_password:
-      name: "metronom-owner-password"
-      description: "Password of the metronome owner"
-      project_id: "$core.iam.projects.$metronom_project:uuid"
-      method: AUTO_HEX
-      constructor:
-        kind: plain
-
-  $core.iam.users:
-    metronom_owner:
-      username: "metronom-owner"
-      email: "metronom-owner@example.com"
-      password: $core.secret.passwords.$metronom_owner_password:value
-      first_name: "Metronom"
-      last_name: "Owner"
-      description: "Owner of the metronome"
-
-  $core.iam.organizations.$metronom_org.members:
-    metronom_owner_member:
-      organization: "$core.iam.organizations.$metronom_org:uuid"
-      user: "$core.iam.users.$metronom_owner:uuid"
-      role: "OWNER"
-
-  $core.iam.role_bindings:
-    metronom_owner_project_role:
-      # Built-in `owner` role
-      role: "726f6c65-0000-0000-0000-000000000002"
-      user: "$core.iam.users.$metronom_owner:uuid"
-      project: "$core.iam.projects.$metronom_project:uuid"
-
   $metronom.imports.$core_http_vhost.routes:
     metronom_route:
-      project_id: "$core.iam.projects.$metronom_project:uuid"
+      project_id: "12345678-c625-4fee-81d5-f691897b8142"
       parent: $metronom.imports.$core_http_vhost:uuid
       condition:
         kind: prefix

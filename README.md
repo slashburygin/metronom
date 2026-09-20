@@ -65,6 +65,6 @@ commit builds as `0.0.1-rc+<stamp>`, and a commit tagged `1.0.0` builds as `1.0.
 ### CI
 
 `.github/workflows/build.yml` runs on `ubuntu-latest` on every push. It runs the tests, installs
-the Exordos CLI, builds the element, and uploads `output/` as a workflow artifact. Pushes (not PRs)
-also publish the element with `--latest` when the `PUSH_CFG` secret is set. That secret holds the
-base64 of an `exordos push` config.
+the Exordos CLI, then builds and publishes the element in one step, and uploads `output/` as a
+workflow artifact. The publish half is skipped on pull requests and when the `PUSH_CFG` secret is
+missing; that secret holds the base64 of an `exordos push` config.
