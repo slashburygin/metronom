@@ -1,0 +1,4 @@
+node_modules/
+output/
+exordos/exordos.push.yaml
+.DS_Store

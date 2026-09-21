@@ -1,0 +1,52 @@
+name: build
+
+on:
+  push:
+  pull_request:
+    types: [ opened, synchronize ]
+  workflow_dispatch:
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Unit tests
+        run: node --test
+
+      - name: Install Exordos CLI
+        run: |
+          curl -fsSL https://repo.exordos.com/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build and push element
+        id: build_element
+        env:
+          PUSH_CFG: ${{ secrets.PUSH_CFG }}
+        run: |
+          set -eu
+          exordos --no-check-updates build -f "$(pwd)"
+          echo "version=$(exordos --no-check-updates get-version .)" >> "$GITHUB_OUTPUT"
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            echo "pull request, skipping push"
+          elif [ -z "$PUSH_CFG" ]; then
+            echo "PUSH_CFG secret is not set, skipping push"
+          else
+            echo "$PUSH_CFG" | base64 -d > exordos/exordos.push.yaml
+            exordos --no-check-updates push -c exordos/exordos.push.yaml -t local -f --latest
+          fi
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v7
+        with:
+          name: metronom-${{ steps.build_element.outputs.version }}
+          path: output/

@@ -1,0 +1,21 @@
+#    Copyright 2026 Genesis Corporation.
+#    Licensed under the Apache License, Version 2.0 (the "License")
+
+# Build section. It specifies the build process of the project
+build:
+  # List of elements in the project
+  elements:
+    - manifest: manifests/metronom.yaml.j2
+      artifacts:
+        # Element store assets: icon and preview pictures
+        - path: artifacts/icon.svg
+        - path: artifacts/preview-1.png
+        - path: artifacts/preview-2.png
+
+        # A directory artifact is archived into `<dir>.tar.zst`, so `site/`
+        # becomes `site.tar.zst`. `flatten` puts the files at the archive root,
+        # which is what the LB expects when it unpacks the archive.
+        - script: pack_site.sh
+          flatten: true
+          artifacts:
+            - ../site/
