@@ -14,6 +14,7 @@ styling follows exordos.com.
 - 8 sounds (click, beep, wood block, drum, tick, cowbell, hi-hat, ping) and 5 pitch levels
 - Digital or animated pendulum display, and a fullscreen mode
 - Practice timer: stops the run after 1 to 60 minutes, with a countdown while it plays
+- Chromatic microphone tuner (50–1500 Hz): note, frequency and cents, with A4 = 440 Hz; audio stays on device. Requires HTTPS or localhost.
 - Russian/English interface, light/dark theme
 - Settings are saved in the browser; **Reset** restores the defaults
 - Keyboard: `Space` start/stop, `↑`/`↓` ±1 BPM (`Shift` ±5), `T` tap

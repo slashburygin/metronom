@@ -1,3 +1,4 @@
+import { Tuner } from './tuner.js';
 import { Metronome } from './metronome.js';
 import { STRINGS, detectLang } from './i18n.js';
 import { rhythmSvg } from './notation.js';
@@ -53,6 +54,28 @@ const metronome = new Metronome({
 });
 const tapper = new TapTempo();
 const t = () => STRINGS[ui.lang];
+const tuner = new Tuner(renderTuner);
+
+function renderTuner() {
+  const strings = t();
+  const { state, note } = tuner;
+  $('tuner-toggle').textContent = state === 'requesting' ? strings.tunerRequesting
+    : state === 'listening' ? strings.tunerStop : strings.tunerStart;
+  $('tuner-toggle').setAttribute('aria-pressed', state === 'listening');
+  $('tuner-note').textContent = note ? `${note.name}${note.octave}` : '—';
+  $('tuner-reading').textContent = note
+    ? `${note.frequency.toFixed(1)} Hz · ${note.cents > 0 ? '+' : ''}${Math.round(note.cents)} ${strings.tunerCents}` : '—';
+  const inTune = note && Math.abs(note.cents) <= 5;
+  $('tuner-note').classList.toggle('in-tune', Boolean(inTune));
+  $('tuner-needle').hidden = !note;
+  if (note) $('tuner-needle').style.left = `${50 + Math.max(-50, Math.min(50, note.cents))}%`;
+  const statuses = { idle: 'tunerIdle', requesting: 'tunerPermission', listening: 'tunerListening',
+    denied: 'tunerDenied', unavailable: 'tunerUnavailable', unsupported: 'tunerUnsupported' };
+  const message = note ? strings[inTune ? 'tunerInTune' : note.cents < 0 ? 'tunerFlat' : 'tunerSharp']
+    : strings[statuses[state]];
+  if ($('tuner-status').textContent !== message) $('tuner-status').textContent = message;
+}
+
 
 const selects = {
   beatsPerBar: createSelect($('beats-per-bar'), {
@@ -149,6 +172,7 @@ function renderText() {
   for (const [name, select] of Object.entries(selects)) select.setLabel(labelFor(name));
   for (const b of els.lang.children) b.setAttribute('aria-pressed', b.dataset.lang === ui.lang);
   renderPlay();
+  renderTuner();
   renderBeats();
   renderSubdivisions();
 }
@@ -383,3 +407,9 @@ document.addEventListener('keydown', (e) => {
       break;
   }
 });
+
+$('tuner-toggle').addEventListener('click', () => {
+  if (tuner.state === 'listening' || tuner.state === 'requesting') tuner.stop();
+  else tuner.start();
+});
+window.addEventListener('pagehide', () => tuner.stop());

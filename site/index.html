@@ -127,6 +127,23 @@
       </div>
     </section>
 
+    <section class="card tuner" aria-labelledby="tuner-title">
+      <div class="tuner-heading">
+        <h2 id="tuner-title" data-i18n="tuner">Tuner</h2>
+        <span class="field-label">A4 = 440 Hz</span>
+      </div>
+      <p class="tuner-note" id="tuner-note">—</p>
+      <p class="tuner-reading" id="tuner-reading">—</p>
+      <div class="tuner-meter" aria-hidden="true">
+        <div class="tuner-center"></div>
+        <div class="tuner-needle" id="tuner-needle" hidden></div>
+      </div>
+      <div class="tuner-scale"><span>−50</span><span>0</span><span>+50</span></div>
+      <p id="tuner-status" class="tuner-status" role="status"></p>
+      <button id="tuner-toggle" class="btn btn--primary btn--lg">Enable microphone</button>
+      <p class="tuner-help" data-i18n="tunerHelp"></p>
+    </section>
+
     <p class="hint">
       <kbd>Space</kbd> <kbd>↑</kbd><kbd>↓</kbd> <kbd>T</kbd> — <span data-i18n="keys"></span>
     </p>
