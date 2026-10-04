@@ -62,7 +62,11 @@ function renderTuner() {
   $('tuner-toggle').textContent = state === 'requesting' ? strings.tunerRequesting
     : state === 'listening' ? strings.tunerStop : strings.tunerStart;
   $('tuner-toggle').setAttribute('aria-pressed', state === 'listening');
-  $('tuner-note').textContent = note ? `${note.name}${note.octave}` : '—';
+  const russianName = note && strings.tunerNotes
+    ? `${strings.tunerNotes[note.name[0]]}${note.name.slice(1)}` : null;
+  $('tuner-note').textContent = note
+    ? `${note.name}${note.octave}${russianName ? `/${russianName}${note.octave}` : ''}` : '—';
+  $('tuner-note').classList.toggle('localized', Boolean(russianName));
   $('tuner-reading').textContent = note
     ? `${note.frequency.toFixed(1)} Hz · ${note.cents > 0 ? '+' : ''}${Math.round(note.cents)} ${strings.tunerCents}` : '—';
   const inTune = note && Math.abs(note.cents) <= 5;

@@ -66,6 +66,7 @@ export const STRINGS = {
   },
   ru: {
     tuner: 'Тюнер',
+    tunerNotes: { C: 'До', D: 'Ре', E: 'Ми', F: 'Фа', G: 'Соль', A: 'Ля', B: 'Си' },
     tunerStart: 'Включить микрофон',
     tunerStop: 'Остановить тюнер',
     tunerRequesting: 'Отмена',
