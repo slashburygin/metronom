@@ -2,6 +2,7 @@ export const LANGS = ['ru', 'en'];
 
 export const STRINGS = {
   en: {
+    github: 'Source code on GitHub',
     textbook: 'Textbook',
     pdfOpen: 'Open PDF from computer',
     pdfClose: 'Close',
@@ -71,6 +72,7 @@ export const STRINGS = {
     accents: { accent: 'accent', normal: 'normal', mute: 'mute' },
   },
   ru: {
+    github: 'Исходный код на GitHub',
     textbook: 'Учебник',
     pdfOpen: 'Открыть PDF с компьютера',
     pdfClose: 'Закрыть',

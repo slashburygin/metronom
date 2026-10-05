@@ -105,6 +105,7 @@ button { cursor: pointer; }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 
 .icon-btn {
+  color: inherit;
   width: 36px;
   height: 36px;
   display: grid;
