@@ -154,15 +154,15 @@
       <kbd>Space</kbd> <kbd>↑</kbd><kbd>↓</kbd> <kbd>T</kbd> — <span data-i18n="keys"></span>
     </p>
     </div>
-    <section class="card textbook" aria-labelledby="textbook-title">
+    <section id="textbook" class="card textbook" aria-labelledby="textbook-title">
       <div class="textbook-heading">
         <h2 id="textbook-title" data-i18n="textbook">Textbook</h2>
+        <p id="pdf-name" class="pdf-name" hidden></p>
+        <button id="pdf-open" class="btn btn--secondary" data-i18n="pdfOpenShort" data-i18n-aria="pdfOpen" aria-label="Open PDF from computer">Open PDF</button>
         <button id="pdf-close" class="btn btn--ghost" data-i18n="pdfClose" hidden>Close</button>
       </div>
       <input id="pdf-file" type="file" accept="application/pdf,.pdf" hidden>
-      <button id="pdf-open" class="btn btn--secondary btn--lg" data-i18n="pdfOpen">Open PDF from computer</button>
-      <p id="pdf-name" class="pdf-name" hidden></p>
-      <p class="textbook-help" data-i18n="pdfHelp">Choose a textbook or sheet music. Use the PDF toolbar to turn pages and zoom. The file stays on your device.</p>
+      <p id="pdf-help" class="textbook-help" data-i18n="pdfHelp">Choose a textbook or sheet music. Use the PDF toolbar to turn pages and zoom. The file stays on your device.</p>
       <p id="pdf-error" class="textbook-help" role="alert" hidden data-i18n="pdfError">Choose a PDF file.</p>
       <iframe id="pdf-viewer" class="pdf-viewer" title="PDF textbook" hidden></iframe>
       <a id="pdf-tab" target="_blank" rel="noopener" data-i18n="pdfTab" hidden>Open PDF in a separate tab</a>

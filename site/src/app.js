@@ -429,8 +429,11 @@ function closeTextbook() {
   $('pdf-tab').removeAttribute('href');
   if (textbookUrl) URL.revokeObjectURL(textbookUrl);
   textbookUrl = null;
+  $('textbook').classList.remove('has-pdf');
+  $('pdf-help').hidden = false;
   for (const id of ['pdf-viewer', 'pdf-name', 'pdf-close', 'pdf-tab', 'pdf-error']) $(id).hidden = true;
   $('pdf-name').textContent = '';
+  $('pdf-name').removeAttribute('title');
   $('pdf-file').value = '';
 }
 $('pdf-open').addEventListener('click', () => $('pdf-file').click());
@@ -450,6 +453,9 @@ $('pdf-file').addEventListener('change', async () => {
     $('pdf-viewer').src = `${nextUrl}#view=FitH`;
     $('pdf-tab').href = nextUrl;
     $('pdf-name').textContent = file.name;
+    $('pdf-name').title = file.name;
+    $('textbook').classList.add('has-pdf');
+    $('pdf-help').hidden = true;
     for (const id of ['pdf-viewer', 'pdf-name', 'pdf-close', 'pdf-tab']) $(id).hidden = false;
     if (previousUrl) URL.revokeObjectURL(previousUrl);
   } catch {
