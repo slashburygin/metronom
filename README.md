@@ -16,6 +16,7 @@ styling follows exordos.com.
 - Practice timer: stops the run after 1 to 60 minutes, with a countdown while it plays
 - Chromatic microphone tuner (50–1500 Hz): note, frequency and cents, with A4 = 440 Hz; audio stays on device. Requires HTTPS or localhost.
 - Russian/English interface, light/dark theme
+- Local PDF textbook or sheet music beside the metronome, with the browser's page and zoom controls. Files stay on device. On narrow screens the viewer sits below the controls; browsers without embedded PDF support can use the separate-tab link.
 - Settings are saved in the browser; **Reset** restores the defaults
 - Keyboard: `Space` start/stop, `↑`/`↓` ±1 BPM (`Shift` ±5), `T` tap
 

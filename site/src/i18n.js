@@ -2,6 +2,12 @@ export const LANGS = ['ru', 'en'];
 
 export const STRINGS = {
   en: {
+    textbook: 'Textbook',
+    pdfOpen: 'Open PDF from computer',
+    pdfClose: 'Close',
+    pdfHelp: 'Choose a textbook or sheet music. Use the PDF viewer to turn pages and zoom. The file stays on your device.',
+    pdfError: 'Could not open this file. Choose a valid PDF.',
+    pdfTab: 'Open PDF in a separate tab',
     tuner: 'Tuner',
     tunerStart: 'Enable microphone',
     tunerStop: 'Stop tuner',
@@ -65,6 +71,12 @@ export const STRINGS = {
     accents: { accent: 'accent', normal: 'normal', mute: 'mute' },
   },
   ru: {
+    textbook: 'Учебник',
+    pdfOpen: 'Открыть PDF с компьютера',
+    pdfClose: 'Закрыть',
+    pdfHelp: 'Выберите учебник или ноты. Листайте страницы и меняйте масштаб в просмотрщике PDF. Файл остаётся на вашем устройстве.',
+    pdfError: 'Не удалось открыть файл. Выберите корректный PDF.',
+    pdfTab: 'Открыть PDF в отдельной вкладке',
     tuner: 'Тюнер',
     tunerNotes: { C: 'До', D: 'Ре', E: 'Ми', F: 'Фа', G: 'Соль', A: 'Ля', B: 'Си' },
     tunerStart: 'Включить микрофон',

@@ -143,12 +143,29 @@ button { cursor: pointer; }
 /* --- layout --- */
 
 .app {
-  max-width: 520px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px 16px 40px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 488px) minmax(0, 1fr);
+  align-items: start;
   gap: 16px;
+}
+
+.metronome-column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.textbook { display: flex; flex-direction: column; gap: 12px; min-width: 0; position: sticky; top: 72px; }
+.textbook-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.textbook-heading h2 { margin: 0; font-size: 18px; }
+#pdf-close { padding: 6px 12px; }
+.textbook-help { margin: 0; color: var(--color-text-muted); font-size: 13px; }
+.pdf-name { margin: 0; overflow-wrap: anywhere; font-size: 14px; }
+.pdf-viewer { width: 100%; height: max(400px, calc(100dvh - 310px)); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-muted); }
+#pdf-tab { color: var(--color-highlight); font-size: 13px; }
+.textbook [hidden] { display: none; }
+@media (max-width: 900px) {
+  .app { max-width: 680px; grid-template-columns: minmax(0, 1fr); }
+  .textbook { position: static; }
+  .pdf-viewer { height: 70dvh; min-height: 400px; }
 }
 
 .card {
