@@ -1,9 +1,30 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Metronome</title>
+  <title>Метроном онлайн — бесплатно, 30–300 BPM | Metronom.su</title>
+  <meta name="description" content="Бесплатный метроном онлайн: темп 30–300 BPM, акценты, триоли, таймер занятий и тюнер. Играйте по нотам в PDF прямо в браузере, без установки и регистрации.">
+  <link rel="canonical" href="https://metronom.su/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://metronom.su/">
+  <meta property="og:site_name" content="Metronom.su">
+  <meta property="og:title" content="Метроном онлайн — бесплатно, 30–300 BPM | Metronom.su">
+  <meta property="og:description" content="Метроном с акцентами, ритмами, таймером занятий и тюнером. Без установки и регистрации.">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Metronom.su",
+      "url": "https://metronom.su/",
+      "description": "Бесплатный онлайн-метроном с темпом 30–300 BPM, акцентами, таймером занятий и хроматическим тюнером.",
+      "applicationCategory": "MusicApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript and Web Audio API",
+      "inLanguage": ["ru", "en"],
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "RUB"}
+    }
+  </script>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,29 +60,39 @@
         <path d="M8 21h8l-3-17h-2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
         <path d="M12 18 17 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       </svg>
-      <span data-i18n="title">Metronome</span>
+      <span data-i18n="title">Метроном</span>
     </div>
     <div class="header-actions">
+      <a class="icon-btn" href="https://github.com/slashburygin/metronom" target="_blank" rel="noopener noreferrer" data-i18n-aria="github" aria-label="Исходный код на GitHub">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+          <path d="M12 .75a11.25 11.25 0 0 0-3.56 21.92c.56.1.77-.24.77-.54v-2.1c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.63 1.22 3.27.93.1-.73.39-1.22.71-1.5-2.5-.28-5.13-1.25-5.13-5.56 0-1.23.44-2.24 1.16-3.03-.12-.28-.5-1.43.11-2.98 0 0 .95-.3 3.09 1.16A10.78 10.78 0 0 1 12 6.16c.96 0 1.92.13 2.82.38 2.15-1.46 3.09-1.16 3.09-1.16.62 1.55.23 2.7.11 2.98.72.79 1.16 1.8 1.16 3.03 0 4.32-2.63 5.28-5.14 5.56.4.35.76 1.03.76 2.08v3.1c0 .3.2.65.77.54A11.25 11.25 0 0 0 12 .75Z"/>
+        </svg>
+      </a>
       <div class="segmented" id="lang" role="group" aria-label="Language">
         <button data-lang="ru">RU</button>
         <button data-lang="en">EN</button>
       </div>
-      <button class="icon-btn" id="fullscreen" data-i18n-aria="fullscreen" aria-label="Fullscreen">
+      <button class="icon-btn" id="fullscreen" data-i18n-aria="fullscreen" aria-label="На весь экран">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M4 9V4h5M20 15v5h-5M20 9V4h-5M4 15v5h5"/>
         </svg>
       </button>
-      <button class="icon-btn" id="theme" data-i18n-aria="theme" aria-label="Toggle theme">
+      <button class="icon-btn" id="theme" data-i18n-aria="theme" aria-label="Сменить тему">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" fill="currentColor"/></svg>
       </button>
     </div>
   </header>
 
+  <section class="intro" aria-labelledby="page-title">
+    <h1 id="page-title" data-i18n="pageHeading">Метроном онлайн</h1>
+    <p data-i18n="pageIntro">Бесплатный метроном для занятий на гитаре, фортепиано, барабанах и других инструментах. Настройте темп от 30 до 300 BPM и занимайтесь в браузере без установки и регистрации.</p>
+  </section>
   <main class="app">
+    <div class="metronome-column">
     <section class="card stage">
       <div class="segmented display-toggle" id="display" role="group" data-i18n-aria="display">
-        <button data-view="digital" data-i18n="digital">Digital</button>
-        <button data-view="pendulum" data-i18n="pendulum">Pendulum</button>
+        <button data-view="digital" data-i18n="digital">Цифровой</button>
+        <button data-view="pendulum" data-i18n="pendulum">Маятник</button>
       </div>
 
       <svg id="pendulum" class="pendulum" viewBox="0 0 200 230" aria-hidden="true">
@@ -75,61 +106,61 @@
       </svg>
 
       <div class="tempo">
-        <button class="round" id="bpm-down" data-i18n-aria="slower" aria-label="Slower">−</button>
+        <button class="round" id="bpm-down" data-i18n-aria="slower" aria-label="Медленнее">−</button>
         <div class="bpm-readout">
-          <input id="bpm" type="number" min="30" max="300" value="120" inputmode="numeric" data-i18n-aria="tempo" aria-label="Tempo">
+          <input id="bpm" type="number" min="30" max="300" value="120" inputmode="numeric" data-i18n-aria="tempo" aria-label="Темп">
           <div class="meta">
-            <span data-i18n="bpm">BPM</span> · <span id="marking">Allegro</span> · <span id="signature">4/4</span>
+            <span data-i18n="bpm">уд/мин</span> · <span id="marking">Allegro</span> · <span id="signature">4/4</span>
           </div>
         </div>
-        <button class="round" id="bpm-up" data-i18n-aria="faster" aria-label="Faster">+</button>
+        <button class="round" id="bpm-up" data-i18n-aria="faster" aria-label="Быстрее">+</button>
       </div>
 
-      <input type="range" id="bpm-slider" min="30" max="300" value="120" data-i18n-aria="tempo" aria-label="Tempo">
+      <input type="range" id="bpm-slider" min="30" max="300" value="120" data-i18n-aria="tempo" aria-label="Темп">
 
       <div id="beats" class="beats"></div>
-      <p class="beats-hint" data-i18n="beatsHint"></p>
+      <p class="beats-hint" data-i18n="beatsHint">Нажмите на долю: акцент → обычная → без звука</p>
       <label class="check">
         <input type="checkbox" id="stress-first">
-        <span data-i18n="stressFirst">Stress first beat</span>
+        <span data-i18n="stressFirst">Акцент на первую долю</span>
       </label>
       <p class="remaining" id="remaining" role="timer" hidden>0:00</p>
 
       <div class="actions">
-        <button id="play" class="btn btn--primary btn--lg" data-i18n="start">Start</button>
-        <button id="tap" class="btn btn--secondary btn--lg" data-i18n="tap">Tap</button>
-        <button id="reset" class="btn btn--ghost btn--lg" data-i18n="reset">Reset</button>
+        <button id="play" class="btn btn--primary btn--lg" data-i18n="start">Старт</button>
+        <button id="tap" class="btn btn--secondary btn--lg" data-i18n="tap">Тап</button>
+        <button id="reset" class="btn btn--ghost btn--lg" data-i18n="reset">Сброс</button>
       </div>
     </section>
 
     <section class="card settings">
-      <div class="field"><span class="field-label" data-i18n="timeSignature">Time signature</span>
+      <div class="field"><span class="field-label" data-i18n="timeSignature">Размер</span>
         <span class="signature-pick">
           <div id="beats-per-bar"></div>
           <span>/</span>
           <div id="note-value"></div>
         </span>
       </div>
-      <div class="field"><span class="field-label" data-i18n="sound">Sound</span>
+      <div class="field"><span class="field-label" data-i18n="sound">Звук</span>
         <div id="sound"></div>
       </div>
-      <div class="field"><span class="field-label" data-i18n="pitch">Pitch</span>
+      <div class="field"><span class="field-label" data-i18n="pitch">Высота тона</span>
         <div id="pitch"></div>
       </div>
-      <div class="field"><span class="field-label" data-i18n="timer">Practice timer</span>
+      <div class="field"><span class="field-label" data-i18n="timer">Таймер занятия</span>
         <div id="timer"></div>
       </div>
-      <div class="field wide"><span class="field-label" data-i18n="subdivision">Rhythm</span>
+      <div class="field wide"><span class="field-label" data-i18n="subdivision">Ритм</span>
         <div id="subdivision" class="rhythm-grid" role="radiogroup" data-i18n-aria="subdivision"></div>
       </div>
-      <div class="field wide"><span class="field-label" data-i18n="volume">Volume</span>
-        <input type="range" id="volume" min="0" max="1" step="0.05" value="0.8" data-i18n-aria="volume" aria-label="Volume">
+      <div class="field wide"><span class="field-label" data-i18n="volume">Громкость</span>
+        <input type="range" id="volume" min="0" max="1" step="0.05" value="0.8" data-i18n-aria="volume" aria-label="Громкость">
       </div>
     </section>
 
     <section class="card tuner" aria-labelledby="tuner-title">
       <div class="tuner-heading">
-        <h2 id="tuner-title" data-i18n="tuner">Tuner</h2>
+        <h2 id="tuner-title" data-i18n="tuner">Тюнер</h2>
         <span class="field-label">A4 = 440 Hz</span>
       </div>
       <p class="tuner-note" id="tuner-note">—</p>
@@ -140,14 +171,46 @@
       </div>
       <div class="tuner-scale"><span>−50</span><span>0</span><span>+50</span></div>
       <p id="tuner-status" class="tuner-status" role="status"></p>
-      <button id="tuner-toggle" class="btn btn--primary btn--lg">Enable microphone</button>
-      <p class="tuner-help" data-i18n="tunerHelp"></p>
+      <button id="tuner-toggle" class="btn btn--primary btn--lg">Включить микрофон</button>
+      <p class="tuner-help" data-i18n="tunerHelp">Играйте одну протяжную ноту. Остановите метроном или используйте наушники. Звук обрабатывается на вашем устройстве.</p>
     </section>
 
     <p class="hint">
-      <kbd>Space</kbd> <kbd>↑</kbd><kbd>↓</kbd> <kbd>T</kbd> — <span data-i18n="keys"></span>
+      <kbd>Space</kbd> <kbd>↑</kbd><kbd>↓</kbd> <kbd>T</kbd> — <span data-i18n="keys">старт/стоп · ±1 уд/мин (Shift ±5) · тап</span>
     </p>
+    </div>
+    <section id="textbook" class="card textbook" aria-labelledby="textbook-title">
+      <div class="textbook-heading">
+        <h2 id="textbook-title" data-i18n="textbook">Учебник</h2>
+        <p id="pdf-name" class="pdf-name" hidden></p>
+        <button id="pdf-open" class="btn btn--secondary" data-i18n="pdfOpenShort" data-i18n-aria="pdfOpen" aria-label="Открыть PDF с компьютера">Открыть PDF</button>
+        <button id="pdf-close" class="btn btn--ghost" data-i18n="pdfClose" hidden>Закрыть</button>
+      </div>
+      <input id="pdf-file" type="file" accept="application/pdf,.pdf" hidden>
+      <p id="pdf-help" class="textbook-help" data-i18n="pdfHelp">Выберите учебник или ноты. Листайте страницы и меняйте масштаб в просмотрщике PDF. Файл остаётся на вашем устройстве.</p>
+      <p id="pdf-error" class="textbook-help" role="alert" hidden data-i18n="pdfError">Не удалось открыть файл. Выберите корректный PDF.</p>
+      <iframe id="pdf-viewer" class="pdf-viewer" title="PDF textbook" hidden></iframe>
+      <a id="pdf-tab" target="_blank" rel="noopener" data-i18n="pdfTab" hidden>Открыть PDF в отдельной вкладке</a>
+    </section>
   </main>
+  <section class="guide card" aria-labelledby="guide-title">
+    <h2 id="guide-title" data-i18n="guideTitle">Как пользоваться метрономом</h2>
+    <ol>
+      <li data-i18n="guideTempo">Установите темп ползунком или введите число BPM. Кнопка «Тап» определяет темп по нескольким нажатиям в нужном ритме.</li>
+      <li data-i18n="guideRhythm">Выберите музыкальный размер, например 3/4 или 4/4, и ритм: четверти, восьмые, триоли или шестнадцатые. Нажмите на долю, чтобы изменить акцент или отключить её звук.</li>
+      <li data-i18n="guideStart">Нажмите «Старт» или пробел. Клавиши ↑ и ↓ меняют темп на 1 BPM, а с Shift — на 5 BPM. Клавиша T работает как «Тап».</li>
+      <li data-i18n="guidePractice">Выберите звук, громкость и таймер занятия. В разделе «Учебник» можно открыть PDF с нотами: файл остаётся на вашем устройстве.</li>
+    </ol>
+    <h2 data-i18n="faqTitle">Вопросы о метрономе</h2>
+    <h3 data-i18n="faqBpmTitle">Что означает BPM?</h3>
+    <p data-i18n="faqBpm">BPM — число ударов в минуту. При темпе 60 BPM метроном отмечает одну долю в секунду, при 120 BPM — две. Темп произведения обычно указан над нотами.</p>
+    <h3 data-i18n="faqPracticeTitle">Как заниматься с метрономом?</h3>
+    <p data-i18n="faqPractice">Начните с темпа, в котором можете сыграть фрагмент ровно и без ошибок. Слушайте доли и сохраняйте пульс в паузах. Повышайте темп небольшими шагами, когда исполнение станет уверенным.</p>
+    <h3 data-i18n="faqTunerTitle">Как настроить инструмент с помощью тюнера?</h3>
+    <p data-i18n="faqTuner">Включите микрофон в разделе «Тюнер» и сыграйте одну протяжную ноту. Тюнер покажет ноту и отклонение в центах; эталон — ля первой октавы, 440 Гц. Для точного показания остановите метроном или используйте наушники. Звук обрабатывается на устройстве.</p>
+    <h3 data-i18n="faqMobileTitle">Работает ли метроном на телефоне?</h3>
+    <p data-i18n="faqMobile">Метроном работает в современных браузерах на телефонах и компьютерах с поддержкой Web Audio API. Для запуска звука нажмите «Старт». Для тюнера потребуется разрешение на доступ к микрофону.</p>
+  </section>
   <script type="module" src="src/app.js"></script>
 </body>
 </html>

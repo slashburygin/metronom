@@ -12,7 +12,7 @@ set -o pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-for f in index.html src/app.js src/metronome.js src/tempo.js src/i18n.js src/style.css; do
+for f in index.html robots.txt sitemap.xml src/app.js src/metronome.js src/tempo.js src/i18n.js src/style.css; do
     if [ ! -f "${REPO_ROOT}/site/${f}" ]; then
         echo "site/${f} not found" >&2
         exit 1

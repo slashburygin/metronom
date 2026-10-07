@@ -163,7 +163,11 @@ function reset() {
 function renderText() {
   const s = t();
   document.documentElement.lang = ui.lang;
-  document.title = s.title;
+  document.title = s.pageTitle;
+  document.querySelector('meta[name="description"]').content = s.pageDescription;
+  document.querySelector('meta[property="og:title"]').content = s.pageTitle;
+  document.querySelector('meta[property="og:description"]').content = s.pageDescription;
+  $('pdf-viewer').title = s.textbook;
   document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = s[el.dataset.i18n]; });
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
     el.setAttribute('aria-label', s[el.dataset.i18nAria]);
@@ -388,6 +392,7 @@ els.fullscreen.addEventListener('click', () => {
 document.addEventListener('fullscreenchange', renderFullscreen);
 
 document.addEventListener('keydown', (e) => {
+  if (e.target.closest('.textbook')) return;
   if (e.target.matches('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   const step = e.shiftKey ? 5 : 1;
   switch (e.key) {
@@ -417,3 +422,48 @@ $('tuner-toggle').addEventListener('click', () => {
   else tuner.start();
 });
 window.addEventListener('pagehide', () => tuner.stop());
+
+// Local object URLs keep the textbook off the server and leave audio running.
+let textbookUrl = null;
+let textbookRequest = 0;
+function closeTextbook() {
+  textbookRequest++;
+  $('pdf-viewer').removeAttribute('src');
+  $('pdf-tab').removeAttribute('href');
+  if (textbookUrl) URL.revokeObjectURL(textbookUrl);
+  textbookUrl = null;
+  $('textbook').classList.remove('has-pdf');
+  $('pdf-help').hidden = false;
+  for (const id of ['pdf-viewer', 'pdf-name', 'pdf-close', 'pdf-tab', 'pdf-error']) $(id).hidden = true;
+  $('pdf-name').textContent = '';
+  $('pdf-name').removeAttribute('title');
+  $('pdf-file').value = '';
+}
+$('pdf-open').addEventListener('click', () => $('pdf-file').click());
+$('pdf-close').addEventListener('click', closeTextbook);
+$('pdf-file').addEventListener('change', async () => {
+  const file = $('pdf-file').files[0];
+  if (!file) return;
+  const request = ++textbookRequest;
+  $('pdf-error').hidden = true;
+  try {
+    const header = new TextDecoder().decode(await file.slice(0, 1024).arrayBuffer());
+    if (request !== textbookRequest) return;
+    if (!header.includes('%PDF-')) throw new Error('Invalid PDF');
+    const nextUrl = URL.createObjectURL(new Blob([file], { type: 'application/pdf' }));
+    const previousUrl = textbookUrl;
+    textbookUrl = nextUrl;
+    $('pdf-viewer').src = `${nextUrl}#view=FitH`;
+    $('pdf-tab').href = nextUrl;
+    $('pdf-name').textContent = file.name;
+    $('pdf-name').title = file.name;
+    $('textbook').classList.add('has-pdf');
+    $('pdf-help').hidden = true;
+    for (const id of ['pdf-viewer', 'pdf-name', 'pdf-close', 'pdf-tab']) $(id).hidden = false;
+    if (previousUrl) URL.revokeObjectURL(previousUrl);
+  } catch {
+    if (request === textbookRequest) $('pdf-error').hidden = false;
+  } finally {
+    if (request === textbookRequest) $('pdf-file').value = '';
+  }
+});
