@@ -163,7 +163,10 @@ function reset() {
 function renderText() {
   const s = t();
   document.documentElement.lang = ui.lang;
-  document.title = s.title;
+  document.title = s.pageTitle;
+  document.querySelector('meta[name="description"]').content = s.pageDescription;
+  document.querySelector('meta[property="og:title"]').content = s.pageTitle;
+  document.querySelector('meta[property="og:description"]').content = s.pageDescription;
   $('pdf-viewer').title = s.textbook;
   document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = s[el.dataset.i18n]; });
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
