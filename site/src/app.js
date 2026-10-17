@@ -441,8 +441,7 @@ function closeTextbook() {
 }
 $('pdf-open').addEventListener('click', () => $('pdf-file').click());
 $('pdf-close').addEventListener('click', closeTextbook);
-$('pdf-file').addEventListener('change', async () => {
-  const file = $('pdf-file').files[0];
+async function openTextbook(file) {
   if (!file) return;
   const request = ++textbookRequest;
   $('pdf-error').hidden = true;
@@ -466,4 +465,36 @@ $('pdf-file').addEventListener('change', async () => {
   } finally {
     if (request === textbookRequest) $('pdf-file').value = '';
   }
+}
+$('pdf-file').addEventListener('change', () => openTextbook($('pdf-file').files[0]));
+
+// Disable iframe hit testing during file drags so an open PDF can be replaced.
+const textbook = $('textbook');
+function resetTextbookDrag() {
+  textbook.classList.remove('file-drag', 'drop-active');
+}
+document.addEventListener('dragenter', (event) => {
+  if (Array.from(event.dataTransfer?.types || []).includes('Files')) {
+    textbook.classList.add('file-drag');
+  }
+});
+document.addEventListener('dragover', (event) => {
+  if (!Array.from(event.dataTransfer?.types || []).includes('Files')) return;
+  event.preventDefault();
+  const overTextbook = textbook.contains(event.target);
+  textbook.classList.add('file-drag');
+  textbook.classList.toggle('drop-active', overTextbook);
+  event.dataTransfer.dropEffect = overTextbook ? 'copy' : 'none';
+});
+document.addEventListener('dragleave', (event) => {
+  if (!event.relatedTarget) resetTextbookDrag();
+});
+document.addEventListener('dragend', resetTextbookDrag);
+document.addEventListener('drop', (event) => {
+  const files = event.dataTransfer?.files;
+  if (files?.length) {
+    event.preventDefault();
+    if (textbook.contains(event.target)) openTextbook(files[0]);
+  }
+  resetTextbookDrag();
 });

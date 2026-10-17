@@ -155,6 +155,8 @@ button { cursor: pointer; }
 
 .metronome-column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .textbook { display: flex; flex-direction: column; gap: 12px; min-width: 0; position: sticky; top: 72px; }
+.textbook.file-drag .pdf-viewer { pointer-events: none; }
+.textbook.drop-active { outline: 2px dashed var(--color-highlight); outline-offset: -4px; }
 .textbook-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .textbook-heading h2 { margin: 0; font-size: 18px; }
 .textbook-heading .btn { flex: none; height: 36px; padding: 0 12px; font-size: 13px; }
@@ -475,10 +477,8 @@ kbd {
 .tuner-note.localized { font-size: clamp(28px, 8vw, 44px); }
 
 /* Searchable instructions remain below the instrument controls. */
-.intro, .guide { max-width: 960px; margin: 24px auto; width: calc(100% - 32px); }
-.intro h1 { margin: 0 0 8px; font-size: clamp(24px, 5vw, 32px); line-height: 1.25; }
-.intro p, .guide p, .guide li { color: var(--color-text-muted); }
-.intro p { margin: 0; }
+.guide { max-width: 960px; margin: 24px auto; width: calc(100% - 32px); }
+.guide p, .guide li { color: var(--color-text-muted); }
 .guide { padding: 24px; }
 .guide h2 { margin: 24px 0 12px; font-size: 22px; }
 .guide h2:first-child { margin-top: 0; }
