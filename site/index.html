@@ -175,7 +175,19 @@
       <kbd>Space</kbd> <kbd>↑</kbd><kbd>↓</kbd> <kbd>T</kbd> — <span data-i18n="keys">старт/стоп · ±1 уд/мин (Shift ±5) · тап</span>
     </p>
     </div>
-    <section id="textbook" class="card textbook" aria-labelledby="textbook-title">
+    <aside class="practice-column">
+      <div class="segmented practice-tabs" role="tablist" data-i18n-aria="practicePanel">
+        <button id="lessons-tab" role="tab" aria-controls="lessons" aria-selected="true" data-i18n="lessons">Занятия</button>
+        <button id="textbook-tab" role="tab" aria-controls="textbook" aria-selected="false" tabindex="-1" data-i18n="textbook">Учебник</button>
+      </div>
+      <section id="lessons" class="card lessons" role="tabpanel" aria-labelledby="lessons-tab">
+        <h2 data-i18n="lessons">Занятия</h2>
+        <p class="textbook-help" data-i18n="lessonsSource">Хаймович · «Техника джазового саксофониста» · стр. 35–58</p>
+        <div id="lesson-days" class="lesson-days" role="group" data-i18n-aria="lessonDay"></div>
+        <p id="lesson-status" role="status" hidden></p>
+        <div id="lesson-content"></div>
+      </section>
+    <section hidden role="tabpanel" aria-labelledby="textbook-tab" id="textbook" class="card textbook">
       <div class="textbook-heading">
         <h2 id="textbook-title" data-i18n="textbook">Учебник</h2>
         <p id="pdf-name" class="pdf-name" hidden></p>
@@ -188,6 +200,7 @@
       <iframe id="pdf-viewer" class="pdf-viewer" title="PDF textbook" hidden></iframe>
       <a id="pdf-tab" target="_blank" rel="noopener" data-i18n="pdfTab" hidden>Открыть PDF в отдельной вкладке</a>
     </section>
+    </aside>
   </main>
   <section class="guide card" aria-labelledby="guide-title">
     <h2 id="guide-title" data-i18n="guideTitle">Как пользоваться метрономом</h2>

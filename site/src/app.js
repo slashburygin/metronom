@@ -1,3 +1,4 @@
+import { initLessons } from './lessons.js';
 import { Tuner } from './tuner.js';
 import { Metronome } from './metronome.js';
 import { STRINGS, detectLang } from './i18n.js';
@@ -55,6 +56,7 @@ const metronome = new Metronome({
 const tapper = new TapTempo();
 const t = () => STRINGS[ui.lang];
 const tuner = new Tuner(renderTuner);
+const lessons = initLessons(() => ui.lang);
 
 function renderTuner() {
   const strings = t();
@@ -181,6 +183,7 @@ function renderText() {
   for (const b of els.lang.children) b.setAttribute('aria-pressed', b.dataset.lang === ui.lang);
   renderPlay();
   renderTuner();
+  lessons.render();
   renderBeats();
   renderSubdivisions();
 }
@@ -392,7 +395,7 @@ els.fullscreen.addEventListener('click', () => {
 document.addEventListener('fullscreenchange', renderFullscreen);
 
 document.addEventListener('keydown', (e) => {
-  if (e.target.closest('.textbook')) return;
+  if (e.target.closest('.practice-column')) return;
   if (e.target.matches('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   const step = e.shiftKey ? 5 : 1;
   switch (e.key) {
@@ -457,6 +460,7 @@ async function openTextbook(file) {
     $('pdf-name').textContent = file.name;
     $('pdf-name').title = file.name;
     $('textbook').classList.add('has-pdf');
+    $('textbook-tab').click();
     $('pdf-help').hidden = true;
     for (const id of ['pdf-viewer', 'pdf-name', 'pdf-close', 'pdf-tab']) $(id).hidden = false;
     if (previousUrl) URL.revokeObjectURL(previousUrl);
