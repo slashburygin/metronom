@@ -18,7 +18,7 @@ styling follows exordos.com.
 - Russian/English interface, light/dark theme
 - Local PDF textbook or sheet music beside the metronome, with the browser's page and zoom controls. Files stay on device. On narrow screens the viewer sits below the controls; browsers without embedded PDF support can use the separate-tab link.
 - Practice tab beside the metronome: Haimovich exercises for each weekday and daily chromatic exercises, with the current day selected automatically. Scores open at full size in a separate tab.
-- Scales & chords practice: 12 major keys, diatonic seventh chords, ii–V–I guide tones, and four guided steps with progress saved per key. A tempo button sets the metronome to 60 BPM.
+- Scales & chords practice: major, natural minor, harmonic minor and jazz melodic minor in 12 keys, with diatonic seventh chords, cadence guide tones and four guided steps. Progress is saved per key and scale type. Every task has a small help button with examples that follow the selected key. A tempo button sets the metronome to 60 BPM.
 - Settings are saved in the browser; **Reset** restores the defaults
 - Keyboard: `Space` start/stop, `↑`/`↓` ±1 BPM (`Shift` ±5), `T` tap
 
@@ -84,5 +84,9 @@ source PDF is not served. To edit the schedule, change the JSON; to replace a sc
 replace its image. These textbook extracts retain their original authorship and are
 separate from the application code's license.
 
-`site/src/harmony.js` generates diatonically spelled major scales and seventh chords;
+`site/src/harmony.js` generates diatonically spelled major/minor scales and seventh chords;
 `site/src/scale-practice.js` contains the bilingual practice steps and progress interface.
+`site/src/practice-help.js` provides the task popovers, rhythm grids and transposed examples.
+Jazz melodic minor uses the same raised sixth and seventh in both directions.
+The natural-minor chord table stays diatonic; the practice cadence uses V7 from
+harmonic minor, with an explanation of its raised leading tone.

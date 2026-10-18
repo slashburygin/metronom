@@ -532,3 +532,20 @@ kbd {
 #scale-practice > .check { margin-top: 16px; }
 .scale-navigation { display: flex; justify-content: space-between; gap: 8px; margin: 16px 0; }
 .scale-navigation button:disabled { opacity: .45; cursor: default; }
+
+.rhythm-help-button { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-bg-muted); color: var(--color-text); font: 600 13px var(--font-mono); vertical-align: middle; cursor: pointer; }
+.rhythm-help-button:hover { border-color: var(--color-highlight); color: var(--color-highlight); }
+.rhythm-examples { position: fixed; inset: auto; margin: 0; width: min(400px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow-y: auto; padding: 16px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-elevated); color: var(--color-text); box-shadow: 0 8px 32px #0003; font-size: 13px; }
+.rhythm-examples-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rhythm-examples-header button { flex: none; }
+.rhythm-examples p { margin: 12px 0; }
+.rhythm-examples p:last-child { margin-bottom: 0; }
+.rhythm-examples table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 12px; font-family: var(--font-mono); }
+.rhythm-examples caption { text-align: left; margin-bottom: 4px; font: 500 13px var(--font-sans, sans-serif); }
+.rhythm-examples th, .rhythm-examples td { text-align: center; padding: 4px 0; }
+.rhythm-examples th { font-weight: 400; color: var(--color-text-muted); border-bottom: 1px solid var(--color-border); }
+.rhythm-examples h4 { margin: 14px 0 4px; font-size: 13px; }
+.rhythm-examples .practice-example-text { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.scale-toolbar label { min-width: 100px; }
+.scale-toolbar select { width: 100%; }
+.scale-mode-help { margin-top: 12px; }
