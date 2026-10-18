@@ -181,11 +181,18 @@
         <button id="textbook-tab" role="tab" aria-controls="textbook" aria-selected="false" tabindex="-1" data-i18n="textbook">Учебник</button>
       </div>
       <section id="lessons" class="card lessons" role="tabpanel" aria-labelledby="lessons-tab">
-        <h2 data-i18n="lessons">Занятия</h2>
-        <p class="textbook-help" data-i18n="lessonsSource">Хаймович · «Техника джазового саксофониста» · стр. 35–58</p>
-        <div id="lesson-days" class="lesson-days" role="group" data-i18n-aria="lessonDay"></div>
-        <p id="lesson-status" role="status" hidden></p>
-        <div id="lesson-content"></div>
+        <div class="segmented lesson-modes" role="group" data-i18n-aria="practiceMode">
+          <button id="daily-mode" aria-pressed="true" data-i18n="dailyPractice">По дням</button>
+          <button id="scales-mode" aria-pressed="false" data-i18n="scalePractice">Гаммы и аккорды</button>
+        </div>
+        <div id="scale-practice" hidden></div>
+        <div id="daily-practice" class="lesson-layout">
+          <div id="lesson-days" class="lesson-days" role="group" data-i18n-aria="lessonDay"></div>
+          <div class="lesson-pages">
+            <p id="lesson-status" role="status" hidden></p>
+            <div id="lesson-content"></div>
+          </div>
+        </div>
       </section>
     <section hidden role="tabpanel" aria-labelledby="textbook-tab" id="textbook" class="card textbook">
       <div class="textbook-heading">

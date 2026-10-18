@@ -18,6 +18,7 @@ styling follows exordos.com.
 - Russian/English interface, light/dark theme
 - Local PDF textbook or sheet music beside the metronome, with the browser's page and zoom controls. Files stay on device. On narrow screens the viewer sits below the controls; browsers without embedded PDF support can use the separate-tab link.
 - Practice tab beside the metronome: Haimovich exercises for each weekday and daily chromatic exercises, with the current day selected automatically. Scores open at full size in a separate tab.
+- Scales & chords practice: 12 major keys, diatonic seventh chords, ii–V–I guide tones, and four guided steps with progress saved per key. A tempo button sets the metronome to 60 BPM.
 - Settings are saved in the browser; **Reset** restores the defaults
 - Keyboard: `Space` start/stop, `↑`/`↓` ±1 BPM (`Shift` ±5), `T` tap
 
@@ -82,3 +83,6 @@ lossless images rendered at 2000 pixels high. The app loads images lazily; the f
 source PDF is not served. To edit the schedule, change the JSON; to replace a score,
 replace its image. These textbook extracts retain their original authorship and are
 separate from the application code's license.
+
+`site/src/harmony.js` generates diatonically spelled major scales and seventh chords;
+`site/src/scale-practice.js` contains the bilingual practice steps and progress interface.

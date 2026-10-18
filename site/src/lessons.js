@@ -1,11 +1,27 @@
+import { initScalePractice } from './scale-practice.js';
+
 const BASE = 'lessons/haimovich/';
 const DAYS = {
   ru: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
   en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 };
 
-export function initLessons(getLang) {
+export function initLessons(getLang, onTempo) {
   const $ = (id) => document.getElementById(id);
+  const scales = initScalePractice(getLang, onTempo);
+  let mode = 'daily';
+  for (const name of ['daily', 'scales']) {
+    $(`${name}-mode`).addEventListener('click', () => {
+      mode = name;
+      renderMode();
+    });
+  }
+  function renderMode() {
+    $('daily-practice').hidden = mode !== 'daily';
+    $('scale-practice').hidden = mode !== 'scales';
+    $('daily-mode').setAttribute('aria-pressed', mode === 'daily');
+    $('scales-mode').setAttribute('aria-pressed', mode === 'scales');
+  }
   let day = new Date().getDay();
   let schedule;
   let failed = false;
@@ -30,6 +46,8 @@ export function initLessons(getLang) {
     });
   });
   function render() {
+    scales.render();
+    renderMode();
     const lang = getLang();
     const ru = lang === 'ru';
     const focusedDay = document.activeElement?.dataset.day;
@@ -53,16 +71,9 @@ export function initLessons(getLang) {
     const content = $('lesson-content');
     content.replaceChildren();
     const session = schedule.sessions.find((item) => item.days.includes(day));
-    if (!session) {
-      const rest = document.createElement('p');
-      rest.textContent = ru ? 'Воскресенье: только ежедневная хроматика.' : 'Sunday: daily chromatic exercises only.';
-      content.append(rest);
-    }
     for (const item of [session, schedule.daily].filter(Boolean)) {
       const section = document.createElement('section');
-      const title = document.createElement('h3');
-      title.textContent = item.title[lang];
-      section.append(title);
+      section.setAttribute('aria-label', item.title[lang]);
       for (const page of item.pages) {
         const figure = document.createElement('figure');
         const link = document.createElement('a');
@@ -77,7 +88,8 @@ export function initLessons(getLang) {
         image.height = 2000;
         link.append(image);
         const caption = document.createElement('figcaption');
-        caption.textContent = `${ru ? 'Стр.' : 'Page'} ${page} · ${ru ? 'Нажмите на ноты, чтобы увеличить' : 'Click the score to enlarge'}`;
+        const daily = item === schedule.daily ? `${ru ? 'Ежедневно' : 'Daily'} · ` : '';
+        caption.textContent = `${daily}${ru ? 'Стр.' : 'Page'} ${page} · ${ru ? 'Нажмите на ноты, чтобы увеличить' : 'Click the score to enlarge'}`;
         figure.append(link, caption);
         section.append(figure);
       }

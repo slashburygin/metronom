@@ -56,7 +56,7 @@ const metronome = new Metronome({
 const tapper = new TapTempo();
 const t = () => STRINGS[ui.lang];
 const tuner = new Tuner(renderTuner);
-const lessons = initLessons(() => ui.lang);
+const lessons = initLessons(() => ui.lang, setBpm);
 
 function renderTuner() {
   const strings = t();

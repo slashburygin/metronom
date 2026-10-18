@@ -2,10 +2,12 @@ export const LANGS = ['ru', 'en'];
 
 export const STRINGS = {
   en: {
+    practiceMode: "Practice mode",
+    dailyPractice: "By day",
+    scalePractice: "Scales & chords",
     lessons: "Practice",
     practicePanel: "Practice materials",
     lessonDay: "Practice day",
-    lessonsSource: "Haimovich · Jazz Saxophonist Technique · pp. 35–58 (Russian original)",
 
     pageTitle: "Free Online Metronome — 30–300 BPM | Metronom.su",
     pageDescription: "Free online metronome with 30–300 BPM, accents, triplets, practice timer and tuner. Read PDF sheet music in your browser. No installation or registration.",
@@ -94,10 +96,12 @@ export const STRINGS = {
     accents: { accent: 'accent', normal: 'normal', mute: 'mute' },
   },
   ru: {
+    practiceMode: "Режим занятия",
+    dailyPractice: "По дням",
+    scalePractice: "Гаммы и аккорды",
     lessons: "Занятия",
     practicePanel: "Материалы для занятий",
     lessonDay: "День занятия",
-    lessonsSource: "Хаймович · «Техника джазового саксофониста» · стр. 35–58",
 
     guideTitle: "Как пользоваться метрономом",
     guideTempo: "Установите темп ползунком или введите число BPM. Кнопка «Тап» определяет темп по нескольким нажатиям в нужном ритме.",
