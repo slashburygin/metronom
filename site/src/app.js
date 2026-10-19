@@ -10,6 +10,8 @@ import {
 } from './tempo.js';
 
 const STORAGE_KEY = 'metronome-settings';
+let recentTempos = [60, 90, 120];
+let recentTempoTimer;
 const THEME_KEY = 'metronome-theme';
 const PENDULUM_MAX_DEG = 28;
 const $ = (id) => document.getElementById(id);
@@ -120,7 +122,7 @@ const selects = {
 
 function save() {
   const { bpm, beatsPerBar, subdivision, accents, sound, pitch, volume, timerMinutes } = metronome;
-  const data = { bpm, beatsPerBar, subdivision, accents, sound, pitch, volume, timerMinutes, ...ui };
+  const data = { bpm, beatsPerBar, subdivision, accents, sound, pitch, volume, timerMinutes, recentTempos, ...ui };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* not persisted */ }
 }
 
@@ -128,6 +130,10 @@ function load() {
   let s;
   try { s = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return; }
   if (!s) return;
+  if (Array.isArray(s.recentTempos)) {
+    recentTempos = [...new Set([...s.recentTempos, 60, 90, 120]
+      .filter((bpm) => Number.isInteger(bpm) && bpm >= MIN_BPM && bpm <= MAX_BPM))].slice(0, 3);
+  }
   apply(s);
 }
 
@@ -183,6 +189,7 @@ function renderText() {
   for (const b of els.lang.children) b.setAttribute('aria-pressed', b.dataset.lang === ui.lang);
   renderPlay();
   renderTuner();
+  renderRecentTempos();
   lessons.render();
   renderBeats();
   renderSubdivisions();
@@ -225,9 +232,29 @@ function renderTempo() {
   els.bpm.value = metronome.bpm;
   els.slider.value = metronome.bpm;
   els.marking.textContent = tempoMarking(metronome.bpm);
+  renderRecentTempos();
   // Like a real metronome: the weight slides up the rod for slower tempos.
   const f = (metronome.bpm - MIN_BPM) / (MAX_BPM - MIN_BPM);
   els.pendulumWeight.setAttribute('y', 30 + f * 130);
+}
+
+function renderRecentTempos() {
+  $('recent-tempos').replaceChildren(...recentTempos.map((bpm) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn--secondary';
+    button.textContent = `${bpm} ${t().bpm}`;
+    button.setAttribute('aria-pressed', bpm === metronome.bpm);
+    button.addEventListener('click', () => setBpm(bpm));
+    return button;
+  }));
+}
+
+function rememberTempo() {
+  clearTimeout(recentTempoTimer);
+  recentTempos = [metronome.bpm, ...recentTempos.filter((bpm) => bpm !== metronome.bpm)].slice(0, 3);
+  renderRecentTempos();
+  save();
 }
 
 function renderSignature() {
@@ -326,12 +353,15 @@ function animateFrame() {
 
 function setBpm(value) {
   metronome.setBpm(value);
+  clearTimeout(recentTempoTimer);
+  if (metronome.playing) recentTempoTimer = setTimeout(rememberTempo, 800);
   renderTempo();
   save();
 }
 
 async function togglePlay() {
   await metronome.toggle();
+  if (metronome.playing) rememberTempo();
   renderPlay();
 }
 

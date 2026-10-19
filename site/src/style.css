@@ -549,3 +549,7 @@ kbd {
 .scale-toolbar label { min-width: 100px; }
 .scale-toolbar select { width: 100%; }
 .scale-mode-help { margin-top: 12px; }
+
+.tempo-shortcuts { text-align: center; color: var(--color-text-muted); font-size: 13px; }
+#recent-tempos { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+#recent-tempos [aria-pressed="true"] { outline: 2px solid var(--btn-primary-bg); outline-offset: 2px; }
