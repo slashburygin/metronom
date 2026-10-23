@@ -238,7 +238,8 @@ function renderTempoPresets() {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'btn btn--secondary';
-    button.textContent = `${bpm} ${t().bpm}`;
+    button.textContent = String(bpm);
+    button.setAttribute('aria-label', `${bpm} ${t().bpm}`);
     button.setAttribute('aria-pressed', bpm === metronome.bpm);
     button.addEventListener('click', () => setBpm(bpm));
     return button;
