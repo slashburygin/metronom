@@ -1,0 +1,91 @@
+{
+  "source": {
+    "title": "Хаймович — Техника джазового саксофониста",
+    "pageOffset": 2
+  },
+  "sessions": [
+    {
+      "id": "timbre",
+      "title": {
+        "ru": "Тембр",
+        "en": "Timbre"
+      },
+      "days": [
+        1,
+        4
+      ],
+      "pages": [
+        35,
+        36,
+        37,
+        38,
+        39
+      ]
+    },
+    {
+      "id": "breathing",
+      "title": {
+        "ru": "Дыхание",
+        "en": "Breathing"
+      },
+      "days": [
+        2,
+        5
+      ],
+      "pages": [
+        40,
+        41,
+        42,
+        43
+      ]
+    },
+    {
+      "id": "altissimo",
+      "title": {
+        "ru": "Альтиссимо",
+        "en": "Altissimo"
+      },
+      "days": [
+        3
+      ],
+      "pages": [
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51
+      ]
+    },
+    {
+      "id": "intonation",
+      "title": {
+        "ru": "Интонация",
+        "en": "Intonation"
+      },
+      "days": [
+        6
+      ],
+      "pages": [
+        52,
+        53,
+        54,
+        55,
+        56
+      ]
+    }
+  ],
+  "daily": {
+    "id": "chromatic",
+    "title": {
+      "ru": "Ежедневно: хроматика",
+      "en": "Daily: chromatic exercises"
+    },
+    "pages": [
+      57,
+      58
+    ]
+  }
+}

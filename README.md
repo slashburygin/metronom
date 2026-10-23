@@ -17,6 +17,8 @@ styling follows exordos.com.
 - Chromatic microphone tuner (50–1500 Hz): note, frequency and cents, with A4 = 440 Hz; audio stays on device. Requires HTTPS or localhost.
 - Russian/English interface, light/dark theme
 - Local PDF textbook or sheet music beside the metronome, with the browser's page and zoom controls. Files stay on device. On narrow screens the viewer sits below the controls; browsers without embedded PDF support can use the separate-tab link.
+- Practice tab beside the metronome: Haimovich exercises for each weekday and daily chromatic exercises, with the current day selected automatically. Scores open at full size in a separate tab.
+- Scales & chords practice: major, natural minor, harmonic minor and jazz melodic minor in 12 keys, with diatonic seventh chords, cadence guide tones and four guided steps. Progress is saved per key and scale type. Every task has a small help button with examples that follow the selected key. A tempo button sets the metronome to 60 BPM.
 - Settings are saved in the browser; **Reset** restores the defaults
 - Keyboard: `Space` start/stop, `↑`/`↓` ±1 BPM (`Shift` ±5), `T` tap
 
@@ -70,3 +72,21 @@ commit builds as `0.0.1-rc+<stamp>`, and a commit tagged `1.0.0` builds as `1.0.
 the Exordos CLI, then builds and publishes the element in one step, and uploads `output/` as a
 workflow artifact. The publish half is skipped on pull requests and when the `PUSH_CFG` secret is
 missing; that secret holds the base64 of an `exordos push` config.
+
+## Practice materials
+
+`site/lessons/haimovich/schedule.json` maps weekdays (1 = Monday, 0 = Sunday) to
+sessions and printed page numbers. The daily block appears on every day, including Sunday.
+Printed pages 35–58 correspond to PDF pages 37–60 in the supplied textbook.
+`page-35.webp` through `page-58.webp` preserve the original scores and instructions as
+lossless images rendered at 2000 pixels high. The app loads images lazily; the full
+source PDF is not served. To edit the schedule, change the JSON; to replace a score,
+replace its image. These textbook extracts retain their original authorship and are
+separate from the application code's license.
+
+`site/src/harmony.js` generates diatonically spelled major/minor scales and seventh chords;
+`site/src/scale-practice.js` contains the bilingual practice steps and progress interface.
+`site/src/practice-help.js` provides the task popovers, rhythm grids and transposed examples.
+Jazz melodic minor uses the same raised sixth and seventh in both directions.
+The natural-minor chord table stays diatonic; the practice cadence uses V7 from
+harmonic minor, with an explanation of its raised leading tone.

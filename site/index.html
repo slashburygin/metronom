@@ -83,10 +83,6 @@
     </div>
   </header>
 
-  <section class="intro" aria-labelledby="page-title">
-    <h1 id="page-title" data-i18n="pageHeading">Метроном онлайн</h1>
-    <p data-i18n="pageIntro">Бесплатный метроном для занятий на гитаре, фортепиано, барабанах и других инструментах. Настройте темп от 30 до 300 BPM и занимайтесь в браузере без установки и регистрации.</p>
-  </section>
   <main class="app">
     <div class="metronome-column">
     <section class="card stage">
@@ -117,6 +113,10 @@
       </div>
 
       <input type="range" id="bpm-slider" min="30" max="300" value="120" data-i18n-aria="tempo" aria-label="Темп">
+
+      <div class="tempo-shortcuts">
+        <div id="tempo-presets" role="group" data-i18n-aria="tempoPresets" aria-label="Темпы"></div>
+      </div>
 
       <div id="beats" class="beats"></div>
       <p class="beats-hint" data-i18n="beatsHint">Нажмите на долю: акцент → обычная → без звука</p>
@@ -179,7 +179,26 @@
       <kbd>Space</kbd> <kbd>↑</kbd><kbd>↓</kbd> <kbd>T</kbd> — <span data-i18n="keys">старт/стоп · ±1 уд/мин (Shift ±5) · тап</span>
     </p>
     </div>
-    <section id="textbook" class="card textbook" aria-labelledby="textbook-title">
+    <aside class="practice-column">
+      <div class="segmented practice-tabs" role="tablist" data-i18n-aria="practicePanel">
+        <button id="lessons-tab" role="tab" aria-controls="lessons" aria-selected="true" data-i18n="lessons">Занятия</button>
+        <button id="textbook-tab" role="tab" aria-controls="textbook" aria-selected="false" tabindex="-1" data-i18n="textbook">Учебник</button>
+      </div>
+      <section id="lessons" class="card lessons" role="tabpanel" aria-labelledby="lessons-tab">
+        <div class="segmented lesson-modes" role="group" data-i18n-aria="practiceMode">
+          <button id="daily-mode" aria-pressed="true" data-i18n="dailyPractice">По дням</button>
+          <button id="scales-mode" aria-pressed="false" data-i18n="scalePractice">Гаммы и аккорды</button>
+        </div>
+        <div id="scale-practice" hidden></div>
+        <div id="daily-practice" class="lesson-layout">
+          <div id="lesson-days" class="lesson-days" role="group" data-i18n-aria="lessonDay"></div>
+          <div class="lesson-pages">
+            <p id="lesson-status" role="status" hidden></p>
+            <div id="lesson-content"></div>
+          </div>
+        </div>
+      </section>
+    <section hidden role="tabpanel" aria-labelledby="textbook-tab" id="textbook" class="card textbook">
       <div class="textbook-heading">
         <h2 id="textbook-title" data-i18n="textbook">Учебник</h2>
         <p id="pdf-name" class="pdf-name" hidden></p>
@@ -187,11 +206,12 @@
         <button id="pdf-close" class="btn btn--ghost" data-i18n="pdfClose" hidden>Закрыть</button>
       </div>
       <input id="pdf-file" type="file" accept="application/pdf,.pdf" hidden>
-      <p id="pdf-help" class="textbook-help" data-i18n="pdfHelp">Выберите учебник или ноты. Листайте страницы и меняйте масштаб в просмотрщике PDF. Файл остаётся на вашем устройстве.</p>
+      <p id="pdf-help" class="textbook-help" data-i18n="pdfHelp">Перетащите PDF в эту панель или выберите учебник кнопкой «Открыть PDF». Листайте страницы и меняйте масштаб в просмотрщике PDF. Файл остаётся на вашем устройстве.</p>
       <p id="pdf-error" class="textbook-help" role="alert" hidden data-i18n="pdfError">Не удалось открыть файл. Выберите корректный PDF.</p>
       <iframe id="pdf-viewer" class="pdf-viewer" title="PDF textbook" hidden></iframe>
       <a id="pdf-tab" target="_blank" rel="noopener" data-i18n="pdfTab" hidden>Открыть PDF в отдельной вкладке</a>
     </section>
+    </aside>
   </main>
   <section class="guide card" aria-labelledby="guide-title">
     <h2 id="guide-title" data-i18n="guideTitle">Как пользоваться метрономом</h2>

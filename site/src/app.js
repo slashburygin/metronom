@@ -1,3 +1,4 @@
+import { initLessons } from './lessons.js';
 import { Tuner } from './tuner.js';
 import { Metronome } from './metronome.js';
 import { STRINGS, detectLang } from './i18n.js';
@@ -9,6 +10,7 @@ import {
 } from './tempo.js';
 
 const STORAGE_KEY = 'metronome-settings';
+const TEMPO_PRESETS = [60, 80, 88, 100, 112, 120, 130];
 const THEME_KEY = 'metronome-theme';
 const PENDULUM_MAX_DEG = 28;
 const $ = (id) => document.getElementById(id);
@@ -55,6 +57,7 @@ const metronome = new Metronome({
 const tapper = new TapTempo();
 const t = () => STRINGS[ui.lang];
 const tuner = new Tuner(renderTuner);
+const lessons = initLessons(() => ui.lang, setBpm);
 
 function renderTuner() {
   const strings = t();
@@ -181,6 +184,8 @@ function renderText() {
   for (const b of els.lang.children) b.setAttribute('aria-pressed', b.dataset.lang === ui.lang);
   renderPlay();
   renderTuner();
+  renderTempoPresets();
+  lessons.render();
   renderBeats();
   renderSubdivisions();
 }
@@ -222,9 +227,23 @@ function renderTempo() {
   els.bpm.value = metronome.bpm;
   els.slider.value = metronome.bpm;
   els.marking.textContent = tempoMarking(metronome.bpm);
+  renderTempoPresets();
   // Like a real metronome: the weight slides up the rod for slower tempos.
   const f = (metronome.bpm - MIN_BPM) / (MAX_BPM - MIN_BPM);
   els.pendulumWeight.setAttribute('y', 30 + f * 130);
+}
+
+function renderTempoPresets() {
+  $('tempo-presets').replaceChildren(...TEMPO_PRESETS.map((bpm) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn--secondary';
+    button.textContent = String(bpm);
+    button.setAttribute('aria-label', `${bpm} ${t().bpm}`);
+    button.setAttribute('aria-pressed', bpm === metronome.bpm);
+    button.addEventListener('click', () => setBpm(bpm));
+    return button;
+  }));
 }
 
 function renderSignature() {
@@ -392,7 +411,7 @@ els.fullscreen.addEventListener('click', () => {
 document.addEventListener('fullscreenchange', renderFullscreen);
 
 document.addEventListener('keydown', (e) => {
-  if (e.target.closest('.textbook')) return;
+  if (e.target.closest('.practice-column')) return;
   if (e.target.matches('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   const step = e.shiftKey ? 5 : 1;
   switch (e.key) {
@@ -441,8 +460,7 @@ function closeTextbook() {
 }
 $('pdf-open').addEventListener('click', () => $('pdf-file').click());
 $('pdf-close').addEventListener('click', closeTextbook);
-$('pdf-file').addEventListener('change', async () => {
-  const file = $('pdf-file').files[0];
+async function openTextbook(file) {
   if (!file) return;
   const request = ++textbookRequest;
   $('pdf-error').hidden = true;
@@ -458,6 +476,7 @@ $('pdf-file').addEventListener('change', async () => {
     $('pdf-name').textContent = file.name;
     $('pdf-name').title = file.name;
     $('textbook').classList.add('has-pdf');
+    $('textbook-tab').click();
     $('pdf-help').hidden = true;
     for (const id of ['pdf-viewer', 'pdf-name', 'pdf-close', 'pdf-tab']) $(id).hidden = false;
     if (previousUrl) URL.revokeObjectURL(previousUrl);
@@ -466,4 +485,36 @@ $('pdf-file').addEventListener('change', async () => {
   } finally {
     if (request === textbookRequest) $('pdf-file').value = '';
   }
+}
+$('pdf-file').addEventListener('change', () => openTextbook($('pdf-file').files[0]));
+
+// Disable iframe hit testing during file drags so an open PDF can be replaced.
+const textbook = $('textbook');
+function resetTextbookDrag() {
+  textbook.classList.remove('file-drag', 'drop-active');
+}
+document.addEventListener('dragenter', (event) => {
+  if (Array.from(event.dataTransfer?.types || []).includes('Files')) {
+    textbook.classList.add('file-drag');
+  }
+});
+document.addEventListener('dragover', (event) => {
+  if (!Array.from(event.dataTransfer?.types || []).includes('Files')) return;
+  event.preventDefault();
+  const overTextbook = textbook.contains(event.target);
+  textbook.classList.add('file-drag');
+  textbook.classList.toggle('drop-active', overTextbook);
+  event.dataTransfer.dropEffect = overTextbook ? 'copy' : 'none';
+});
+document.addEventListener('dragleave', (event) => {
+  if (!event.relatedTarget) resetTextbookDrag();
+});
+document.addEventListener('dragend', resetTextbookDrag);
+document.addEventListener('drop', (event) => {
+  const files = event.dataTransfer?.files;
+  if (files?.length) {
+    event.preventDefault();
+    if (textbook.contains(event.target)) openTextbook(files[0]);
+  }
+  resetTextbookDrag();
 });
