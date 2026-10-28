@@ -10,7 +10,7 @@ import {
 } from './tempo.js';
 
 const STORAGE_KEY = 'metronome-settings';
-const TEMPO_PRESETS = [60, 80, 88, 100, 112, 120, 130];
+const TEMPO_PRESETS = [60, 70, 80, 88, 100, 112, 120, 130, 140];
 const THEME_KEY = 'metronome-theme';
 const PENDULUM_MAX_DEG = 28;
 const $ = (id) => document.getElementById(id);
