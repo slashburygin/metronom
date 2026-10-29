@@ -96,6 +96,7 @@ const selects = {
   noteValue: createSelect($('note-value'), {
     onChange(value) {
       ui.noteValue = Number(value);
+      metronome.setNoteValue(ui.noteValue);
       renderSignature();
       save();
     },
@@ -148,7 +149,10 @@ function apply(s) {
   if (s.pitch in PITCHES) metronome.pitch = s.pitch;
   if (typeof s.volume === 'number') metronome.setVolume(s.volume);
   if (TIMER_MINUTES.includes(s.timerMinutes)) metronome.timerMinutes = s.timerMinutes;
-  if (DENOMINATORS.includes(s.noteValue)) ui.noteValue = s.noteValue;
+  if (DENOMINATORS.includes(s.noteValue)) {
+    ui.noteValue = s.noteValue;
+    metronome.setNoteValue(ui.noteValue);
+  }
   if (s.lang in STRINGS) ui.lang = s.lang;
   if (s.view === 'digital' || s.view === 'pendulum') ui.view = s.view;
 }

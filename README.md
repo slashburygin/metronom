@@ -25,6 +25,11 @@ styling follows exordos.com.
 Timing uses a lookahead scheduler: clicks are placed on the audio clock ahead of time, and the
 scheduler runs in a Worker so it keeps time in background tabs.
 
+The metronome uses the shared `Transport` for timing and source cancellation. BPM counts the
+selected denominator note. The song model additionally supports independent tempo units,
+mixed meters and pulse grouping. See [music model and transport](docs/music-transport.md)
+for the API, count-in, looping, and seeking contracts.
+
 ## Layout
 
 | Path | Purpose |
@@ -33,6 +38,9 @@ scheduler runs in a Worker so it keeps time in background tabs.
 | `site/public/` | Static resources copied unchanged to `/`, including lesson scores. |
 | `dist/site/` | Production build, packed as `site.tar.zst`. |
 | `site/src/notation.js` | Draws a rhythm pattern as notation: noteheads, stems, beams, dots, tuplets. |
+| `site/src/musical-time.js` | Exact fractional musical durations and conversion to seconds. |
+| `site/src/song.js` | Validates songs and compiles measures and chord events into pulses. |
+| `site/src/transport.js` | Shared audio-clock scheduling, count-in, loops, seeking, and source lifecycle. |
 | `site/src/select.js` | Dropdown listbox, so the popup follows the site's tokens instead of the OS. |
 | `test/` | Unit tests for the tempo logic (`node --test`). |
 | `vite.config.js` | Development server and production build configuration. |

@@ -2,10 +2,9 @@
 // wakes up every few ms and schedules any clicks due soon on the audio clock,
 // which is sample-accurate, instead of relying on JS timers for timing.
 
-import { DEFAULTS, PITCHES, SUBDIVISIONS, clampBpm, resizeAccents } from './tempo.js';
-
-const LOOKAHEAD_MS = 25; // how often the scheduler wakes up
-const SCHEDULE_AHEAD_S = 0.1; // how far ahead clicks are scheduled
+import { DEFAULTS, PITCHES, SUBDIVISIONS, DENOMINATORS, resizeAccents } from './tempo.js';
+import { fraction, multiply } from './musical-time.js';
+import { Transport } from './transport.js';
 
 const LEVEL_GAIN = { accent: 1, normal: 0.65, sub: 0.35 };
 const LEVEL_PITCH = { accent: 1.4, normal: 1, sub: 0.8 };
@@ -23,28 +22,10 @@ const VOICES = {
   ping: { tone: 'sine', freq: [1500], dur: 0.4, gain: 0.8 },
 };
 
-// A Worker-based timer keeps ticking in background tabs, where setInterval
-// on the main thread gets throttled to ~1s and would starve the scheduler.
-function createTicker(onTick) {
-  try {
-    const src = `let id=null;onmessage=e=>{clearInterval(id);if(e.data>0)id=setInterval(()=>postMessage(0),e.data)}`;
-    const worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
-    worker.onmessage = onTick;
-    return { start: (ms) => worker.postMessage(ms), stop: () => worker.postMessage(0) };
-  } catch {
-    let id = null;
-    return {
-      start: (ms) => { clearInterval(id); id = setInterval(onTick, ms); },
-      stop: () => clearInterval(id),
-    };
-  }
-}
-
 export class Metronome {
   constructor({ onTick, onStop } = {}) {
     this.onTick = onTick; // (beatIndex, subIndex) at the moment the click is heard
     this.onStop = onStop; // called when the practice timer ends a run
-    this.bpm = DEFAULTS.bpm;
     this.beatsPerBar = DEFAULTS.beatsPerBar;
     this.subdivision = DEFAULTS.subdivision;
     this.accents = resizeAccents([], this.beatsPerBar);
@@ -52,24 +33,46 @@ export class Metronome {
     this.pitch = DEFAULTS.pitch;
     this.volume = DEFAULTS.volume;
     this.timerMinutes = DEFAULTS.timerMinutes;
-    this.playing = false;
-    this.startedAt = 0; // audio time of the first click of this run
 
     this.ctx = null;
     this.master = null;
     this.noise = null;
-    this.beat = 0;
-    this.beatCount = 0;
-    this.nextBeatTime = 0;
-    this.visualQueue = [];
-    this.lastHeardBeat = null;
-    this.ticker = createTicker(() => this.schedule());
-    this.frame = this.frame.bind(this);
+    this.transport = new Transport({
+      nextStep: index => {
+        const beat = index % this.beatsPerBar;
+        const duration = fraction(1, this.noteValue);
+        return { duration, beatIndex: beat, events: (SUBDIVISIONS[this.subdivision] ?? SUBDIVISIONS.quarter).map((onset, sub) => ({
+          kind: 'click', beat, sub,
+          offset: multiply(duration, fraction(Math.round(onset * 24), 24)),
+          level: sub === 0 ? this.accents[beat] : 'sub',
+        })) };
+      },
+      durationSeconds: () => this.timerSeconds,
+      onSchedule: (event, timing) => {
+        if (event.level !== 'mute') this.playClick(timing.time, event.level);
+      },
+      onEvent: event => this.onTick?.(event.beat, event.sub),
+      onStop: () => this.onStop?.(),
+    });
+    this.setNoteValue(DEFAULTS.noteValue);
+  }
+
+  get bpm() { return this.transport.bpm; }
+  get playing() { return this.transport.playing; }
+  get pending() { return this.transport.pending; }
+  get startedAt() { return this.transport.startedAt; }
+
+  // BPM counts the denominator note, preserving the standalone metronome's
+  // pulse rate. A song may instead choose e.g. a dotted-quarter tempo unit.
+  setNoteValue(noteValue) {
+    if (!DENOMINATORS.includes(noteValue)) throw new RangeError('Invalid beat note');
+    this.noteValue = noteValue;
+    this.transport.tempoUnit = fraction(1, noteValue);
   }
 
   get timerSeconds() { return this.timerMinutes * 60; }
 
-  setBpm(bpm) { this.bpm = clampBpm(bpm); }
+  setBpm(bpm) { this.transport.setBpm(bpm); }
 
   setBeatsPerBar(beats) {
     this.beatsPerBar = beats;
@@ -82,33 +85,18 @@ export class Metronome {
   }
 
   async start() {
-    if (this.playing) return;
+    if (this.playing || this.pending) return;
     if (!this.ctx) this.initAudio();
-    await this.ctx.resume();
-    this.playing = true;
-    this.beat = 0;
-    this.beatCount = 0;
-    this.visualQueue = [];
-    this.lastHeardBeat = null;
-    this.nextBeatTime = this.ctx.currentTime + 0.05;
-    this.startedAt = this.nextBeatTime; // so the timer covers the full run
-    this.schedule();
-    this.ticker.start(LOOKAHEAD_MS);
-    requestAnimationFrame(this.frame);
+    await this.transport.start({ index: 0 });
   }
 
-  stop() {
-    if (!this.playing) return;
-    this.playing = false;
-    this.ticker.stop();
-    this.visualQueue = [];
-    this.lastHeardBeat = null;
-  }
+  stop() { this.transport.stop(); }
 
-  toggle() { return this.playing ? this.stop() : this.start(); }
+  toggle() { return this.playing || this.pending ? this.stop() : this.start(); }
 
   initAudio() {
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.transport.context = this.ctx;
     this.master = this.ctx.createGain();
     this.master.gain.value = this.volume;
     this.master.connect(this.ctx.destination);
@@ -116,33 +104,6 @@ export class Metronome {
     this.noise = this.ctx.createBuffer(1, len, len);
     const data = this.noise.getChannelData(0);
     for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-  }
-
-  // Schedules whole beats (with all their subdivision clicks) that start
-  // within the lookahead window.
-  schedule() {
-    if (!this.playing) return;
-    const horizon = this.ctx.currentTime + SCHEDULE_AHEAD_S;
-    const until = this.timerSeconds ? this.startedAt + this.timerSeconds : Infinity;
-    while (this.nextBeatTime < horizon) {
-      // Don't schedule past the practice timer; frame() stops the run once the
-      // clicks already scheduled have been heard.
-      if (this.nextBeatTime > until) break;
-      const beatDur = 60 / this.bpm;
-      const onsets = SUBDIVISIONS[this.subdivision] ?? SUBDIVISIONS.quarter;
-      const beat = this.beat % this.beatsPerBar;
-      onsets.forEach((onset, sub) => {
-        const time = this.nextBeatTime + onset * beatDur;
-        const level = sub === 0 ? this.accents[beat] : 'sub';
-        if (level !== 'mute') this.playClick(time, level);
-        this.visualQueue.push({ beat, sub, time, count: this.beatCount, beatDur });
-      });
-      this.nextBeatTime += beatDur;
-      this.beatCount++;
-      // Modulo against the current bar length so changing the time signature
-      // mid-playback never leaves an out-of-range beat.
-      this.beat = (beat + 1) % this.beatsPerBar;
-    }
   }
 
   playClick(time, level) {
@@ -155,6 +116,7 @@ export class Metronome {
     env.gain.exponentialRampToValueAtTime(peak, time + 0.002);
     env.gain.exponentialRampToValueAtTime(0.0001, time + v.dur);
 
+    const nodes = [env];
     let out = env;
     if (v.bandpass) {
       const bp = this.ctx.createBiquadFilter();
@@ -162,6 +124,7 @@ export class Metronome {
       bp.frequency.value = Math.min(v.bandpass * pitch, nyquist);
       env.connect(bp);
       out = bp;
+      nodes.push(bp);
     }
     out.connect(this.master);
 
@@ -174,6 +137,7 @@ export class Metronome {
       filter.frequency.value = Math.min(v.freq * pitch, nyquist);
       if (v.q) filter.Q.value = v.q;
       src.connect(filter).connect(env);
+      nodes.push(filter);
       sources.push(src);
     } else {
       for (const f of v.freq) {
@@ -186,40 +150,24 @@ export class Metronome {
         sources.push(osc);
       }
     }
+    let remainingSources = sources.length;
     for (const s of sources) {
       s.start(time);
-      s.stop(time + v.dur + 0.01);
+      this.transport.track(s, () => {
+        s.disconnect();
+        if (--remainingSources === 0) nodes.forEach(node => node.disconnect());
+      }, time + v.dur + 0.01);
     }
   }
 
-  // Continuous beat position of what is currently heard (e.g. 7.5 = halfway
-  // between the 8th and 9th beats since start). Null before the first click.
+  // Continuous pulse position for the pendulum, independent of note value.
   position() {
-    if (!this.lastHeardBeat) return null;
-    const { time, count, beatDur } = this.lastHeardBeat;
-    return count + Math.min(1, (this.ctx.currentTime - time) / beatDur);
+    const position = this.transport.position();
+    return position ? position.count + position.fraction : null;
   }
 
-  // Seconds left of the practice timer, or null when no timer is set.
   remaining() {
     if (!this.timerSeconds || !this.playing) return null;
-    return Math.max(0, this.startedAt + this.timerSeconds - this.ctx.currentTime);
-  }
-
-  // Fires onTick in sync with what is heard, not when it was scheduled.
-  frame() {
-    if (!this.playing) return;
-    const now = this.ctx.currentTime;
-    if (this.timerSeconds && now >= this.startedAt + this.timerSeconds) {
-      this.stop();
-      this.onStop?.();
-      return;
-    }
-    while (this.visualQueue.length && this.visualQueue[0].time <= now) {
-      const tick = this.visualQueue.shift();
-      if (tick.sub === 0) this.lastHeardBeat = tick;
-      this.onTick?.(tick.beat, tick.sub);
-    }
-    requestAnimationFrame(this.frame);
+    return Math.max(0, this.transport.until - this.ctx.currentTime);
   }
 }
