@@ -12,7 +12,7 @@ test:
 	node --test
 
 run:
-	node server.js
+	npm run dev
 
 build:
 	exordos build -i $(SSH_KEY) -f .
