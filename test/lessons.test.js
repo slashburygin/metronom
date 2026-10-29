@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 
-const base = new URL('../site/lessons/haimovich/', import.meta.url);
+const base = new URL('../site/public/lessons/haimovich/', import.meta.url);
 const schedule = JSON.parse(await readFile(new URL('schedule.json', base), 'utf8'));
 
 test('practice covers Monday to Saturday once and includes daily chromatic pages', async () => {

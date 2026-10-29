@@ -12,10 +12,10 @@ build:
         - path: artifacts/preview-1.png
         - path: artifacts/preview-2.png
 
-        # A directory artifact is archived into `<dir>.tar.zst`, so `site/`
+        # A directory artifact is archived into `<dir>.tar.zst`, so `dist/site/`
         # becomes `site.tar.zst`. `flatten` puts the files at the archive root,
         # which is what the LB expects when it unpacks the archive.
         - script: pack_site.sh
           flatten: true
           artifacts:
-            - ../site/
+            - ../dist/site/
