@@ -6,9 +6,9 @@ const DAYS = {
   en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 };
 
-export function initLessons(getLang, onTempo) {
+export function initLessons(getLang, onTempo, playback) {
   const $ = (id) => document.getElementById(id);
-  const scales = initScalePractice(getLang, onTempo);
+  const scales = initScalePractice(getLang, onTempo, playback);
   let mode = 'daily';
   for (const name of ['daily', 'scales']) {
     $(`${name}-mode`).addEventListener('click', () => {
@@ -17,6 +17,7 @@ export function initLessons(getLang, onTempo) {
     });
   }
   function renderMode() {
+    if (mode !== 'scales') scales.stop();
     $('daily-practice').hidden = mode !== 'daily';
     $('scale-practice').hidden = mode !== 'scales';
     $('daily-mode').setAttribute('aria-pressed', mode === 'daily');
@@ -28,6 +29,7 @@ export function initLessons(getLang, onTempo) {
   let active = 'lessons';
   const tabs = ['lessons', 'textbook'];
   function showTab(id) {
+    if (id !== 'lessons') scales.stop();
     active = id;
     for (const name of tabs) {
       $(`${name}-tab`).setAttribute('aria-selected', name === id);
@@ -101,5 +103,5 @@ export function initLessons(getLang, onTempo) {
     if (!response.ok) throw new Error(response.status);
     return response.json();
   }).then((data) => { schedule = data; render(); }).catch(() => { failed = true; render(); });
-  return { render };
+  return { render, stopPlayback: scales.stop, setBpm: scales.setBpm };
 }

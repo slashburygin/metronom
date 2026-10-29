@@ -57,7 +57,15 @@ const metronome = new Metronome({
 const tapper = new TapTempo();
 const t = () => STRINGS[ui.lang];
 const tuner = new Tuner(renderTuner);
-const lessons = initLessons(() => ui.lang, setBpm);
+const lessons = initLessons(() => ui.lang, setBpm, {
+  getBpm: () => metronome.bpm,
+  getContext() {
+    metronome.stop();
+    renderPlay();
+    if (!metronome.ctx) metronome.initAudio();
+    return metronome.ctx;
+  },
+});
 
 function renderTuner() {
   const strings = t();
@@ -158,8 +166,10 @@ function apply(s) {
 }
 
 function reset() {
+  lessons.stopPlayback();
   metronome.accents = resizeAccents([], DEFAULTS.beatsPerBar);
   apply({ ...DEFAULTS, lang: ui.lang, view: ui.view });
+  lessons.setBpm(metronome.bpm);
   tapper.taps = [];
   save();
   renderAll();
@@ -346,11 +356,13 @@ function animateFrame() {
 
 function setBpm(value) {
   metronome.setBpm(value);
+  lessons.setBpm(metronome.bpm);
   renderTempo();
   save();
 }
 
 async function togglePlay() {
+  lessons.stopPlayback();
   await metronome.toggle();
   renderPlay();
 }

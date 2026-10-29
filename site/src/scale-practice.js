@@ -1,5 +1,6 @@
 import { createTaskHelp } from './practice-help.js';
 import { SCALE_TYPES, keysFor, scaleHarmony } from './harmony.js';
+import { createPracticePlayer } from './practice-player.js';
 
 const COPY = {
   ru: {
@@ -30,8 +31,9 @@ const COPY = {
   },
 };
 
-export function initScalePractice(getLang, onTempo) {
+export function initScalePractice(getLang, onTempo, playback) {
   const root = document.getElementById('scale-practice');
+  const backing = createPracticePlayer({ ...playback, getLang, onTempo });
   let key = 'C';
   let type = 'major';
   let step = 0;
@@ -153,7 +155,12 @@ export function initScalePractice(getLang, onTempo) {
           ? (getLang() === 'ru' ? `Натуральный минор: VI и VII понижены относительно мажора. В iiø–V–i на ${harmony.progression[1].symbol} используйте ${harmony.progression[1].notes[1]} вместо ${harmony.notes[6]}: это повышенная VII ступень из гармонического минора.` : `Natural minor: lowered sixth and seventh relative to major. In iiø–V–i, use ${harmony.progression[1].notes[1]} instead of ${harmony.notes[6]} on ${harmony.progression[1].symbol}: the raised seventh from harmonic minor.`)
           : '', 'textbook-help scale-mode-help');
     modeHelp.hidden = type === 'major';
-    root.append(toolbar, modeHelp, steps, heading, score, tasks, element('p', s.criterion, 'textbook-help'), checkLabel, navigation, element('p', s.help, 'textbook-help'));
+    root.append(toolbar, modeHelp, steps, heading, score);
+    if (step >= 2) {
+      backing.setHarmony(harmony);
+      root.append(backing.element);
+    } else backing.stop();
+    root.append(tasks, element('p', s.criterion, 'textbook-help'), checkLabel, navigation, element('p', s.help, 'textbook-help'));
   }
-  return { render };
+  return { render, stop: backing.stop, setBpm: backing.setBpm };
 }
