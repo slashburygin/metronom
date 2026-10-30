@@ -20,7 +20,7 @@ export function createTicker(onTick) {
 // those timestamps are heard. A loop is a half-open range of pulse indices.
 export class Transport {
   constructor({ context, steps, nextStep = index => steps[index] ?? null,
-    bpm = 120, tempoUnit = QUARTER, onSchedule, onEvent, onStep, onStop,
+    bpm = 120, tempoUnit = QUARTER, onSchedule, onEvent, onStep, onStop, onAudioClip, onAudioCancel,
     durationSeconds = () => 0, tickerFactory = createTicker,
     requestFrame = fn => requestAnimationFrame(fn), cancelFrame = id => cancelAnimationFrame(id),
   } = {}) {
@@ -29,9 +29,10 @@ export class Transport {
     this.bpm = clampBpm(bpm);
     this.tempoUnit = asFraction(tempoUnit);
     if (this.tempoUnit.n <= 0) throw new RangeError('Tempo unit must be positive');
-    Object.assign(this, { onSchedule, onEvent, onStep, onStop, durationSeconds, tickerFactory, requestFrame, cancelFrame });
+    Object.assign(this, { onSchedule, onEvent, onStep, onStop, onAudioClip, onAudioCancel, durationSeconds, tickerFactory, requestFrame, cancelFrame });
     this.playing = false;
     this.pending = false;
+    this.endTime = Infinity;
     this.generation = 0;
     this.index = 0;
     this.startIndex = 0;
@@ -100,6 +101,7 @@ export class Transport {
   }
 
   clipAudio(end) {
+    this.onAudioClip?.(end);
     for (const [source, voice] of this.sources) {
       if (voice.stopAt > end) {
         source.stop(end);
@@ -114,6 +116,7 @@ export class Transport {
       cleanup();
     }
     this.sources.clear();
+    this.onAudioCancel?.();
     this.queue = [];
     this.lastStep = null;
   }

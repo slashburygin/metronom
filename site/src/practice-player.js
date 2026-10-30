@@ -1,5 +1,8 @@
+import { normalizeArrangement } from './arrangement-ornaments.js';
+import { normalizeSound } from './backing-sound.js';
+import { createSoundControls } from './sound-controls.js';
 import { BACKING_STYLES, STYLE_NAMES, normalizeSeed } from './arrangement.js';
-import { seedControl } from './arrangement-controls.js';
+import { seedControl, createArrangementControls } from './arrangement-controls.js';
 import { buildAccompaniment, PARTS } from './accompaniment.js';
 import { BackingPlayer } from './backing-player.js';
 import { clampBpm } from './tempo.js';
@@ -26,13 +29,15 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
   const element = document.createElement('section');
   element.className = 'backing-player';
   let harmony, compiled, engine, lastPosition, failed = false, run = 0;
-  const settings = { form: 'cadence', style: 'swing', seed: 1, repeats: 4, countIn: true,
+  const settings = { form: 'cadence', style: 'swing', seed: 1, repeats: 4, countIn: true, sound: normalizeSound(), arrangement: normalizeArrangement(),
     mix: Object.fromEntries(PARTS.map(part => [part, { volume: part === 'drums' ? 0.55 : 0.75, muted: false }])) };
   try {
     const saved = JSON.parse(localStorage.getItem('metronome-backing'));
     if (FORMS.includes(saved?.form)) settings.form = saved.form;
     if (STYLES.includes(saved?.style)) settings.style = saved.style;
     settings.seed = normalizeSeed(saved?.seed);
+    settings.sound = normalizeSound(saved?.sound);
+    settings.arrangement = normalizeArrangement(saved?.arrangement);
     if (REPEATS.includes(saved?.repeats)) settings.repeats = saved.repeats;
     if (typeof saved?.countIn === 'boolean') settings.countIn = saved.countIn;
     for (const part of PARTS) {
@@ -151,8 +156,14 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
         render(); element.querySelector(`#backing-training-${name}`)?.focus();
       },
     });
+    const soundControls = createSoundControls({ prefix: 'backing', lang: getLang(), sound: settings.sound,
+      onChange(value) { stop(); settings.sound = value; save(); },
+    });
+    const arrangementControls = createArrangementControls({ prefix: 'backing', lang: getLang(), arrangement: settings.arrangement,
+      onChange(value, name) { stop(); settings.arrangement = value; save(); render(); element.querySelector(`#backing-${name}`).focus(); },
+    });
     keyStatus = node('p', '', 'backing-key-status'); keyStatus.id = 'backing-key-status'; keyStatus.setAttribute('role', 'status');
-    element.append(controls, countLabel, trainingControls, keyStatus, grid, play, status, mixer, node('p', s.help, 'textbook-help'));
+    element.append(controls, countLabel, trainingControls, keyStatus, grid, play, status, mixer, soundControls, arrangementControls, node('p', s.help, 'textbook-help'));
     update();
   }
 

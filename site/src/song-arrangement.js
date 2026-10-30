@@ -1,19 +1,24 @@
 import { compileSong } from './song.js';
 import { expandSong } from './song-form.js';
 import { parseChord } from './chords.js';
-import { BACKING_STYLES, randomSequence, voiceChord, bassNote } from './arrangement.js';
+import { BACKING_STYLES, normalizeSeed, randomSequence, voiceChord, bassNote } from './arrangement.js';
+import { normalizeArrangement, colorChord, transitionKind, fillPattern } from './arrangement-ornaments.js';
 import { fraction as f, ZERO, add, subtract, multiply, compare } from './musical-time.js';
 const min = (a, b) => compare(a, b) < 0 ? a : b;
 const max = (a, b) => compare(a, b) > 0 ? a : b;
 
-export function arrangeSong(song, { style = 'swing', seed = 1 } = {}) {
+export function arrangeSong(song, { style = 'swing', seed = 1, arrangement } = {}) {
   if (!BACKING_STYLES.includes(style)) throw new RangeError('Invalid style');
   const compiled = compileSong(song);
   const expanded = expandSong(compiled);
   const measures = expanded.measures;
+  const ornaments = normalizeArrangement(arrangement);
+  const bars = expanded.steps.filter(step => step.beatIndex === 0);
+  const colorRandom = randomSequence((normalizeSeed(seed) ^ 0x6a09e667) >>> 0);
+  const fillRandom = randomSequence((normalizeSeed(seed) ^ 0xbb67ae85) >>> 0);
   const random = randomSequence(seed);
   const velocity = base => base * (0.93 + random() * 0.14);
-  let bar = -1, local = ZERO, voicing = [], lastChord, previousBass;
+  let bar = -1, local = ZERO, voicing = [], voicingColors = [], lastChord, previousBass;
   // Look only at an immediately adjacent chord; gaps and pauses have no target.
   function following(barIndex, chordIndex) {
     const measure = measures[barIndex], chord = measure.chords[chordIndex];
@@ -36,11 +41,21 @@ export function arrangeSong(song, { style = 'swing', seed = 1 } = {}) {
       return [{ from: subtract(from, start), to: subtract(to, start), chord: parseChord(chord.symbol), source: chord, chordIndex }];
     });
     const offbeat = multiply(step.duration, style === 'swing' ? f(2, 3) : f(1, 2));
+    const silence = (from, to, all = false) => events.push({ kind: 'silence', parts: all ? ['bass', 'piano', 'drums'] : ['bass', 'piano'], offset: from, duration: subtract(to, from) });
+    let covered = ZERO;
+    for (const segment of segments) {
+      if (compare(covered, segment.from) < 0) silence(covered, segment.from);
+      covered = segment.to;
+    }
+    if (compare(covered, step.duration) < 0) silence(covered, step.duration);
     for (const { from, to, chord, source, chordIndex } of segments) {
-      if (chord.silent) { voicing = []; lastChord = null; previousBass = undefined; continue; }
-      const changed = lastChord !== chord.symbol;
-      if (changed) voicing = voiceChord(chord, voicing);
+      if (chord.silent) { silence(from, to, chord.silent === 'all'); voicing = []; voicingColors = []; lastChord = null; previousBass = undefined; continue; }
       const onset = compare(source.offset, add(start, from)) === 0;
+      if (lastChord !== chord.symbol || (ornaments.colors && onset)) {
+        const colored = ornaments.colors ? colorChord(chord, compiled.song.key, Math.floor(colorRandom() * 2)) : chord;
+        voicing = voiceChord(colored, voicing);
+        voicingColors = colored.addedPitchClasses ?? [];
+      }
       const finalPulse = step.beatIndex === measure.meter.groups.length - 1;
       const ending = bar === measures.length - 1 && finalPulse;
       const target = compare(add(source.offset, source.duration), end) === 0 ? following(bar, chordIndex) : null;
@@ -49,29 +64,36 @@ export function arrangeSong(song, { style = 'swing', seed = 1 } = {}) {
       // Ballads leave space on alternate pulses; changes always get a new bass.
       if (style !== 'ballad' || step.beatIndex % 2 === 0 || onset || ending) {
         events.push({ kind: 'note', part: 'bass', ...bass, offset: from,
-          duration: multiply(subtract(to, from), f(style === 'ballad' ? 15 : 7, style === 'ballad' ? 16 : 8)), velocity: velocity(0.7) });
+          duration: multiply(subtract(to, from), ornaments.fills && ending ? f(1,2) : f(style === 'ballad' ? 15 : 7, style === 'ballad' ? 16 : 8)), velocity: velocity(0.7), ...(ornaments.fills && ending ? { ending: true } : {}) });
         previousBass = bass.midi;
       }
       const comp = onset || ending || style === 'swing' || style === 'rock' || step.beatIndex % 2 === 0;
       if (comp) {
-        const syncopated = !onset && (style === 'bossa' || (style === 'swing' && step.beatIndex % 2));
+        const syncopated = !(ornaments.fills && ending) && !onset && (style === 'bossa' || (style === 'swing' && step.beatIndex % 2));
         const offset = from.n === 0 && syncopated && compare(offbeat, to) < 0 ? offbeat : from;
         const strength = velocity(style === 'rock' ? 0.52 : style === 'ballad' ? 0.36 : 0.45);
         for (const midi of voicing) events.push({ kind: 'note', part: 'piano', midi, offset,
-          duration: multiply(subtract(to, offset), style === 'ballad' ? f(15, 16) : f(3, 4)), velocity: strength });
+          duration: multiply(subtract(to, offset), ornaments.fills && ending ? f(1,2) : style === 'ballad' ? f(15, 16) : f(3, 4)), velocity: strength,
+          ...(voicingColors.includes(midi % 12) ? { color: true } : {}), ...(ornaments.fills && ending ? { ending: true } : {}) });
       }
       lastChord = chord.symbol;
     }
-    const addDrum = (sound, offset, velocity) => {
+    const addDrum = (sound, offset, velocity, fill) => {
       if (segments.some(segment => segment.chord.silent === 'all' && compare(offset, segment.from) >= 0 && compare(offset, segment.to) < 0)) return;
       let duration = multiply(subtract(step.duration, offset), f(1, 4));
       for (const segment of segments) {
         if (segment.chord.silent === 'all' && compare(segment.from, offset) > 0) duration = min(duration, subtract(segment.from, offset));
       }
-      events.push({ kind: 'drum', part: 'drums', sound, offset, duration, velocity: velocity * (0.93 + random() * 0.14) });
+      events.push({ kind: 'drum', part: 'drums', sound, offset, duration, velocity: velocity * (0.93 + random() * 0.14), ...(fill ? { fill } : {}) });
     };
     const beat = step.beatIndex;
-    if (style === 'ballad') {
+    const nextChord = measures[bar + 1]?.chords[0];
+    const fullPulse = !events.some(event => event.kind === 'silence');
+    const canLead = !measures[bar + 1] || (nextChord?.offset.n === 0 && !parseChord(nextChord.symbol).silent);
+    const fill = ornaments.fills && beat === measure.meter.groups.length - 1 && fullPulse && canLead ? transitionKind(bars, bar) : null;
+    if (fill) {
+      for (const hit of fillPattern(style, fill, Math.floor(fillRandom() * 2))) addDrum(hit.sound, multiply(step.duration, hit.at), hit.velocity, fill);
+    } else if (style === 'ballad') {
       addDrum('hat', ZERO, 0.2);
       if (beat % 2 === 0) addDrum('kick', ZERO, 0.3);
       else addDrum('snare', ZERO, 0.18);

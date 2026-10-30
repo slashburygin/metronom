@@ -1,6 +1,11 @@
+import { openLibrary, LibraryConflictError } from './library-storage.js';
+import { newDocument, reviseDocument, migrateLegacy, exportLibrary, parseBackup, mergeLibrary, findSongs, LIBRARY_LIMIT, BACKUP_LIMIT } from './song-library.js';
+import { normalizeArrangement } from './arrangement-ornaments.js';
+import { normalizeSound } from './backing-sound.js';
+import { createSoundControls } from './sound-controls.js';
 import { BACKING_STYLES, STYLE_NAMES, normalizeSeed } from './arrangement.js';
-import { seedControl } from './arrangement-controls.js';
-import { newDraft, emptyMeasure, DraftHistory, compileDraft, loadDrafts, DRAFT_STORAGE } from './song-draft.js';
+import { seedControl, createArrangementControls } from './arrangement-controls.js';
+import { newDraft, emptyMeasure, DraftHistory, compileDraft } from './song-draft.js';
 import { CHORD_QUALITIES } from './chords.js';
 import { arrangeSong } from './song-arrangement.js';
 import { BackingPlayer } from './backing-player.js';
@@ -10,13 +15,13 @@ import { createTrainingControls, trainingLabel } from './training-controls.js';
 import { transposeDraft } from './transposition.js';
 
 const WORDS = {
-  ru: { title: 'Композиции', untitled: 'Без названия', create: 'Новая', duplicate: 'Дубликат', save: 'Сохранить', saved: 'Сохранено на этом устройстве', saving: 'Сохранение…', storage: 'Не удалось сохранить. Изменения остаются только в этой вкладке.', load: 'Не удалось прочитать сохранённые композиции. Они не будут перезаписаны.',
+  ru: { title: 'Композиции', untitled: 'Без названия', create: 'Новая', duplicate: 'Дубликат', save: 'Сохранить', saved: 'Сохранено на этом устройстве', saving: 'Сохранение…', storage: 'Не удалось сохранить библиотеку. Экспортируйте изменения в JSON.', load: 'Не удалось прочитать сохранённые композиции. Они не будут перезаписаны.',
     name: 'Название', composer: 'Автор', key: 'Исходная тональность', undo: 'Отменить', redo: 'Повторить', section: 'Секция', addSection: '+ Секция', removeSection: 'Удалить секцию', addBar: '+ Такт', removeBar: 'Удалить такт', copy: 'Копировать такт', paste: 'Вставить такт',
     bar: 'Такт', meter: 'Размер', chords: 'Аккорды', alternate: 'Альтернативные аккорды', text: 'Комментарий', insert: 'Добавить аккорд', root: 'Основной тон', quality: 'Тип аккорда', bass: 'Бас', none: 'Как основной тон',
     help: 'Аккорды через пробел делят такт поровну. Длительности в долях: Dm7:2 G7:2. Пустой такт — без гармонии; N.C. оставляет ударные, Break — полная пауза. Альтернативы вводятся по одной на аккорд и не звучат.',
     invalid: 'Проверьте аккорды, длительности и форму. Неизвестный ввод оставлен в черновике.', play: 'Играть', stop: 'Стоп', cancel: 'Отменить запуск', sound: 'Не удалось включить звук. Попробуйте ещё раз.', count: 'Отсчёт', countLabel: 'Отсчёт · первый звучащий такт', form: 'Знаки формы', order: 'Порядок тактов', formPosition: 'Форма', chorus: 'Круг', style: 'Ритм', repeats: 'Круги', ready: 'Готово к воспроизведению', limit: 'Достигнут предел: 100 композиций, 32 секции или 256 тактов.',
   },
-  en: { title: 'Songs', untitled: 'Untitled', create: 'New', duplicate: 'Duplicate', save: 'Save', saved: 'Saved on this device', saving: 'Saving…', storage: 'Could not save. Changes remain only in this tab.', load: 'Could not read saved songs. They will not be overwritten.',
+  en: { title: 'Songs', untitled: 'Untitled', create: 'New', duplicate: 'Duplicate', save: 'Save', saved: 'Saved on this device', saving: 'Saving…', storage: 'Could not save the library. Export your changes to JSON.', load: 'Could not read saved songs. They will not be overwritten.',
     name: 'Title', composer: 'Composer', key: 'Source key', undo: 'Undo', redo: 'Redo', section: 'Section', addSection: '+ Section', removeSection: 'Remove section', addBar: '+ Bar', removeBar: 'Remove bar', copy: 'Copy bar', paste: 'Paste bar',
     bar: 'Bar', meter: 'Meter', chords: 'Chords', alternate: 'Alternate chords', text: 'Comment', insert: 'Insert chord', root: 'Root', quality: 'Quality', bass: 'Bass', none: 'Same as root',
     help: 'Space-separated chords divide the bar equally. Beat durations: Dm7:2 G7:2. Empty bars have no harmony; N.C. keeps drums, Break silences all parts. Enter one alternate per chord; alternates are not played.',
@@ -25,31 +30,37 @@ const WORDS = {
 };
 const clone = v => JSON.parse(JSON.stringify(v));
 const NOTES = ['C','C♯','D♭','D','D♯','E♭','E','F','F♯','G♭','G','G♯','A♭','A','A♯','B♭','B'];
-const uid = () => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+const LIBRARY_WORDS = {
+  ru: { loading: 'Загрузка библиотеки…', search: 'Поиск по названию, автору и тональности', trash: 'Корзина', remove: 'В корзину', restore: 'Восстановить', export: 'Экспорт JSON', import: 'Импорт JSON', empty: 'Выберите или создайте композицию.', noMatches: 'Нет совпадений', failed: 'Операция не выполнена: ', conflict: 'Библиотека изменилась в другой вкладке. Экспортируйте текущие изменения в JSON и перезагрузите страницу.', imported: 'Импорт: добавлено / обновлено / конфликтных копий', recovered: 'Восстановлены незавершённые сохранения. Проверьте библиотеку и конфликтные копии.', recoveryWarning: 'Некоторые данные восстановления не удалось прочитать; они сохранены без изменений.', limit: 'Не более 100 композиций вместе с корзиной.', fork: 'конфликтная копия' },
+  en: { loading: 'Loading library…', search: 'Search title, composer and key', trash: 'Trash', remove: 'Move to trash', restore: 'Restore', export: 'Export JSON', import: 'Import JSON', empty: 'Choose or create a song.', noMatches: 'No matches', failed: 'Operation failed: ', conflict: 'The library changed in another tab. Export your current changes to JSON and reload the page.', imported: 'Import: added / updated / conflict copies', recovered: 'Recovered unfinished saves. Check the library and conflict copies.', recoveryWarning: 'Some recovery data could not be read; it has been left unchanged.', limit: 'Up to 100 songs including trash.', fork: 'conflict copy' },
+};
 
 export function initSongEditor({ getLang, getContext }) {
   const root = document.getElementById('songs');
   let collection = { version: 1, documents: [], currentId: null }, blocked = false, storageError = false;
-  try { collection = loadDrafts(localStorage); } catch { blocked = true; }
-  let currentDocument = collection.documents.find(doc => doc.id === collection.currentId) ?? collection.documents[0];
-  if (!currentDocument) { currentDocument = { id: uid(), draft: newDraft() }; collection.documents.push(currentDocument); }
-  collection.currentId = currentDocument.id;
+  let libraryStore, loading = true, currentDocument, conflict = false, editVersion = 0;
+  let search = '', showTrash = false, libraryNotice = '', importing = false;
   let training = normalizeTraining();
-  let style = 'swing', seed = 1, repeats = 1, countIn = true;
+  let style = 'swing', seed = 1, repeats = 1, countIn = true, sound = normalizeSound(), arrangement = normalizeArrangement();
   const loadTraining = () => {
-    style = 'swing'; seed = 1; repeats = 1; countIn = true; training = normalizeTraining();
+    style = 'swing'; seed = 1; repeats = 1; countIn = true; sound = normalizeSound(); arrangement = normalizeArrangement(); training = normalizeTraining();
     try {
-      const saved = JSON.parse(localStorage.getItem(`metronome-song-training:${currentDocument.id}`));
+      const saved = currentDocument?.settings;
       training = normalizeTraining(saved);
       if (BACKING_STYLES.includes(saved?.style)) style = saved.style;
       seed = normalizeSeed(saved?.seed);
+      sound = normalizeSound(saved?.sound);
+      arrangement = normalizeArrangement(saved?.arrangement);
       if ([0,1,2,4,8,12,24].includes(saved?.repeats)) repeats = saved.repeats;
       if (typeof saved?.countIn === 'boolean') countIn = saved.countIn;
     } catch {}
   };
-  const saveTraining = () => { try { localStorage.setItem(`metronome-song-training:${currentDocument.id}`, JSON.stringify({ ...training, style, seed, repeats, countIn })); } catch {} };
-  loadTraining();
-  let history = new DraftHistory(currentDocument.draft), sectionIndex = 0, measureIndex = 0, clipboard = null;
+  const saveTraining = () => {
+    if (!currentDocument) return;
+    replaceDocument(reviseDocument(currentDocument, { settings: { ...training, style, seed, repeats, countIn, sound, arrangement } }));
+    markDirty(); save();
+  };
+  let history, sectionIndex = 0, measureIndex = 0, clipboard = null;
   let timer, dirty = false, focusGroup = 0, engine, position, generation = 0, soundError = false, notice = '';
   let validation;
   const s = () => WORDS[getLang()];
@@ -59,18 +70,31 @@ export function initSongEditor({ getLang, getContext }) {
   const barCount = () => history.current.sections.reduce((n, section) => n + section.measures.length, 0);
   const ref = id => root.querySelector(`#${id}`);
 
-  function save() {
-    clearTimeout(timer);
-    if (blocked) { updateStatus(); return; }
-    currentDocument.draft = clone(history.current);
-    collection.currentId = currentDocument.id;
-    try { localStorage.setItem(DRAFT_STORAGE, JSON.stringify(collection)); dirty = false; storageError = false; }
-    catch { storageError = true; }
-    updateStatus();
+  const libraryWords = () => LIBRARY_WORDS[getLang()];
+  function replaceDocument(doc) {
+    collection.documents[collection.documents.findIndex(item => item.id === doc.id)] = doc;
+    if (currentDocument?.id === doc.id) currentDocument = doc;
+  }
+  function captureCurrent() { if (currentDocument && history) replaceDocument(reviseDocument(currentDocument, { draft: clone(history.current) })); }
+  function markDirty() { dirty = true; ++editVersion; }
+  function selectCurrent(doc) {
+    currentDocument = doc; collection.currentId = doc?.id ?? null;
+    history = doc ? new DraftHistory(doc.draft) : null;
+    sectionIndex = measureIndex = 0; loadTraining();
+  }
+  async function save() {
+    clearTimeout(timer); captureCurrent();
+    if (blocked || !libraryStore) { updateStatus(); return false; }
+    const version = editVersion;
+    try {
+      await libraryStore.save(collection);
+      if (version === editVersion) { dirty = false; storageError = false; conflict = false; }
+      updateStatus(); return true;
+    } catch (error) { storageError = true; conflict = error instanceof LibraryConflictError; updateStatus(); return false; }
   }
   function updateStatus() {
     if (!ref('song-save-status')) return;
-    ref('song-save-status').textContent = blocked ? s().load : storageError ? s().storage : dirty ? s().saving : s().saved;
+    ref('song-save-status').textContent = blocked ? s().load : conflict ? libraryWords().conflict : storageError ? s().storage : dirty ? s().saving : s().saved;
     ref('song-save-status').setAttribute('role', blocked || storageError ? 'alert' : 'status');
   }
   function updateWrittenChart() {
@@ -132,44 +156,111 @@ export function initSongEditor({ getLang, getContext }) {
     const order = validation.compiled?.playOrder;
     ref('song-form-order').textContent = order ? `${s().order} (${order.length}): ${order.slice(0,64).map(i => i + 1).join(' → ')}${order.length > 64 ? ' …' : ''}` : '';
     const option = ref('song-select').selectedOptions[0];
-    if (option) option.textContent = history.current.title || s().untitled;
+    if (option?.value === currentDocument.id) option.textContent = (history.current.title || s().untitled) + (currentDocument.conflictOf ? ` · ${libraryWords().fork}` : '');
     updatePlayback(); updateStatus();
   }
   function change(edit, group = null, redraw = false) {
     stop(); notice = ''; soundError = false;
     const draft = clone(history.current); edit(draft);
-    if (history.update(draft, group)) { dirty = true; clearTimeout(timer); timer = setTimeout(save, 300); }
+    if (history.update(draft, group)) { markDirty(); clearTimeout(timer); timer = setTimeout(save, 300); }
     if (redraw) render(); else validate();
   }
   function normalizeSelection() {
     sectionIndex = Math.min(sectionIndex, history.current.sections.length - 1);
     measureIndex = Math.min(measureIndex, history.current.sections[sectionIndex].measures.length - 1);
   }
-  function restore(which) { stop(); if (history[which]()) { normalizeSelection(); dirty = true; save(); render(); } }
-  function chooseDocument(doc) { save(); stop(); currentDocument = doc; loadTraining(); collection.currentId = doc.id; history = new DraftHistory(doc.draft); sectionIndex = measureIndex = 0; notice = ''; save(); render(); }
+  function restore(which) { stop(); if (history[which]()) { normalizeSelection(); markDirty(); save(); render(); } }
+  function chooseDocument(doc) {
+    if (!doc || doc.deletedAt) return;
+    save(); stop(); selectCurrent(collection.documents.find(item => item.id === doc.id)); notice = ''; markDirty(); save(); render();
+  }
   function createDocument(duplicate) {
-    if (collection.documents.length >= 100) { notice = s().limit; updatePlayback(); return; }
+    if (blocked) return;
+    if (collection.documents.length >= LIBRARY_LIMIT) { libraryNotice = libraryWords().limit; render(); return; }
+    captureCurrent();
     const draft = duplicate ? clone(history.current) : newDraft();
     if (duplicate) draft.title = `${draft.title || s().untitled} (${s().duplicate})`;
-    const doc = { id: uid(), draft }; collection.documents.push(doc); chooseDocument(doc);
+    const doc = newDocument(draft, duplicate ? currentDocument.settings : {});
+    collection.documents.push(doc); chooseDocument(doc);
+  }
+  function trashCurrent() {
+    if (!currentDocument || blocked) return;
+    stop(); captureCurrent();
+    replaceDocument(reviseDocument(currentDocument, { deletedAt: new Date().toISOString() }));
+    selectCurrent(collection.documents.find(doc => !doc.deletedAt)); markDirty(); save(); render();
+  }
+  function renderLibrary(button) {
+    const words = libraryWords(), tools = el('div', '', 'song-toolbar');
+    tools.append(button(s().create, 'song-new', () => createDocument(false), blocked));
+    tools.append(button(words.remove, 'song-trash', trashCurrent, blocked || !currentDocument));
+    tools.append(button(words.export, 'song-export', () => {
+      try {
+        captureCurrent();
+        const url = URL.createObjectURL(new Blob([exportLibrary(collection)], { type: 'application/json' }));
+        const link = el('a'); link.href = url; link.download = 'metronom-library.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (error) { libraryNotice = words.failed + error.message; render(); }
+    }));
+    const file = el('input'); file.type = 'file'; file.accept = '.json,application/json'; file.hidden = true; file.id = 'song-import-file'; file.setAttribute('aria-label', words.import);
+    const importButton = button(words.import, 'song-import', () => file.click(), blocked || importing);
+    file.addEventListener('change', async () => {
+      const selected = file.files[0]; if (!selected || importing || blocked) return;
+      importing = true; importButton.disabled = true;
+      try {
+        if (selected.size > BACKUP_LIMIT) throw new RangeError('Backup exceeds 10 MB');
+        const incoming = parseBackup(await selected.text());
+        stop(); captureCurrent();
+        const merged = mergeLibrary(collection, incoming); collection = merged.library;
+        selectCurrent(collection.documents.find(doc => doc.id === collection.currentId && !doc.deletedAt));
+        markDirty(); const saved = await save();
+        libraryNotice = `${words.imported}: ${merged.added} / ${merged.updated} / ${merged.conflicts}${saved ? '' : ' · ' + s().storage}`;
+      } catch (error) { libraryNotice = words.failed + error.message; }
+      finally { importing = false; render(); }
+    });
+    tools.append(importButton, file); root.append(tools);
+    const searchLabel = el('label', words.search), input = el('input'); input.type = 'search'; input.id = 'song-search'; input.value = search;
+    searchLabel.append(input); root.append(searchLabel);
+    const chooserLabel = el('label', s().title), chooser = el('select'); chooser.id = 'song-select';
+    function updateChooser() {
+      chooser.replaceChildren();
+      const docs = findSongs(collection, search);
+      if (!docs.some(doc => doc.id === currentDocument?.id)) { const placeholder = el('option', words.noMatches + (docs.length ? ` · ${docs.length}` : '')); placeholder.value = ''; placeholder.selected = true; chooser.append(placeholder); }
+      for (const doc of docs) {
+        const title = doc.id === currentDocument?.id ? history.current.title : doc.draft.title;
+        const option = el('option', (title || s().untitled) + (doc.conflictOf ? ` · ${words.fork}` : ''));
+        option.value = doc.id; option.selected = doc.id === currentDocument?.id; chooser.append(option);
+      }
+    }
+    input.addEventListener('input', () => { search = input.value; captureCurrent(); updateChooser(); });
+    chooser.addEventListener('change', () => chooseDocument(collection.documents.find(doc => doc.id === chooser.value)));
+    updateChooser(); chooserLabel.append(chooser); root.append(chooserLabel);
+    const trashLabel = el('label', '', 'check'), trash = el('input'); trash.type = 'checkbox'; trash.id = 'song-show-trash'; trash.checked = showTrash;
+    trash.addEventListener('change', () => { showTrash = trash.checked; render(); ref('song-show-trash').focus(); });
+    trashLabel.append(trash, el('span', `${words.trash} (${collection.documents.filter(doc => doc.deletedAt).length})`)); root.append(trashLabel);
+    if (showTrash) {
+      const list = el('div', '', 'song-trash-list');
+      for (const doc of findSongs(collection, '', true)) {
+        const row = el('div', '', 'song-toolbar'); row.append(el('span', doc.draft.title || s().untitled));
+        row.append(button(words.restore, '', () => { replaceDocument(reviseDocument(doc, { deletedAt: null })); chooseDocument(collection.documents.find(item => item.id === doc.id)); }, blocked)); list.append(row);
+      }
+      root.append(list);
+    }
+    const message = el('p', libraryNotice, 'textbook-help'); message.id = 'song-library-status'; message.setAttribute('role','status'); root.append(message);
+    const status = el('p', '', 'textbook-help'); status.id = 'song-save-status'; root.append(status); updateStatus();
   }
   function render() {
-    normalizeSelection();
+    if (history) normalizeSelection();
     root.replaceChildren();
     const words = s();
     root.append(el('h2', words.title));
+    if (loading) { root.append(el('p', libraryWords().loading)); return; }
     const toolbar = el('div', '', 'song-toolbar');
     function button(label, id, action, disabled = false) {
       const node = el('button', label, 'btn btn--secondary'); node.id = id; node.type = 'button'; node.disabled = disabled; node.addEventListener('click', action); return node;
     }
-    const chooserLabel = el('label', words.title);
-    const chooser = el('select'); chooser.id = 'song-select';
-    collection.documents.forEach(doc => { const option = el('option', doc.id === currentDocument.id ? history.current.title || words.untitled : doc.draft.title || words.untitled); option.value = doc.id; option.selected = doc.id === currentDocument.id; chooser.append(option); });
-    chooser.addEventListener('change', () => chooseDocument(collection.documents.find(doc => doc.id === chooser.value)));
-    chooserLabel.append(chooser); root.append(chooserLabel);
-    toolbar.append(button(words.create, 'song-new', () => createDocument(false)), button(words.duplicate, 'song-duplicate', () => createDocument(true)), button(words.save, 'song-save', save), button(words.undo, 'song-undo', () => restore('undo')), button(words.redo, 'song-redo', () => restore('redo')));
+    renderLibrary(button);
+    if (!currentDocument) { root.append(el('p', libraryWords().empty)); return; }
+    toolbar.append(button(words.duplicate, 'song-duplicate', () => createDocument(true), blocked), button(words.save, 'song-save', save), button(words.undo, 'song-undo', () => restore('undo')), button(words.redo, 'song-redo', () => restore('redo')));
     root.append(toolbar);
-    const status = el('p', '', 'textbook-help'); status.id = 'song-save-status'; root.append(status);
     const metadata = el('div', '', 'song-fields');
     function inputField(parent, label, id, value, apply, options = {}) {
       const wrapper = el('label', label), input = el(options.multiline ? 'textarea' : 'input');
@@ -265,10 +356,10 @@ export function initSongEditor({ getLang, getContext }) {
       const request = ++generation; soundError = false; notice = '';
       try {
         validation = compileDraft(history.current); if (!validation.compiled) { validate(); return; }
-        const compiled = arrangeSong(validation.compiled.song, { style, seed });
+        const compiled = arrangeSong(validation.compiled.song, { style, seed, arrangement });
         const context = getContext();
         engine ??= new BackingPlayer({ context, onStep: p => { position = p; updatePlayback(); }, onStop: () => { position = null; updatePlayback(); } });
-        const pending = engine.start(compiled, { bpm: history.current.bpm, repeats, countIn, training }); updatePlayback(); await pending;
+        const pending = engine.start(compiled, { bpm: history.current.bpm, repeats, countIn, training, sound }); updatePlayback(); await pending;
       } catch { if (request === generation) { engine?.stop(); soundError = true; } }
       if (request === generation) updatePlayback();
     });
@@ -284,11 +375,17 @@ export function initSongEditor({ getLang, getContext }) {
       change(d => Object.assign(d,transposeDraft(d,target)),null,true);
     });
     const sourceHelp = el('p', getLang() === 'ru' ? 'Поля редактора содержат исходные аккорды. Сетка показывает партию инструмента. Кнопка транспонирования изменяет оригинал; это действие можно отменить.' : 'Editor fields contain source chords. The chart shows the instrument part. Transpose source chords changes the original and can be undone.', 'textbook-help');
-    root.append(playback, countLabel, trainingControls, keyStatus, transpose, sourceHelp, play, playStatus);
+    const soundControls = createSoundControls({ prefix: 'song', lang: getLang(), sound,
+      onChange(value) { stop(); sound = value; saveTraining(); },
+    });
+    const arrangementControls = createArrangementControls({ prefix: 'song', lang: getLang(), arrangement,
+      onChange(value) { stop(); arrangement = value; saveTraining(); },
+    });
+    root.append(playback, countLabel, trainingControls, keyStatus, transpose, sourceHelp, play, playStatus, soundControls, arrangementControls);
     validate();
   }
   root.addEventListener('keydown', event => {
-    if ((event.ctrlKey || event.metaKey) && ['z','y','s'].includes(event.key.toLowerCase())) {
+    if (history && (event.ctrlKey || event.metaKey) && ['z','y','s'].includes(event.key.toLowerCase())) {
       event.preventDefault(); event.stopPropagation();
       if (event.key.toLowerCase() === 's') save();
       else restore(event.key.toLowerCase() === 'y' || event.shiftKey ? 'redo' : 'undo');
@@ -296,6 +393,21 @@ export function initSongEditor({ getLang, getContext }) {
   });
   window.addEventListener('pagehide', () => { if (dirty) save(); });
   window.document.addEventListener('visibilitychange', () => { if (window.document.hidden && dirty) save(); });
-  if (!blocked) save();
-  return { render, stop };
+  const ready = (async () => {
+    try {
+      libraryStore = await openLibrary(); collection = libraryStore.library;
+      if (libraryStore.recovered) libraryNotice = libraryWords().recovered;
+      if (libraryStore.recoveryWarning) libraryNotice += ' ' + libraryWords().recoveryWarning;
+    } catch {
+      blocked = true;
+      try { collection = migrateLegacy(localStorage); } catch {}
+    }
+    if (!collection.documents.length) {
+      const doc = newDocument(newDraft()); collection.documents.push(doc); collection.currentId = doc.id; markDirty();
+    }
+    selectCurrent(collection.documents.find(doc => doc.id === collection.currentId && !doc.deletedAt) ?? collection.documents.find(doc => !doc.deletedAt));
+    loading = false; render();
+    if (dirty && !blocked) await save();
+  })();
+  return { render, stop, ready };
 }

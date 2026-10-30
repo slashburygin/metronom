@@ -568,6 +568,12 @@ kbd {
 .backing-status { min-height: 2.5em; margin: 10px 0; font-size: 13px; color: var(--color-text-muted); }
 .backing-mixer { min-width: 0; padding: 8px 0; margin: 0; border: 0; }
 .backing-mixer legend { font-size: 13px; color: var(--color-text-muted); }
+.sound-controls label { display: flex; flex-direction: column; gap: 5px; min-width: 0; font-size: 13px; color: var(--color-text-muted); }
+.sound-controls select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); color: var(--color-text); font: inherit; }
+.sound-controls input[type="range"] { width: 100%; min-width: 0; }
+.arrangement-controls { min-width: 0; padding: 10px; margin: 12px 0; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.arrangement-controls legend { font-size: 13px; color: var(--color-text-muted); }
+.arrangement-controls .check { display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; }
 .backing-channel { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; margin: 8px 0; }
 .backing-channel input[type="range"] { width: 100%; min-width: 0; }
 .backing-channel .check { font-size: 12px; }

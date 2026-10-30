@@ -1,6 +1,8 @@
 import { Transport } from './transport.js';
 import { midiFrequency, PARTS } from './accompaniment.js';
 import { trainingState, trainingArrangement } from './training.js';
+import { normalizeSound, voiceProfile } from './backing-sound.js';
+import { BackingReverb } from './backing-reverb.js';
 
 // Small procedural voices for practice. Every source has an explicit lifetime;
 // no samples, network requests or third-party sound assets are needed.
@@ -9,6 +11,7 @@ export class BackingPlayer {
     this.context = context;
     this.onStep = onStep;
     this.onStop = onStop;
+    this.sound = normalizeSound();
     this.output = context.createGain();
     this.output.gain.value = 0.65;
     this.compressor = context.createDynamicsCompressor();
@@ -19,6 +22,7 @@ export class BackingPlayer {
       gain.connect(this.output);
       return [part, gain];
     }));
+    this.reverb = new BackingReverb(context, this.channels);
     this.noise = context.createBuffer(1, context.sampleRate, context.sampleRate);
     const data = this.noise.getChannelData(0);
     // Fixed seed makes offline renders reproducible.
@@ -30,6 +34,7 @@ export class BackingPlayer {
     this.transport = new Transport({ ...transportOptions, context,
       onSchedule: (event, timing) => this.schedule(event, timing),
       onStep: timing => this.onStep?.(timing), onStop: () => this.onStop?.(),
+      onAudioClip: end => this.reverb.clip(end), onAudioCancel: () => this.reverb.cancel(),
     });
   }
 
@@ -38,9 +43,12 @@ export class BackingPlayer {
     this.channels[part].gain.setTargetAtTime(muted ? 0 : Math.max(0, Math.min(1, volume)), this.context.currentTime, 0.01);
   }
 
-  async start(compiled, { bpm = 120, repeats = 4, countIn = true, training = {} } = {}) {
+  setSound(sound) { this.stop(); this.sound = normalizeSound(sound); }
+
+  async start(compiled, { bpm = 120, repeats = 4, countIn = true, training = {}, sound = this.sound } = {}) {
     if (!Number.isInteger(repeats) || repeats < 0 || repeats > 32) throw new RangeError('Invalid repeat count');
     this.stop();
+    this.sound = normalizeSound(sound);
     const length = compiled.steps.length;
     const cache = new Map();
     const arrangement = state => {
@@ -66,10 +74,12 @@ export class BackingPlayer {
   stop() { this.transport.stop(); }
 
   schedule(event, timing) {
+    this.reverb.collect();
     if (timing.countIn) {
       if (event.kind === 'click') this.voice({ part: 'countIn', frequency: event.accent ? 1100 : 800, duration: 0.045, velocity: 0.3 }, timing.time);
       return;
     }
+    if (event.kind === 'silence') { this.reverb.clip(timing.time, event.parts); return; }
     if (event.kind === 'note') this.voice({ ...event, frequency: midiFrequency(event.midi), duration: timing.duration }, timing.time);
     if (event.kind === 'drum') this.voice({ ...event, duration: Math.min(timing.duration, event.sound === 'snare' ? 0.14 : 0.1) }, timing.time);
   }
@@ -77,13 +87,15 @@ export class BackingPlayer {
   voice(event, time) {
     const ctx = this.context;
     const duration = Math.max(0.0001, event.duration);
+    const profile = voiceProfile(event.part, this.sound);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, time);
-    const peak = event.velocity * (event.part === 'piano' ? 0.12 : event.part === 'bass' ? 0.35 : 0.25);
+    const peak = event.velocity * profile.level;
     gain.gain.exponentialRampToValueAtTime(peak, time + Math.min(0.004, duration * 0.2));
-    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * 0.3), time + duration * 0.6);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * profile.sustain), time + duration * profile.decay);
     gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
     gain.connect(this.channels[event.part] ?? this.output);
+    this.reverb.connect(event.part, gain, time, this.sound.reverb, Math.min(this.transport.until, this.transport.endTime));
     const nodes = [gain];
     const sources = [];
     if (event.part === 'drums' && event.sound !== 'kick') {
@@ -97,20 +109,20 @@ export class BackingPlayer {
       nodes.push(filter);
       sources.push(source);
     } else {
-      const source = ctx.createOscillator();
-      source.type = event.part === 'bass' ? 'triangle' : 'sine';
-      source.frequency.setValueAtTime(event.frequency ?? 140, time);
-      if (event.sound === 'kick') source.frequency.exponentialRampToValueAtTime(45, time + duration);
-      source.connect(gain);
-      sources.push(source);
-      if (event.part === 'piano') {
-        const overtone = ctx.createOscillator();
-        const overtoneGain = ctx.createGain();
-        overtone.frequency.value = event.frequency * 2;
-        overtoneGain.gain.value = 0.2;
-        overtone.connect(overtoneGain).connect(gain);
-        nodes.push(overtoneGain);
-        sources.push(overtone);
+      let destination = gain;
+      if (profile.cutoff) {
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = Math.min(1600, Math.max(220, event.frequency * profile.cutoff));
+        filter.Q.value = 0.5; filter.connect(gain); nodes.push(filter); destination = filter;
+      }
+      for (const [ratio, level] of profile.partials) {
+        const source = ctx.createOscillator(), partial = ctx.createGain();
+        source.type = profile.wave;
+        source.frequency.setValueAtTime((event.frequency ?? 140) * ratio, time);
+        if (event.sound === 'kick') source.frequency.exponentialRampToValueAtTime(45, time + duration);
+        partial.gain.value = level;
+        source.connect(partial).connect(destination);
+        nodes.push(partial); sources.push(source);
       }
     }
     let remaining = sources.length;
@@ -125,6 +137,7 @@ export class BackingPlayer {
 
   dispose() {
     this.transport.dispose();
+    this.reverb.dispose();
     Object.values(this.channels).forEach(channel => channel.disconnect());
     this.output.disconnect();
     this.compressor.disconnect();

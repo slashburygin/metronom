@@ -20,8 +20,11 @@ styling follows exordos.com.
 - Practice tab beside the metronome: Haimovich exercises for each weekday and daily chromatic exercises, with the current day selected automatically. Scores open at full size in a separate tab.
 - Scales & chords practice: major, natural minor, harmonic minor and jazz melodic minor in 12 keys, with diatonic seventh chords, cadence guide tones and four guided steps. Progress is saved per key and scale type. Every task has a small help button with examples that follow the selected key. A tempo button sets the metronome to 60 BPM.
 - Backing band in the cadence and improvisation steps: a four-bar ii–V–I, twelve-bar major or minor blues, straight, swing, bossa nova, ballad or rock feel, synthesized bass, keys and drums. Includes a one-bar count-in, 1/2/4/8 choruses or continuous playback, current-bar highlighting and individual volume/mute controls. Tempo is shared with the metronome; starting either player stops the other. Concert key and written instrument part are separate, with C, B♭, E♭, F and G instrument settings.
-- Songs tab: create and duplicate songs, edit sections, meters, chord grids and comments, copy/paste bars, undo/redo and autosave drafts locally. Chords support triads, sevenths, extensions, alterations, slash bass, N.C. and Break; unknown input remains in the draft and blocks playback. Multiple chords divide a bar equally or use explicit beat durations such as `Dm7:2 G7:2`. Alternate chords are displayed only. Custom songs play through the existing backing band with count-in, repeats and bar highlighting. See [song editor](docs/song-editor.md).
+- Songs tab: create and duplicate songs, edit sections, meters, chord grids and comments, copy/paste bars, undo/redo and autosave drafts in IndexedDB. Chords support triads, sevenths, extensions, alterations, slash bass, N.C. and Break; unknown input remains in the draft and blocks playback. Multiple chords divide a bar equally or use explicit beat durations such as `Dm7:2 G7:2`. Alternate chords are displayed only. Custom songs play through the existing backing band with count-in, repeats and bar highlighting. See [song editor](docs/song-editor.md).
+- Optional arrangement controls in both players: natural 9/13 chord colors for keys, style-specific fills before section changes, repeat/volta jumps and four-bar phrases, plus a short chorus ending. Source chords and bass stay intact; explicit extensions/alterations remain authoritative. Fills skip rests and share the saved performance seed.
+- Sound controls in both players: synthesized piano, electric piano or organ; acoustic or electric bass; reverb amount. Settings persist per song and separately for exercises. Mixer mute also silences reverb, while pauses, stop, seek and finite endings cut effect tails. Changing sound stops playback.
 - Song form: repeat signs, nested repeats, first/second/shared endings, D.C./D.S., Coda and Fine. Preview the expanded bar order before playback; invalid targets block playback while preserving the draft. Highlighting follows source bars, and automatic practice changes key/tempo after the entire form. See [form rules](docs/song-editor.md#репризы-и-переходы).
+- Local song library: versioned IndexedDB storage with non-destructive migration from localStorage, search by title/composer/key, recoverable trash, and JSON export/import. Stable IDs and revision ancestry allow manual transfer between devices: newer versions update existing songs, divergent changes retain both copies, and repeated imports do not duplicate known conflicts. Cross-tab writes use optimistic concurrency checks; unfinished writes have a local recovery journal. Account-based server sync is not implemented yet.
 - Transposition and automatic practice: keep original chords while changing concert key and written part, cycle keys by semitone or fourth after N choruses, and increase BPM to a limit. Both players save training settings. The Songs editor can also transpose source chords as an undoable edit.
 - Shared accompaniment arranger for exercises and songs: close-position chord inversions minimize voice movement, swing uses walking bass with chromatic approaches, slash bass and pauses remain explicit. A saved performance variation number reproduces velocity changes without changing timing.
 - Settings are saved in the browser; **Reset** restores the defaults
@@ -49,6 +52,9 @@ for the API, count-in, looping, and seeking contracts.
 | `site/src/transport.js` | Shared audio-clock scheduling, count-in, loops, seeking, and source lifecycle. |
 | `site/src/accompaniment.js` | Practice forms and exact musical events for bass, keys and drums. |
 | `site/src/backing-player.js` | Procedural audio voices, mixer and repeated accompaniment playback. |
+| `site/src/backing-sound.js` | Timbre profiles, sound settings and deterministic stereo room impulse. |
+| `site/src/backing-reverb.js` | Per-part convolution returns with audio-clock boundaries and cleanup. |
+| `site/src/sound-controls.js` | Shared bilingual timbre and reverb controls. |
 | `site/src/practice-player.js` | Bilingual backing-band controls and current-bar display. |
 | `site/src/transposition.js` | Key-aware spelling, chord/slash-bass transposition and source-preserving chart transforms. |
 | `site/src/training.js` | Per-chorus key and tempo plans shared by both players. |
@@ -57,8 +63,11 @@ for the API, count-in, looping, and seeking contracts.
 | `site/src/song-draft.js` | Raw draft validation, exact bar durations, history and saved-draft schema. |
 | `site/src/song-arrangement.js` | Shared style patterns, intra-pulse chord changes and mixed meters. |
 | `site/src/arrangement.js` | Voice leading, walking bass, style names and seeded variations. |
-| `site/src/arrangement-controls.js` | Saved performance variation control shared by both players. |
-| `site/src/song-editor.js` | Local song drafts, editing UI, autosave and playback. |
+| `site/src/arrangement-controls.js` | Shared performance variation and optional colors/fills controls. |
+| `site/src/arrangement-ornaments.js` | Conservative chord colors and seeded phrase/transition/ending figures. |
+| `site/src/song-editor.js` | Local library, editing UI, autosave, JSON exchange and playback. |
+| `site/src/song-library.js` | Song revisions, legacy migration, backup validation, search and conflict-preserving merges. |
+| `site/src/library-storage.js` | IndexedDB transactions, write serialization, cross-tab concurrency and recovery journal. |
 | `site/src/select.js` | Dropdown listbox, so the popup follows the site's tokens instead of the OS. |
 | `test/` | Unit tests for the tempo logic (`node --test`). |
 | `vite.config.js` | Development server and production build configuration. |
