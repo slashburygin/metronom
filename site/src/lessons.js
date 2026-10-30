@@ -1,4 +1,5 @@
 import { initScalePractice } from './scale-practice.js';
+import { initSongEditor } from './song-editor.js';
 
 const BASE = 'lessons/haimovich/';
 const DAYS = {
@@ -8,7 +9,8 @@ const DAYS = {
 
 export function initLessons(getLang, onTempo, playback) {
   const $ = (id) => document.getElementById(id);
-  const scales = initScalePractice(getLang, onTempo, playback);
+  const scales = initScalePractice(getLang, onTempo, { ...playback, getContext() { songs.stop(); return playback.getContext(); } });
+  const songs = initSongEditor({ getLang, getContext() { scales.stop(); return playback.getContext(); } });
   let mode = 'daily';
   for (const name of ['daily', 'scales']) {
     $(`${name}-mode`).addEventListener('click', () => {
@@ -27,9 +29,10 @@ export function initLessons(getLang, onTempo, playback) {
   let schedule;
   let failed = false;
   let active = 'lessons';
-  const tabs = ['lessons', 'textbook'];
+  const tabs = ['lessons', 'songs', 'textbook'];
   function showTab(id) {
     if (id !== 'lessons') scales.stop();
+    if (id !== 'songs') songs.stop();
     active = id;
     for (const name of tabs) {
       $(`${name}-tab`).setAttribute('aria-selected', name === id);
@@ -42,13 +45,14 @@ export function initLessons(getLang, onTempo, playback) {
     $(`${id}-tab`).addEventListener('keydown', (event) => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
-      const next = event.key === 'Home' ? tabs[0] : event.key === 'End' ? tabs[1] : tabs[1 - index];
+      const next = event.key === 'Home' ? tabs[0] : event.key === 'End' ? tabs.at(-1) : tabs[(index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
       showTab(next);
       $(`${next}-tab`).focus();
     });
   });
   function render() {
     scales.render();
+    songs.render();
     renderMode();
     const lang = getLang();
     const ru = lang === 'ru';
@@ -103,5 +107,5 @@ export function initLessons(getLang, onTempo, playback) {
     if (!response.ok) throw new Error(response.status);
     return response.json();
   }).then((data) => { schedule = data; render(); }).catch(() => { failed = true; render(); });
-  return { render, stopPlayback: scales.stop, setBpm: scales.setBpm };
+  return { render, stopPlayback() { scales.stop(); songs.stop(); }, setBpm: scales.setBpm };
 }

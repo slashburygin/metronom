@@ -35,7 +35,8 @@ export function compileSong(input) {
         const duration = asFraction(chord.duration);
         if (typeof chord.symbol !== 'string' || !chord.symbol.trim() || offset.n < 0 || duration.n <= 0
             || compare(add(offset, duration), length) > 0) throw new RangeError('Invalid chord event');
-        return { symbol: chord.symbol, offset, duration };
+        if (chord.alternate !== undefined && typeof chord.alternate !== 'string') throw new TypeError('Invalid alternate chord');
+        return { symbol: chord.symbol, offset, duration, ...(chord.alternate !== undefined ? { alternate: chord.alternate } : {}) };
       }).sort((a, b) => compare(a.offset, b.offset));
       for (let i = 1; i < chords.length; i++) {
         if (compare(add(chords[i - 1].offset, chords[i - 1].duration), chords[i].offset) > 0) {
@@ -58,7 +59,8 @@ export function compileSong(input) {
       });
       position = add(position, length);
       barIndex++;
-      return { meter, chords };
+      if (measure.text !== undefined && typeof measure.text !== 'string') throw new TypeError('Invalid measure text');
+      return { meter, chords, ...(measure.text !== undefined ? { text: measure.text } : {}) };
     });
     return { name: section.name ?? '', measures };
   });

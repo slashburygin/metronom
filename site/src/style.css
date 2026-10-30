@@ -575,3 +575,31 @@ kbd {
   .backing-controls { grid-template-columns: 1fr; }
   .backing-chart { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.songs { max-height: calc(100dvh - 136px); overflow-y: auto; scrollbar-gutter: stable; }
+.songs h2 { margin: 0 0 12px; font-size: 18px; }
+.song-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.song-toolbar .btn { min-height: 36px; padding: 6px 10px; white-space: normal; }
+.song-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.songs label { display: flex; flex-direction: column; gap: 5px; min-width: 0; font-size: 13px; color: var(--color-text-muted); }
+.songs label.check { flex-direction: row; align-items: center; margin: 12px 0; }
+.songs input:not([type="checkbox"]), .songs select, .songs textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: 8px; min-height: 40px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); color: var(--color-text); font: inherit; }
+.songs textarea { resize: vertical; min-height: 68px; font-family: var(--font-mono); }
+.song-bars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.song-bars button { display: flex; flex-direction: column; align-items: start; gap: 5px; min-width: 0; min-height: 72px; padding: 7px; border-radius: var(--radius-md); white-space: normal; overflow-wrap: anywhere; text-align: left; }
+.song-bars button[aria-pressed="true"] { outline: 2px solid var(--color-highlight); outline-offset: -2px; }
+.song-bars button.playing { background: var(--color-glow); border-color: var(--color-highlight); }
+.song-bars button.invalid { border-color: #c84545; }
+.song-bar-chords { font: 13px var(--font-mono); }
+.song-bar-alternate { font: 11px var(--font-mono); color: var(--color-text-muted); }
+.song-bar-text { font-size: 11px; color: var(--color-text-muted); }
+.song-chart h3 { margin: 14px 0 8px; }
+.song-errors { font-size: 13px; color: #c84545; overflow-wrap: anywhere; }
+.song-measure-editor label:nth-child(n+3) { grid-column: 1 / -1; }
+#song-play { width: 100%; min-height: 44px; }
+@media (max-width: 900px) { .songs { max-height: none; overflow: visible; } }
+@media (max-width: 420px) {
+  .song-bars { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .song-fields { grid-template-columns: 1fr; }
+  .practice-tabs button { padding-inline: 6px; font-size: 12px; }
+}

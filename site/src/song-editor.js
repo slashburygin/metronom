@@ -1,0 +1,227 @@
+import { newDraft, emptyMeasure, DraftHistory, compileDraft, loadDrafts, DRAFT_STORAGE } from './song-draft.js';
+import { CHORD_QUALITIES } from './chords.js';
+import { arrangeSong } from './song-arrangement.js';
+import { BackingPlayer } from './backing-player.js';
+import { clampBpm } from './tempo.js';
+
+const WORDS = {
+  ru: { title: 'Композиции', untitled: 'Без названия', create: 'Новая', duplicate: 'Дубликат', save: 'Сохранить', saved: 'Сохранено на этом устройстве', saving: 'Сохранение…', storage: 'Не удалось сохранить. Изменения остаются только в этой вкладке.', load: 'Не удалось прочитать сохранённые композиции. Они не будут перезаписаны.',
+    name: 'Название', composer: 'Автор', key: 'Тональность', undo: 'Отменить', redo: 'Повторить', section: 'Секция', addSection: '+ Секция', removeSection: 'Удалить секцию', addBar: '+ Такт', removeBar: 'Удалить такт', copy: 'Копировать такт', paste: 'Вставить такт',
+    bar: 'Такт', meter: 'Размер', chords: 'Аккорды', alternate: 'Альтернативные аккорды', text: 'Комментарий', insert: 'Добавить аккорд', root: 'Основной тон', quality: 'Тип аккорда', bass: 'Бас', none: 'Как основной тон',
+    help: 'Аккорды через пробел делят такт поровну. Длительности в долях: Dm7:2 G7:2. Пустой такт — без гармонии; N.C. оставляет ударные, Break — полная пауза. Альтернативы вводятся по одной на аккорд и не звучат.',
+    invalid: 'Проверьте аккорды и длительности. Неизвестный ввод оставлен в черновике.', play: 'Играть', stop: 'Стоп', cancel: 'Отменить запуск', sound: 'Не удалось включить звук. Попробуйте ещё раз.', count: 'Отсчёт', countLabel: 'Отсчёт · первый такт', straight: 'Ровный', style: 'Ритм', repeats: 'Круги', ready: 'Готово к воспроизведению', limit: 'Достигнут предел: 100 композиций, 32 секции или 256 тактов.',
+  },
+  en: { title: 'Songs', untitled: 'Untitled', create: 'New', duplicate: 'Duplicate', save: 'Save', saved: 'Saved on this device', saving: 'Saving…', storage: 'Could not save. Changes remain only in this tab.', load: 'Could not read saved songs. They will not be overwritten.',
+    name: 'Title', composer: 'Composer', key: 'Key', undo: 'Undo', redo: 'Redo', section: 'Section', addSection: '+ Section', removeSection: 'Remove section', addBar: '+ Bar', removeBar: 'Remove bar', copy: 'Copy bar', paste: 'Paste bar',
+    bar: 'Bar', meter: 'Meter', chords: 'Chords', alternate: 'Alternate chords', text: 'Comment', insert: 'Insert chord', root: 'Root', quality: 'Quality', bass: 'Bass', none: 'Same as root',
+    help: 'Space-separated chords divide the bar equally. Beat durations: Dm7:2 G7:2. Empty bars have no harmony; N.C. keeps drums, Break silences all parts. Enter one alternate per chord; alternates are not played.',
+    invalid: 'Check chords and durations. Unrecognized input remains in the draft.', play: 'Play', stop: 'Stop', cancel: 'Cancel start', sound: 'Could not start audio. Try again.', count: 'Count-in', countLabel: 'Count-in · first bar', straight: 'Straight', style: 'Feel', repeats: 'Choruses', ready: 'Ready to play', limit: 'Limit reached: 100 songs, 32 sections or 256 bars.',
+  },
+};
+const clone = v => JSON.parse(JSON.stringify(v));
+const NOTES = ['C','C♯','D♭','D','D♯','E♭','E','F','F♯','G♭','G','G♯','A♭','A','A♯','B♭','B'];
+const uid = () => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+
+export function initSongEditor({ getLang, getContext }) {
+  const root = document.getElementById('songs');
+  let collection = { version: 1, documents: [], currentId: null }, blocked = false, storageError = false;
+  try { collection = loadDrafts(localStorage); } catch { blocked = true; }
+  let currentDocument = collection.documents.find(doc => doc.id === collection.currentId) ?? collection.documents[0];
+  if (!currentDocument) { currentDocument = { id: uid(), draft: newDraft() }; collection.documents.push(currentDocument); }
+  collection.currentId = currentDocument.id;
+  let history = new DraftHistory(currentDocument.draft), sectionIndex = 0, measureIndex = 0, clipboard = null;
+  let timer, dirty = false, focusGroup = 0, engine, position, generation = 0, soundError = false, notice = '';
+  let style = 'swing', repeats = 1, countIn = true, validation;
+  const s = () => WORDS[getLang()];
+  const el = (tag, text, className) => { const node = window.document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node; };
+  const active = () => Boolean(engine?.transport.playing || engine?.transport.pending);
+  const measure = () => history.current.sections[sectionIndex].measures[measureIndex];
+  const barCount = () => history.current.sections.reduce((n, section) => n + section.measures.length, 0);
+  const ref = id => root.querySelector(`#${id}`);
+
+  function save() {
+    clearTimeout(timer);
+    if (blocked) { updateStatus(); return; }
+    currentDocument.draft = clone(history.current);
+    collection.currentId = currentDocument.id;
+    try { localStorage.setItem(DRAFT_STORAGE, JSON.stringify(collection)); dirty = false; storageError = false; }
+    catch { storageError = true; }
+    updateStatus();
+  }
+  function updateStatus() {
+    if (!ref('song-save-status')) return;
+    ref('song-save-status').textContent = blocked ? s().load : storageError ? s().storage : dirty ? s().saving : s().saved;
+    ref('song-save-status').setAttribute('role', blocked || storageError ? 'alert' : 'status');
+  }
+  function updatePlayback() {
+    if (!ref('song-play')) return;
+    ref('song-play').textContent = engine?.transport.pending ? s().cancel : active() ? s().stop : s().play;
+    ref('song-play').setAttribute('aria-pressed', String(active()));
+    ref('song-play').disabled = Boolean(validation.errors.length) && !active();
+    ref('song-play-status').textContent = soundError ? s().sound : position
+      ? position.countIn ? `${s().count} · ${position.step.beatIndex + 1}` : `${s().bar} ${position.step.barIndex + 1} · ${position.step.pass} / ${repeats}`
+      : notice || (validation.errors.length ? s().invalid : s().ready);
+    root.querySelectorAll('[data-global-bar]').forEach(node => {
+      const current = Boolean(position && !position.countIn && Number(node.dataset.globalBar) === position.step.barIndex);
+      node.classList.toggle('playing', current);
+      if (current) node.setAttribute('aria-current', 'true'); else node.removeAttribute('aria-current');
+    });
+  }
+  function stop() { ++generation; engine?.stop(); position = null; updatePlayback(); }
+  function validate() {
+    validation = compileDraft(history.current);
+    ref('song-errors').textContent = validation.errors.length ? s().invalid + ' ' + validation.errors.map(error => error.sectionIndex === undefined ? error.message : `${history.current.sections[error.sectionIndex].name || s().section}, ${s().bar} ${error.measureIndex + 1}: ${error.message}`).join('; ') : '';
+    for (const button of root.querySelectorAll('[data-section]')) {
+      const section = Number(button.dataset.section), index = Number(button.dataset.measure);
+      const m = history.current.sections[section].measures[index];
+      const invalid = validation.errors.some(error => error.sectionIndex === section && error.measureIndex === index);
+      button.classList.toggle('invalid', invalid); button.setAttribute('aria-invalid', String(invalid));
+      button.querySelector('.song-bar-chords').textContent = m.chords || '—';
+      button.querySelector('.song-bar-alternate').textContent = m.alternate;
+      button.querySelector('.song-bar-text').textContent = m.text;
+      button.querySelector('.backing-bar-number').textContent = `${Number(button.dataset.globalBar) + 1} · ${m.meter}`;
+    }
+    root.querySelectorAll('[data-section-heading]').forEach(heading => {
+      heading.textContent = history.current.sections[Number(heading.dataset.sectionHeading)].name || s().section;
+    });
+    ref('song-undo').disabled = !history.past.length;
+    ref('song-redo').disabled = !history.future.length;
+    const option = ref('song-select').selectedOptions[0];
+    if (option) option.textContent = history.current.title || s().untitled;
+    updatePlayback(); updateStatus();
+  }
+  function change(edit, group = null, redraw = false) {
+    stop(); notice = ''; soundError = false;
+    const draft = clone(history.current); edit(draft);
+    if (history.update(draft, group)) { dirty = true; clearTimeout(timer); timer = setTimeout(save, 300); }
+    if (redraw) render(); else validate();
+  }
+  function normalizeSelection() {
+    sectionIndex = Math.min(sectionIndex, history.current.sections.length - 1);
+    measureIndex = Math.min(measureIndex, history.current.sections[sectionIndex].measures.length - 1);
+  }
+  function restore(which) { stop(); if (history[which]()) { normalizeSelection(); dirty = true; save(); render(); } }
+  function chooseDocument(doc) { save(); stop(); currentDocument = doc; collection.currentId = doc.id; history = new DraftHistory(doc.draft); sectionIndex = measureIndex = 0; notice = ''; save(); render(); }
+  function createDocument(duplicate) {
+    if (collection.documents.length >= 100) { notice = s().limit; updatePlayback(); return; }
+    const draft = duplicate ? clone(history.current) : newDraft();
+    if (duplicate) draft.title = `${draft.title || s().untitled} (${s().duplicate})`;
+    const doc = { id: uid(), draft }; collection.documents.push(doc); chooseDocument(doc);
+  }
+  function render() {
+    normalizeSelection();
+    root.replaceChildren();
+    const words = s();
+    root.append(el('h2', words.title));
+    const toolbar = el('div', '', 'song-toolbar');
+    function button(label, id, action, disabled = false) {
+      const node = el('button', label, 'btn btn--secondary'); node.id = id; node.type = 'button'; node.disabled = disabled; node.addEventListener('click', action); return node;
+    }
+    const chooserLabel = el('label', words.title);
+    const chooser = el('select'); chooser.id = 'song-select';
+    collection.documents.forEach(doc => { const option = el('option', doc.id === currentDocument.id ? history.current.title || words.untitled : doc.draft.title || words.untitled); option.value = doc.id; option.selected = doc.id === currentDocument.id; chooser.append(option); });
+    chooser.addEventListener('change', () => chooseDocument(collection.documents.find(doc => doc.id === chooser.value)));
+    chooserLabel.append(chooser); root.append(chooserLabel);
+    toolbar.append(button(words.create, 'song-new', () => createDocument(false)), button(words.duplicate, 'song-duplicate', () => createDocument(true)), button(words.save, 'song-save', save), button(words.undo, 'song-undo', () => restore('undo')), button(words.redo, 'song-redo', () => restore('redo')));
+    root.append(toolbar);
+    const status = el('p', '', 'textbook-help'); status.id = 'song-save-status'; root.append(status);
+    const metadata = el('div', '', 'song-fields');
+    function inputField(parent, label, id, value, apply, options = {}) {
+      const wrapper = el('label', label), input = el(options.multiline ? 'textarea' : 'input');
+      input.id = id; input.value = value; input.maxLength = options.maxLength ?? 2000;
+      if (options.number) { input.type = 'number'; input.min = 30; input.max = 300; }
+      input.addEventListener('focus', () => { ++focusGroup; });
+      input.addEventListener('input', () => {
+        if (options.number) return;
+        change(draft => apply(draft, input.value), `${id}:${focusGroup}`);
+      });
+      if (options.number) input.addEventListener('change', () => { input.value = clampBpm(input.value); change(draft => apply(draft, Number(input.value))); });
+      input.addEventListener('blur', () => { history.group = null; });
+      wrapper.append(input); parent.append(wrapper); return input;
+    }
+    inputField(metadata, words.name, 'song-title', history.current.title, (d, v) => { d.title = v; }, { maxLength: 160 });
+    inputField(metadata, words.composer, 'song-composer', history.current.composer, (d, v) => { d.composer = v; }, { maxLength: 160 });
+    inputField(metadata, words.key, 'song-key', history.current.key, (d, v) => { d.key = v; }, { maxLength: 20 });
+    inputField(metadata, 'BPM', 'song-bpm', history.current.bpm, (d, v) => { d.bpm = v; }, { number: true });
+    root.append(metadata);
+    const chart = el('div', '', 'song-chart'); let globalBar = 0;
+    history.current.sections.forEach((section, si) => {
+      const heading = el('h3', section.name || words.section); heading.dataset.sectionHeading = si; chart.append(heading);
+      const bars = el('div', '', 'song-bars');
+      section.measures.forEach((m, mi) => {
+        const cell = button('', '', () => { sectionIndex = si; measureIndex = mi; render(); ref('song-chords').focus(); });
+        cell.removeAttribute('id'); cell.dataset.section = si; cell.dataset.measure = mi; cell.dataset.globalBar = globalBar;
+        cell.setAttribute('aria-label', `${words.section} ${section.name}, ${words.bar} ${globalBar + 1}`);
+        cell.setAttribute('aria-pressed', String(si === sectionIndex && mi === measureIndex));
+        cell.append(el('span', `${++globalBar} · ${m.meter}`, 'backing-bar-number'), el('span', m.alternate, 'song-bar-alternate'), el('span', m.chords || '—', 'song-bar-chords'), el('span', m.text, 'song-bar-text'));
+        bars.append(cell);
+      });
+      chart.append(bars);
+    });
+    root.append(chart);
+    const actions = el('div', '', 'song-toolbar');
+    actions.append(button(words.addSection, 'song-add-section', () => {
+      if (barCount() >= 256 || history.current.sections.length >= 32) { notice = words.limit; updatePlayback(); return; }
+      change(d => { d.sections.push({ name: String.fromCharCode(65 + d.sections.length % 26), measures: [emptyMeasure()] }); sectionIndex = d.sections.length - 1; measureIndex = 0; }, null, true);
+    }), button(words.removeSection, 'song-remove-section', () => change(d => { d.sections.splice(sectionIndex, 1); sectionIndex = measureIndex = 0; }, null, true), history.current.sections.length === 1),
+    button(words.addBar, 'song-add-bar', () => {
+      if (barCount() >= 256) { notice = words.limit; updatePlayback(); return; }
+      change(d => { const meter = measure().meter; d.sections[sectionIndex].measures.splice(++measureIndex, 0, { ...emptyMeasure(), meter }); }, null, true);
+    }), button(words.removeBar, 'song-remove-bar', () => change(d => { d.sections[sectionIndex].measures.splice(measureIndex, 1); measureIndex = Math.max(0, measureIndex - 1); }, null, true), history.current.sections[sectionIndex].measures.length === 1),
+    button(words.copy, 'song-copy-bar', () => { clipboard = clone(measure()); ref('song-paste-bar').disabled = false; }), button(words.paste, 'song-paste-bar', () => change(d => { d.sections[sectionIndex].measures[measureIndex] = clone(clipboard); }, null, true), !clipboard));
+    root.append(actions);
+    const form = el('div', '', 'song-fields song-measure-editor');
+    inputField(form, words.section, 'song-section-name', history.current.sections[sectionIndex].name, (d, v) => { d.sections[sectionIndex].name = v; }, { maxLength: 80 });
+    inputField(form, words.meter, 'song-meter', measure().meter, (d, v) => { d.sections[sectionIndex].measures[measureIndex].meter = v; }, { maxLength: 8 });
+    inputField(form, words.chords, 'song-chords', measure().chords, (d, v) => { d.sections[sectionIndex].measures[measureIndex].chords = v; }, { multiline: true });
+    inputField(form, words.alternate, 'song-alternate', measure().alternate, (d, v) => { d.sections[sectionIndex].measures[measureIndex].alternate = v; }, { multiline: true });
+    inputField(form, words.text, 'song-comment', measure().text, (d, v) => { d.sections[sectionIndex].measures[measureIndex].text = v; }, { multiline: true });
+    root.append(form);
+    const picker = el('div', '', 'song-fields');
+    function selectField(parent, label, id, values, labels = values, value = values[0], action) {
+      const wrapper = el('label', label), select = el('select'); select.id = id;
+      values.forEach((v, i) => { const opt = el('option', labels[i]); opt.value = v; opt.selected = value === v; select.append(opt); });
+      if (action) select.addEventListener('change', () => { stop(); action(select.value); });
+      wrapper.append(select); parent.append(wrapper); return select;
+    }
+    const pickRoot = selectField(picker, words.root, 'song-chord-root', NOTES);
+    const quality = selectField(picker, words.quality, 'song-chord-quality', CHORD_QUALITIES, CHORD_QUALITIES.map(q => q || (getLang() === 'ru' ? 'Мажор' : 'Major')), 'maj7');
+    const bass = selectField(picker, words.bass, 'song-chord-bass', ['', ...NOTES], [words.none, ...NOTES]);
+    picker.append(button(words.insert, 'song-insert-chord', () => {
+      const symbol = pickRoot.value + quality.value + (bass.value ? '/' + bass.value : '');
+      change(d => { const m = d.sections[sectionIndex].measures[measureIndex]; m.chords = [m.chords.trim(), symbol].filter(Boolean).join(' '); }, null, true); ref('song-chords').focus();
+    }));
+    root.append(picker, el('p', words.help, 'textbook-help'));
+    const errors = el('p', '', 'song-errors'); errors.id = 'song-errors'; errors.setAttribute('role', 'alert'); root.append(errors);
+    const playback = el('div', '', 'song-fields');
+    selectField(playback, words.style, 'song-style', ['straight','swing'], [words.straight,'Swing'], style, v => { style = v; });
+    selectField(playback, words.repeats, 'song-repeats', ['1','2','4','8'], ['1','2','4','8'], String(repeats), v => { repeats = Number(v); });
+    const countLabel = el('label', '', 'check'), count = el('input'); count.type = 'checkbox'; count.checked = countIn; count.id = 'song-count-in'; count.addEventListener('change', () => { stop(); countIn = count.checked; }); countLabel.append(count, el('span', words.countLabel));
+    const play = button(words.play, 'song-play', async () => {
+      if (active()) { stop(); return; }
+      const request = ++generation; soundError = false; notice = '';
+      try {
+        validation = compileDraft(history.current); if (!validation.compiled) { validate(); return; }
+        const compiled = arrangeSong(validation.compiled.song, { style });
+        const context = getContext();
+        engine ??= new BackingPlayer({ context, onStep: p => { position = p; updatePlayback(); }, onStop: () => { position = null; updatePlayback(); } });
+        const pending = engine.start(compiled, { bpm: history.current.bpm, repeats, countIn }); updatePlayback(); await pending;
+      } catch { if (request === generation) { engine?.stop(); soundError = true; } }
+      if (request === generation) updatePlayback();
+    });
+    const playStatus = el('p', '', 'textbook-help'); playStatus.id = 'song-play-status'; playStatus.setAttribute('role', 'status');
+    root.append(playback, countLabel, play, playStatus);
+    validate();
+  }
+  root.addEventListener('keydown', event => {
+    if ((event.ctrlKey || event.metaKey) && ['z','y','s'].includes(event.key.toLowerCase())) {
+      event.preventDefault(); event.stopPropagation();
+      if (event.key.toLowerCase() === 's') save();
+      else restore(event.key.toLowerCase() === 'y' || event.shiftKey ? 'redo' : 'undo');
+    }
+  });
+  window.addEventListener('pagehide', () => { if (dirty) save(); });
+  window.document.addEventListener('visibilitychange', () => { if (window.document.hidden && dirty) save(); });
+  if (!blocked) save();
+  return { render, stop };
+}

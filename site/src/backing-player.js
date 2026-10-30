@@ -47,7 +47,8 @@ export class BackingPlayer {
       return { ...step, pass: Math.floor(index / length) + 1 };
     };
     this.transport.setBpm(bpm);
-    await this.transport.start({ index: 0, countIn: countIn ? compiled.steps.slice(0, 4) : [] });
+    this.transport.tempoUnit = compiled.song.tempoUnit;
+    await this.transport.start({ index: 0, countIn: countIn ? compiled.steps.filter(step => step.barIndex === 0) : [] });
   }
 
   stop() { this.transport.stop(); }
@@ -63,11 +64,11 @@ export class BackingPlayer {
 
   voice(event, time) {
     const ctx = this.context;
-    const duration = Math.max(0.015, event.duration);
+    const duration = Math.max(0.0001, event.duration);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, time);
     const peak = event.velocity * (event.part === 'piano' ? 0.12 : event.part === 'bass' ? 0.35 : 0.25);
-    gain.gain.exponentialRampToValueAtTime(peak, time + 0.004);
+    gain.gain.exponentialRampToValueAtTime(peak, time + Math.min(0.004, duration * 0.2));
     gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * 0.3), time + duration * 0.6);
     gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
     gain.connect(this.channels[event.part] ?? this.output);

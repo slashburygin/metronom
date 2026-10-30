@@ -182,6 +182,7 @@
     <aside class="practice-column">
       <div class="segmented practice-tabs" role="tablist" data-i18n-aria="practicePanel">
         <button id="lessons-tab" role="tab" aria-controls="lessons" aria-selected="true" data-i18n="lessons">Занятия</button>
+        <button id="songs-tab" role="tab" aria-controls="songs" aria-selected="false" tabindex="-1" data-i18n="songs">Композиции</button>
         <button id="textbook-tab" role="tab" aria-controls="textbook" aria-selected="false" tabindex="-1" data-i18n="textbook">Учебник</button>
       </div>
       <section id="lessons" class="card lessons" role="tabpanel" aria-labelledby="lessons-tab">
@@ -198,6 +199,7 @@
           </div>
         </div>
       </section>
+    <section hidden role="tabpanel" aria-labelledby="songs-tab" id="songs" class="card songs"></section>
     <section hidden role="tabpanel" aria-labelledby="textbook-tab" id="textbook" class="card textbook">
       <div class="textbook-heading">
         <h2 id="textbook-title" data-i18n="textbook">Учебник</h2>
