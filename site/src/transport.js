@@ -155,16 +155,17 @@ export class Transport {
       }
       const step = countIn ? this.countIn[this.countInIndex++] : this.nextStep(this.index);
       if (!step) { this.endTime = this.nextTime; break; }
-      const duration = secondsFor(step.duration, this.bpm, this.tempoUnit);
+      const bpm = step.bpm ?? this.bpm;
+      const duration = secondsFor(step.duration, bpm, this.tempoUnit);
       if (!(duration > 0)) throw new RangeError('Pulse duration must be positive');
       if (!countIn && !this.loop && !this.nextStep(this.index + 1)) this.endTime = this.nextTime + duration;
-      const timing = { step, index: this.index, count: this.count++, cycle: this.cycle, countIn, time: this.nextTime, duration };
+      const timing = { step, index: this.index, count: this.count++, cycle: this.cycle, countIn, time: this.nextTime, duration, bpm };
       this.queue.push({ type: 'step', timing, time: this.nextTime });
       for (const event of step.events ?? []) {
         if (countIn && event.kind !== 'click') continue;
-        const time = this.nextTime + secondsFor(event.offset ?? ZERO, this.bpm, this.tempoUnit);
+        const time = this.nextTime + secondsFor(event.offset ?? ZERO, bpm, this.tempoUnit);
         if (time >= this.until) continue;
-        const eventTiming = { ...timing, time, duration: event.duration ? secondsFor(event.duration, this.bpm, this.tempoUnit) : duration };
+        const eventTiming = { ...timing, time, duration: event.duration ? secondsFor(event.duration, bpm, this.tempoUnit) : duration };
         this.onSchedule?.(event, eventTiming);
         this.queue.push({ type: 'event', event, timing: eventTiming, time });
       }

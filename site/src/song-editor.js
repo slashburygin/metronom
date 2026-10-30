@@ -3,16 +3,19 @@ import { CHORD_QUALITIES } from './chords.js';
 import { arrangeSong } from './song-arrangement.js';
 import { BackingPlayer } from './backing-player.js';
 import { clampBpm } from './tempo.js';
+import { normalizeTraining, trainingState, displaySong } from './training.js';
+import { createTrainingControls, trainingLabel } from './training-controls.js';
+import { transposeDraft } from './transposition.js';
 
 const WORDS = {
   ru: { title: 'Композиции', untitled: 'Без названия', create: 'Новая', duplicate: 'Дубликат', save: 'Сохранить', saved: 'Сохранено на этом устройстве', saving: 'Сохранение…', storage: 'Не удалось сохранить. Изменения остаются только в этой вкладке.', load: 'Не удалось прочитать сохранённые композиции. Они не будут перезаписаны.',
-    name: 'Название', composer: 'Автор', key: 'Тональность', undo: 'Отменить', redo: 'Повторить', section: 'Секция', addSection: '+ Секция', removeSection: 'Удалить секцию', addBar: '+ Такт', removeBar: 'Удалить такт', copy: 'Копировать такт', paste: 'Вставить такт',
+    name: 'Название', composer: 'Автор', key: 'Исходная тональность', undo: 'Отменить', redo: 'Повторить', section: 'Секция', addSection: '+ Секция', removeSection: 'Удалить секцию', addBar: '+ Такт', removeBar: 'Удалить такт', copy: 'Копировать такт', paste: 'Вставить такт',
     bar: 'Такт', meter: 'Размер', chords: 'Аккорды', alternate: 'Альтернативные аккорды', text: 'Комментарий', insert: 'Добавить аккорд', root: 'Основной тон', quality: 'Тип аккорда', bass: 'Бас', none: 'Как основной тон',
     help: 'Аккорды через пробел делят такт поровну. Длительности в долях: Dm7:2 G7:2. Пустой такт — без гармонии; N.C. оставляет ударные, Break — полная пауза. Альтернативы вводятся по одной на аккорд и не звучат.',
     invalid: 'Проверьте аккорды и длительности. Неизвестный ввод оставлен в черновике.', play: 'Играть', stop: 'Стоп', cancel: 'Отменить запуск', sound: 'Не удалось включить звук. Попробуйте ещё раз.', count: 'Отсчёт', countLabel: 'Отсчёт · первый такт', straight: 'Ровный', style: 'Ритм', repeats: 'Круги', ready: 'Готово к воспроизведению', limit: 'Достигнут предел: 100 композиций, 32 секции или 256 тактов.',
   },
   en: { title: 'Songs', untitled: 'Untitled', create: 'New', duplicate: 'Duplicate', save: 'Save', saved: 'Saved on this device', saving: 'Saving…', storage: 'Could not save. Changes remain only in this tab.', load: 'Could not read saved songs. They will not be overwritten.',
-    name: 'Title', composer: 'Composer', key: 'Key', undo: 'Undo', redo: 'Redo', section: 'Section', addSection: '+ Section', removeSection: 'Remove section', addBar: '+ Bar', removeBar: 'Remove bar', copy: 'Copy bar', paste: 'Paste bar',
+    name: 'Title', composer: 'Composer', key: 'Source key', undo: 'Undo', redo: 'Redo', section: 'Section', addSection: '+ Section', removeSection: 'Remove section', addBar: '+ Bar', removeBar: 'Remove bar', copy: 'Copy bar', paste: 'Paste bar',
     bar: 'Bar', meter: 'Meter', chords: 'Chords', alternate: 'Alternate chords', text: 'Comment', insert: 'Insert chord', root: 'Root', quality: 'Quality', bass: 'Bass', none: 'Same as root',
     help: 'Space-separated chords divide the bar equally. Beat durations: Dm7:2 G7:2. Empty bars have no harmony; N.C. keeps drums, Break silences all parts. Enter one alternate per chord; alternates are not played.',
     invalid: 'Check chords and durations. Unrecognized input remains in the draft.', play: 'Play', stop: 'Stop', cancel: 'Cancel start', sound: 'Could not start audio. Try again.', count: 'Count-in', countLabel: 'Count-in · first bar', straight: 'Straight', style: 'Feel', repeats: 'Choruses', ready: 'Ready to play', limit: 'Limit reached: 100 songs, 32 sections or 256 bars.',
@@ -29,9 +32,23 @@ export function initSongEditor({ getLang, getContext }) {
   let currentDocument = collection.documents.find(doc => doc.id === collection.currentId) ?? collection.documents[0];
   if (!currentDocument) { currentDocument = { id: uid(), draft: newDraft() }; collection.documents.push(currentDocument); }
   collection.currentId = currentDocument.id;
+  let training = normalizeTraining();
+  let style = 'swing', repeats = 1, countIn = true;
+  const loadTraining = () => {
+    style = 'swing'; repeats = 1; countIn = true; training = normalizeTraining();
+    try {
+      const saved = JSON.parse(localStorage.getItem(`metronome-song-training:${currentDocument.id}`));
+      training = normalizeTraining(saved);
+      if (['straight','swing'].includes(saved?.style)) style = saved.style;
+      if ([0,1,2,4,8,12,24].includes(saved?.repeats)) repeats = saved.repeats;
+      if (typeof saved?.countIn === 'boolean') countIn = saved.countIn;
+    } catch {}
+  };
+  const saveTraining = () => { try { localStorage.setItem(`metronome-song-training:${currentDocument.id}`, JSON.stringify({ ...training, style, repeats, countIn })); } catch {} };
+  loadTraining();
   let history = new DraftHistory(currentDocument.draft), sectionIndex = 0, measureIndex = 0, clipboard = null;
   let timer, dirty = false, focusGroup = 0, engine, position, generation = 0, soundError = false, notice = '';
-  let style = 'swing', repeats = 1, countIn = true, validation;
+  let validation;
   const s = () => WORDS[getLang()];
   const el = (tag, text, className) => { const node = window.document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node; };
   const active = () => Boolean(engine?.transport.playing || engine?.transport.pending);
@@ -53,13 +70,34 @@ export function initSongEditor({ getLang, getContext }) {
     ref('song-save-status').textContent = blocked ? s().load : storageError ? s().storage : dirty ? s().saving : s().saved;
     ref('song-save-status').setAttribute('role', blocked || storageError ? 'alert' : 'status');
   }
+  function updateWrittenChart() {
+    let written;
+    if (validation.compiled) {
+      const state = position?.step.training ?? trainingState(validation.compiled.song.key,1,history.current.bpm,training);
+      const label = trainingLabel(state,getLang());
+      if (ref('song-key-status') && ref('song-key-status').textContent !== label) ref('song-key-status').textContent = label;
+      written = displaySong(validation.compiled.song,state).sections.flatMap(section => section.measures);
+    } else if (ref('song-key-status')) ref('song-key-status').textContent = '';
+    for (const bar of root.querySelectorAll('[data-global-bar]')) {
+      const m = written?.[Number(bar.dataset.globalBar)];
+      if (m) {
+        bar.querySelector('.song-bar-chords').textContent = m.chords.map(c => c.symbol).join(' · ') || '—';
+        bar.querySelector('.song-bar-alternate').textContent = m.chords.map(c => c.alternate || '').filter(Boolean).join(' · ');
+      } else {
+        const source = history.current.sections[Number(bar.dataset.section)].measures[Number(bar.dataset.measure)];
+        bar.querySelector('.song-bar-chords').textContent = source.chords || '—';
+        bar.querySelector('.song-bar-alternate').textContent = source.alternate;
+      }
+    }
+  }
   function updatePlayback() {
     if (!ref('song-play')) return;
     ref('song-play').textContent = engine?.transport.pending ? s().cancel : active() ? s().stop : s().play;
     ref('song-play').setAttribute('aria-pressed', String(active()));
     ref('song-play').disabled = Boolean(validation.errors.length) && !active();
+    updateWrittenChart();
     ref('song-play-status').textContent = soundError ? s().sound : position
-      ? position.countIn ? `${s().count} · ${position.step.beatIndex + 1}` : `${s().bar} ${position.step.barIndex + 1} · ${position.step.pass} / ${repeats}`
+      ? position.countIn ? `${s().count} · ${position.step.beatIndex + 1}` : `${s().bar} ${position.step.barIndex + 1} · ${position.step.pass}${repeats ? ` / ${repeats}` : ''}`
       : notice || (validation.errors.length ? s().invalid : s().ready);
     root.querySelectorAll('[data-global-bar]').forEach(node => {
       const current = Boolean(position && !position.countIn && Number(node.dataset.globalBar) === position.step.barIndex);
@@ -86,6 +124,7 @@ export function initSongEditor({ getLang, getContext }) {
     });
     ref('song-undo').disabled = !history.past.length;
     ref('song-redo').disabled = !history.future.length;
+    if (ref('song-transpose-source')) ref('song-transpose-source').disabled = Boolean(validation.errors.length || !training.targetKey);
     const option = ref('song-select').selectedOptions[0];
     if (option) option.textContent = history.current.title || s().untitled;
     updatePlayback(); updateStatus();
@@ -101,7 +140,7 @@ export function initSongEditor({ getLang, getContext }) {
     measureIndex = Math.min(measureIndex, history.current.sections[sectionIndex].measures.length - 1);
   }
   function restore(which) { stop(); if (history[which]()) { normalizeSelection(); dirty = true; save(); render(); } }
-  function chooseDocument(doc) { save(); stop(); currentDocument = doc; collection.currentId = doc.id; history = new DraftHistory(doc.draft); sectionIndex = measureIndex = 0; notice = ''; save(); render(); }
+  function chooseDocument(doc) { save(); stop(); currentDocument = doc; loadTraining(); collection.currentId = doc.id; history = new DraftHistory(doc.draft); sectionIndex = measureIndex = 0; notice = ''; save(); render(); }
   function createDocument(duplicate) {
     if (collection.documents.length >= 100) { notice = s().limit; updatePlayback(); return; }
     const draft = duplicate ? clone(history.current) : newDraft();
@@ -194,9 +233,9 @@ export function initSongEditor({ getLang, getContext }) {
     root.append(picker, el('p', words.help, 'textbook-help'));
     const errors = el('p', '', 'song-errors'); errors.id = 'song-errors'; errors.setAttribute('role', 'alert'); root.append(errors);
     const playback = el('div', '', 'song-fields');
-    selectField(playback, words.style, 'song-style', ['straight','swing'], [words.straight,'Swing'], style, v => { style = v; });
-    selectField(playback, words.repeats, 'song-repeats', ['1','2','4','8'], ['1','2','4','8'], String(repeats), v => { repeats = Number(v); });
-    const countLabel = el('label', '', 'check'), count = el('input'); count.type = 'checkbox'; count.checked = countIn; count.id = 'song-count-in'; count.addEventListener('change', () => { stop(); countIn = count.checked; }); countLabel.append(count, el('span', words.countLabel));
+    selectField(playback, words.style, 'song-style', ['straight','swing'], [words.straight,'Swing'], style, v => { style = v; saveTraining(); });
+    selectField(playback, words.repeats, 'song-repeats', ['1','2','4','8','12','24','0'], ['1','2','4','8','12','24',getLang() === 'ru' ? 'До остановки' : 'Until stopped'], String(repeats), v => { repeats = Number(v); saveTraining(); });
+    const countLabel = el('label', '', 'check'), count = el('input'); count.type = 'checkbox'; count.checked = countIn; count.id = 'song-count-in'; count.addEventListener('change', () => { stop(); countIn = count.checked; saveTraining(); }); countLabel.append(count, el('span', words.countLabel));
     const play = button(words.play, 'song-play', async () => {
       if (active()) { stop(); return; }
       const request = ++generation; soundError = false; notice = '';
@@ -205,12 +244,23 @@ export function initSongEditor({ getLang, getContext }) {
         const compiled = arrangeSong(validation.compiled.song, { style });
         const context = getContext();
         engine ??= new BackingPlayer({ context, onStep: p => { position = p; updatePlayback(); }, onStop: () => { position = null; updatePlayback(); } });
-        const pending = engine.start(compiled, { bpm: history.current.bpm, repeats, countIn }); updatePlayback(); await pending;
+        const pending = engine.start(compiled, { bpm: history.current.bpm, repeats, countIn, training }); updatePlayback(); await pending;
       } catch { if (request === generation) { engine?.stop(); soundError = true; } }
       if (request === generation) updatePlayback();
     });
     const playStatus = el('p', '', 'textbook-help'); playStatus.id = 'song-play-status'; playStatus.setAttribute('role', 'status');
-    root.append(playback, countLabel, play, playStatus);
+    const trainingControls = createTrainingControls({ prefix: 'song-training', getLang, settings: training, sourceKey: history.current.key, bpm: history.current.bpm,
+      onChange(name, value) { stop(); training = normalizeTraining({ ...training, [name]: value }); saveTraining(); render(); ref(`song-training-${name}`)?.focus(); },
+    });
+    const keyStatus = el('p', '', 'song-key-status'); keyStatus.id = 'song-key-status'; keyStatus.setAttribute('role','status');
+    const transpose = button(getLang() === 'ru' ? 'Транспонировать исходные аккорды' : 'Transpose source chords', 'song-transpose-source', () => {
+      if (!training.targetKey || validation.errors.length) return;
+      const target = training.targetKey;
+      training = normalizeTraining({ ...training, targetKey: '' }); saveTraining();
+      change(d => Object.assign(d,transposeDraft(d,target)),null,true);
+    });
+    const sourceHelp = el('p', getLang() === 'ru' ? 'Поля редактора содержат исходные аккорды. Сетка показывает партию инструмента. Кнопка транспонирования изменяет оригинал; это действие можно отменить.' : 'Editor fields contain source chords. The chart shows the instrument part. Transpose source chords changes the original and can be undone.', 'textbook-help');
+    root.append(playback, countLabel, trainingControls, keyStatus, transpose, sourceHelp, play, playStatus);
     validate();
   }
   root.addEventListener('keydown', event => {

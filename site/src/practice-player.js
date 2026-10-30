@@ -1,22 +1,26 @@
 import { buildAccompaniment, PARTS } from './accompaniment.js';
 import { BackingPlayer } from './backing-player.js';
 import { clampBpm } from './tempo.js';
+import { normalizeTraining, trainingState, displaySong } from './training.js';
+import { createTrainingControls, readTraining, trainingLabel } from './training-controls.js';
 
 const COPY = {
   ru: { title: 'Аккомпанемент', form: 'Упражнение', forms: ['ii–V–I · 4 такта', 'Мажорный блюз · 12 тактов', 'Минорный блюз · 12 тактов'],
     style: 'Ритм', styles: ['Ровный', 'Swing'], repeats: 'Круги', forever: 'До остановки', countIn: 'Отсчёт · 1 такт', play: 'Играть аккомпанемент', stop: 'Остановить аккомпанемент', cancel: 'Отменить запуск',
     parts: ['Бас', 'Клавиши', 'Ударные'], mute: 'Отключить', volume: 'Громкость', ready: 'Выберите темп и начните играть.', counting: 'Отсчёт', pass: 'Круг', bar: 'Такт', beat: 'Доля', error: 'Не удалось включить звук. Попробуйте запустить ещё раз.',
-    help: 'Аккорды звучат в выбранной тональности, строй инструмента пока не учитывается. Мажорный блюз: I7–IV7–V7; минорный: i7–iv7–V7.' },
+    help: 'Аккорды звучат в выбранной тональности, сетка показывает партию выбранного инструмента. Мажорный блюз: I7–IV7–V7; минорный: i7–iv7–V7.' },
   en: { title: 'Backing band', form: 'Exercise', forms: ['ii–V–I · 4 bars', 'Major blues · 12 bars', 'Minor blues · 12 bars'],
     style: 'Feel', styles: ['Straight', 'Swing'], repeats: 'Choruses', forever: 'Until stopped', countIn: 'Count-in · 1 bar', play: 'Play backing band', stop: 'Stop backing band', cancel: 'Cancel start',
     parts: ['Bass', 'Keys', 'Drums'], mute: 'Mute', volume: 'Volume', ready: 'Choose a tempo and start playing.', counting: 'Count-in', pass: 'Chorus', bar: 'Bar', beat: 'Beat', error: 'Could not start audio. Try starting again.',
-    help: 'Chords sound in the selected key; instrument transposition is not applied yet. Major blues: I7–IV7–V7; minor blues: i7–iv7–V7.' },
+    help: 'Chords sound in the selected key; the chart shows the selected instrument’s part. Major blues: I7–IV7–V7; minor blues: i7–iv7–V7.' },
 };
 const FORMS = ['cadence', 'majorBlues', 'minorBlues'];
 const STYLES = ['straight', 'swing'];
-const REPEATS = [1, 2, 4, 8, 0];
+const REPEATS = [1, 2, 4, 8, 12, 24, 0];
 
 export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
+  let training = normalizeTraining();
+  try { training = readTraining(localStorage, 'metronome-backing-training'); } catch {}
   const element = document.createElement('section');
   element.className = 'backing-player';
   let harmony, compiled, engine, lastPosition, failed = false, run = 0;
@@ -41,7 +45,7 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
     return el;
   };
   const busy = () => Boolean(engine?.transport.playing || engine?.transport.pending);
-  let play, status, grid, bpmInput;
+  let play, status, grid, bpmInput, keyStatus;
 
   function update() {
     if (!play) return;
@@ -51,7 +55,14 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
     status.textContent = failed ? s.error : !lastPosition ? s.ready : lastPosition.countIn
       ? `${s.counting} · ${lastPosition.step.beatIndex + 1} / 4`
       : `${s.pass} ${lastPosition.step.pass}${settings.repeats ? ` / ${settings.repeats}` : ''} · ${s.bar} ${lastPosition.step.barIndex + 1} / ${compiled.symbols.length} · ${s.beat} ${lastPosition.step.beatIndex + 1} / 4`;
+    const state = lastPosition?.step.training ?? trainingState(compiled.song.key, 1, getBpm(), training);
+    const label = trainingLabel(state, getLang());
+    if (keyStatus && keyStatus.textContent !== label) keyStatus.textContent = label;
+    const written = displaySong(compiled.song, state).sections.flatMap(section => section.measures);
     [...grid.children].forEach((bar, index) => {
+      const symbol = written[index].chords.map(chord => chord.symbol).join(' · ') || '—';
+      const span = bar.querySelector('.backing-symbol');
+      if (span.textContent !== symbol) span.textContent = symbol;
       const active = Boolean(lastPosition && !lastPosition.countIn && index === lastPosition.step.barIndex);
       bar.classList.toggle('active', active);
       if (active) bar.setAttribute('aria-current', 'true'); else bar.removeAttribute('aria-current');
@@ -88,14 +99,14 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
     bpmInput = node('input'); bpmInput.type = 'number'; bpmInput.id = 'backing-bpm'; bpmInput.min = 30; bpmInput.max = 300; bpmInput.step = 1; bpmInput.value = getBpm();
     bpmInput.addEventListener('change', () => { const bpm = clampBpm(bpmInput.value); bpmInput.value = bpm; engine?.transport.setBpm(bpm); onTempo(bpm); });
     bpmLabel.append(bpmInput); controls.append(bpmLabel);
-    selectField(s.repeats, 'backing-repeats', REPEATS, ['1', '2', '4', '8', s.forever], settings.repeats, value => { settings.repeats = Number(value); });
+    selectField(s.repeats, 'backing-repeats', REPEATS, ['1', '2', '4', '8', '12', '24', s.forever], settings.repeats, value => { settings.repeats = Number(value); });
     const countLabel = node('label', '', 'check backing-count-in');
     const count = node('input'); count.type = 'checkbox'; count.id = 'backing-count-in'; count.checked = settings.countIn;
     count.addEventListener('change', () => { stop(); settings.countIn = count.checked; save(); });
     countLabel.append(count, node('span', s.countIn));
     grid = node('ol', '', 'backing-chart'); grid.setAttribute('aria-label', s.form);
     compiled.symbols.forEach((symbol, index) => {
-      const bar = node('li'); bar.append(node('span', String(index + 1), 'backing-bar-number'), node('span', symbol)); grid.append(bar);
+      const bar = node('li'); bar.append(node('span', String(index + 1), 'backing-bar-number'), node('span', symbol, 'backing-symbol')); grid.append(bar);
     });
     play = node('button', s.play, 'btn btn--primary'); play.id = 'backing-play'; play.type = 'button';
     play.addEventListener('click', async () => {
@@ -106,7 +117,7 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
         const context = getContext();
         engine ??= new BackingPlayer({ context, onStep: position => { lastPosition = position; update(); }, onStop: () => { lastPosition = null; update(); } });
         for (const part of PARTS) engine.setPart(part, settings.mix[part].volume, settings.mix[part].muted);
-        const pending = engine.start(compiled, { ...settings, bpm: getBpm() });
+        const pending = engine.start(compiled, { ...settings, bpm: getBpm(), training });
         update();
         await pending;
       } catch {
@@ -129,7 +140,15 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
       volume.addEventListener('input', applyMix); mute.addEventListener('change', applyMix);
       label.append(volume); muteLabel.append(mute, node('span', s.mute)); channel.append(label, muteLabel); mixer.append(channel);
     });
-    element.append(controls, countLabel, grid, play, status, mixer, node('p', s.help, 'textbook-help'));
+    const trainingControls = createTrainingControls({ prefix: 'backing-training', getLang, settings: training, sourceKey: compiled.song.key, bpm: getBpm(),
+      onChange(name, value) {
+        stop(); training = normalizeTraining({ ...training, [name]: value });
+        try { localStorage.setItem('metronome-backing-training', JSON.stringify(training)); } catch {}
+        render(); element.querySelector(`#backing-training-${name}`)?.focus();
+      },
+    });
+    keyStatus = node('p', '', 'backing-key-status'); keyStatus.id = 'backing-key-status'; keyStatus.setAttribute('role', 'status');
+    element.append(controls, countLabel, trainingControls, keyStatus, grid, play, status, mixer, node('p', s.help, 'textbook-help'));
     update();
   }
 

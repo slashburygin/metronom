@@ -49,6 +49,6 @@ export function parseChord(raw) {
     }
   }
   if (!intervals) throw new RangeError(`Unknown chord: ${text}`);
-  return { symbol: root + quality + (slash ? '/' + bass : ''), root, bass, silent: false,
+  return { symbol: root + quality + (slash ? '/' + bass : ''), root, quality, bass, silent: false,
     bassPitch: pitchClass(bass), pitchClasses: intervals.map(n => (pitchClass(root) + n) % 12) };
 }

@@ -1,5 +1,6 @@
 import { Transport } from './transport.js';
 import { midiFrequency, PARTS } from './accompaniment.js';
+import { trainingState, trainingArrangement } from './training.js';
 
 // Small procedural voices for practice. Every source has an explicit lifetime;
 // no samples, network requests or third-party sound assets are needed.
@@ -37,18 +38,27 @@ export class BackingPlayer {
     this.channels[part].gain.setTargetAtTime(muted ? 0 : Math.max(0, Math.min(1, volume)), this.context.currentTime, 0.01);
   }
 
-  async start(compiled, { bpm = 120, repeats = 4, countIn = true } = {}) {
+  async start(compiled, { bpm = 120, repeats = 4, countIn = true, training = {} } = {}) {
     if (!Number.isInteger(repeats) || repeats < 0 || repeats > 32) throw new RangeError('Invalid repeat count');
     this.stop();
     const length = compiled.steps.length;
+    const cache = new Map();
+    const arrangement = state => {
+      const key = `${state.key}:${state.semitones}`;
+      if (!cache.has(key)) cache.set(key, trainingArrangement(compiled, state));
+      return cache.get(key);
+    };
     this.transport.nextStep = index => {
       if (repeats && index >= length * repeats) return null;
-      const step = compiled.steps[index % length];
-      return { ...step, pass: Math.floor(index / length) + 1 };
+      const pass = Math.floor(index / length) + 1;
+      const state = trainingState(compiled.song.key, pass, this.transport.bpm, training);
+      const step = arrangement(state).steps[index % length];
+      return { ...step, pass, bpm: state.bpm, training: state };
     };
     this.transport.setBpm(bpm);
     this.transport.tempoUnit = compiled.song.tempoUnit;
-    await this.transport.start({ index: 0, countIn: countIn ? compiled.steps.filter(step => step.barIndex === 0) : [] });
+    const first = this.transport.nextStep(0);
+    await this.transport.start({ index: 0, countIn: countIn ? arrangement(first.training).steps.filter(step => step.barIndex === 0) : [] });
   }
 
   stop() { this.transport.stop(); }

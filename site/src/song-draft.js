@@ -1,6 +1,7 @@
 import { fraction as f, ZERO, add, compare } from './musical-time.js';
 import { compileSong } from './song.js';
 import { parseChord } from './chords.js';
+import { parseKey } from './transposition.js';
 
 export const emptyMeasure = () => ({ chords: '', alternate: '', text: '', meter: '4/4' });
 export function newDraft() {
@@ -30,6 +31,7 @@ export function parseMeasure(text, meterText = '4/4') {
 }
 export function compileDraft(draft) {
   const errors = [];
+  try { parseKey(draft.key); } catch (error) { errors.push({ message: error.message }); }
   const sections = draft.sections.map((section, sectionIndex) => ({ name: section.name, measures: section.measures.map((measure, measureIndex) => {
     try {
       const parsed = parseMeasure(measure.chords, measure.meter);

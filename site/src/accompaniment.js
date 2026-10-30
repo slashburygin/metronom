@@ -31,7 +31,7 @@ export function buildAccompaniment(harmony, { form = 'cadence', style = 'straigh
   const chords = practiceChords(harmony, form);
   const measures = chords.map(chord => ({ meter: { numerator: 4, denominator: 4 },
     chords: [{ symbol: chord.symbol, offset: ZERO, duration: f(1) }] }));
-  const compiled = compileSong({ key: harmony.notes[0], sections: [{ measures }] });
+  const compiled = compileSong({ key: harmony.notes[0] + (harmony.type === 'major' ? '' : 'm'), sections: [{ measures }] });
   const steps = compiled.steps.map(step => {
     const chord = chords[step.barIndex];
     const pcs = chord.notes.map(note => typeof note === 'number' ? note : pitchClass(note));
