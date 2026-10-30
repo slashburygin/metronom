@@ -14,13 +14,13 @@ const WORDS = {
     name: 'Название', composer: 'Автор', key: 'Исходная тональность', undo: 'Отменить', redo: 'Повторить', section: 'Секция', addSection: '+ Секция', removeSection: 'Удалить секцию', addBar: '+ Такт', removeBar: 'Удалить такт', copy: 'Копировать такт', paste: 'Вставить такт',
     bar: 'Такт', meter: 'Размер', chords: 'Аккорды', alternate: 'Альтернативные аккорды', text: 'Комментарий', insert: 'Добавить аккорд', root: 'Основной тон', quality: 'Тип аккорда', bass: 'Бас', none: 'Как основной тон',
     help: 'Аккорды через пробел делят такт поровну. Длительности в долях: Dm7:2 G7:2. Пустой такт — без гармонии; N.C. оставляет ударные, Break — полная пауза. Альтернативы вводятся по одной на аккорд и не звучат.',
-    invalid: 'Проверьте аккорды и длительности. Неизвестный ввод оставлен в черновике.', play: 'Играть', stop: 'Стоп', cancel: 'Отменить запуск', sound: 'Не удалось включить звук. Попробуйте ещё раз.', count: 'Отсчёт', countLabel: 'Отсчёт · первый такт', straight: 'Ровный', style: 'Ритм', repeats: 'Круги', ready: 'Готово к воспроизведению', limit: 'Достигнут предел: 100 композиций, 32 секции или 256 тактов.',
+    invalid: 'Проверьте аккорды, длительности и форму. Неизвестный ввод оставлен в черновике.', play: 'Играть', stop: 'Стоп', cancel: 'Отменить запуск', sound: 'Не удалось включить звук. Попробуйте ещё раз.', count: 'Отсчёт', countLabel: 'Отсчёт · первый звучащий такт', form: 'Знаки формы', order: 'Порядок тактов', formPosition: 'Форма', chorus: 'Круг', style: 'Ритм', repeats: 'Круги', ready: 'Готово к воспроизведению', limit: 'Достигнут предел: 100 композиций, 32 секции или 256 тактов.',
   },
   en: { title: 'Songs', untitled: 'Untitled', create: 'New', duplicate: 'Duplicate', save: 'Save', saved: 'Saved on this device', saving: 'Saving…', storage: 'Could not save. Changes remain only in this tab.', load: 'Could not read saved songs. They will not be overwritten.',
     name: 'Title', composer: 'Composer', key: 'Source key', undo: 'Undo', redo: 'Redo', section: 'Section', addSection: '+ Section', removeSection: 'Remove section', addBar: '+ Bar', removeBar: 'Remove bar', copy: 'Copy bar', paste: 'Paste bar',
     bar: 'Bar', meter: 'Meter', chords: 'Chords', alternate: 'Alternate chords', text: 'Comment', insert: 'Insert chord', root: 'Root', quality: 'Quality', bass: 'Bass', none: 'Same as root',
     help: 'Space-separated chords divide the bar equally. Beat durations: Dm7:2 G7:2. Empty bars have no harmony; N.C. keeps drums, Break silences all parts. Enter one alternate per chord; alternates are not played.',
-    invalid: 'Check chords and durations. Unrecognized input remains in the draft.', play: 'Play', stop: 'Stop', cancel: 'Cancel start', sound: 'Could not start audio. Try again.', count: 'Count-in', countLabel: 'Count-in · first bar', straight: 'Straight', style: 'Feel', repeats: 'Choruses', ready: 'Ready to play', limit: 'Limit reached: 100 songs, 32 sections or 256 bars.',
+    invalid: 'Check chords, durations and form. Unrecognized input remains in the draft.', play: 'Play', stop: 'Stop', cancel: 'Cancel start', sound: 'Could not start audio. Try again.', count: 'Count-in', countLabel: 'Count-in · first played bar', form: 'Form signs', order: 'Bar order', formPosition: 'Form', chorus: 'Chorus', style: 'Feel', repeats: 'Choruses', ready: 'Ready to play', limit: 'Limit reached: 100 songs, 32 sections or 256 bars.',
   },
 };
 const clone = v => JSON.parse(JSON.stringify(v));
@@ -100,7 +100,7 @@ export function initSongEditor({ getLang, getContext }) {
     ref('song-play').disabled = Boolean(validation.errors.length) && !active();
     updateWrittenChart();
     ref('song-play-status').textContent = soundError ? s().sound : position
-      ? position.countIn ? `${s().count} · ${position.step.beatIndex + 1}` : `${s().bar} ${position.step.barIndex + 1} · ${position.step.pass}${repeats ? ` / ${repeats}` : ''}`
+      ? position.countIn ? `${s().count} · ${position.step.beatIndex + 1}` : `${s().bar} ${position.step.barIndex + 1} · ${s().formPosition} ${position.step.playbackBarIndex + 1} / ${validation.compiled.playOrder.length} · ${s().chorus} ${position.step.pass}${repeats ? ` / ${repeats}` : ''}`
       : notice || (validation.errors.length ? s().invalid : s().ready);
     root.querySelectorAll('[data-global-bar]').forEach(node => {
       const current = Boolean(position && !position.countIn && Number(node.dataset.globalBar) === position.step.barIndex);
@@ -120,6 +120,7 @@ export function initSongEditor({ getLang, getContext }) {
       button.querySelector('.song-bar-chords').textContent = m.chords || '—';
       button.querySelector('.song-bar-alternate').textContent = m.alternate;
       button.querySelector('.song-bar-text').textContent = m.text;
+      button.querySelector('.song-bar-form').textContent = m.form || '';
       button.querySelector('.backing-bar-number').textContent = `${Number(button.dataset.globalBar) + 1} · ${m.meter}`;
     }
     root.querySelectorAll('[data-section-heading]').forEach(heading => {
@@ -128,6 +129,8 @@ export function initSongEditor({ getLang, getContext }) {
     ref('song-undo').disabled = !history.past.length;
     ref('song-redo').disabled = !history.future.length;
     if (ref('song-transpose-source')) ref('song-transpose-source').disabled = Boolean(validation.errors.length || !training.targetKey);
+    const order = validation.compiled?.playOrder;
+    ref('song-form-order').textContent = order ? `${s().order} (${order.length}): ${order.slice(0,64).map(i => i + 1).join(' → ')}${order.length > 64 ? ' …' : ''}` : '';
     const option = ref('song-select').selectedOptions[0];
     if (option) option.textContent = history.current.title || s().untitled;
     updatePlayback(); updateStatus();
@@ -195,7 +198,7 @@ export function initSongEditor({ getLang, getContext }) {
         cell.removeAttribute('id'); cell.dataset.section = si; cell.dataset.measure = mi; cell.dataset.globalBar = globalBar;
         cell.setAttribute('aria-label', `${words.section} ${section.name}, ${words.bar} ${globalBar + 1}`);
         cell.setAttribute('aria-pressed', String(si === sectionIndex && mi === measureIndex));
-        cell.append(el('span', `${++globalBar} · ${m.meter}`, 'backing-bar-number'), el('span', m.alternate, 'song-bar-alternate'), el('span', m.chords || '—', 'song-bar-chords'), el('span', m.text, 'song-bar-text'));
+        cell.append(el('span', `${++globalBar} · ${m.meter}`, 'backing-bar-number'), el('span', m.form || '', 'song-bar-form'), el('span', m.alternate, 'song-bar-alternate'), el('span', m.chords || '—', 'song-bar-chords'), el('span', m.text, 'song-bar-text'));
         bars.append(cell);
       });
       chart.append(bars);
@@ -218,6 +221,7 @@ export function initSongEditor({ getLang, getContext }) {
     inputField(form, words.chords, 'song-chords', measure().chords, (d, v) => { d.sections[sectionIndex].measures[measureIndex].chords = v; }, { multiline: true });
     inputField(form, words.alternate, 'song-alternate', measure().alternate, (d, v) => { d.sections[sectionIndex].measures[measureIndex].alternate = v; }, { multiline: true });
     inputField(form, words.text, 'song-comment', measure().text, (d, v) => { d.sections[sectionIndex].measures[measureIndex].text = v; }, { multiline: true });
+    inputField(form, words.form, 'song-form', measure().form || '', (d, v) => { d.sections[sectionIndex].measures[measureIndex].form = v; }, { maxLength: 200 });
     root.append(form);
     const picker = el('div', '', 'song-fields');
     function selectField(parent, label, id, values, labels = values, value = values[0], action) {
@@ -226,6 +230,22 @@ export function initSongEditor({ getLang, getContext }) {
       if (action) select.addEventListener('change', () => { stop(); action(select.value); });
       wrapper.append(select); parent.append(wrapper); return select;
     }
+    const formPicker = el('div', '', 'song-fields');
+    const signs = ['', '|:', ':|', ':|3', '[1', '[2', '[1,2', ']', 'Segno', 'Coda', 'Fine', 'ToCoda', 'D.C.', 'D.S.', 'D.C.alFine', 'D.S.alFine', 'D.C.alCoda', 'D.S.alCoda'];
+    const formLabels = getLang() === 'ru'
+      ? ['Выберите знак', 'Начало репризы |:', 'Конец репризы · 2 раза :|', 'Конец репризы · 3 раза :|3', 'Начало вольты 1 [1', 'Начало вольты 2 [2', 'Вольта для проходов 1 и 2 [1,2', 'Конец вольты ]', 'Segno · цель D.S.', 'Coda · начало коды', 'Fine · окончание', 'To Coda · переход к коде', 'D.C. · к началу', 'D.S. · к Segno', 'D.C. al Fine', 'D.S. al Fine', 'D.C. al Coda', 'D.S. al Coda']
+      : ['Choose a sign', 'Repeat start |:', 'Repeat end · 2 times :|', 'Repeat end · 3 times :|3', 'Ending 1 start [1', 'Ending 2 start [2', 'Ending for passes 1 and 2 [1,2', 'Ending end ]', 'Segno · D.S. target', 'Coda · start of coda', 'Fine · finish', 'To Coda · jump to coda', 'D.C. · to start', 'D.S. · to Segno', 'D.C. al Fine', 'D.S. al Fine', 'D.C. al Coda', 'D.S. al Coda'];
+    const sign = selectField(formPicker, words.form, 'song-form-sign', signs, formLabels);
+    formPicker.append(button(getLang() === 'ru' ? 'Добавить знак' : 'Add sign', 'song-form-insert', () => {
+      if (!sign.value) return;
+      change(d => { const m = d.sections[sectionIndex].measures[measureIndex]; m.form = [m.form, sign.value].filter(Boolean).join(' '); }, null, true);
+      ref('song-form').focus();
+    }));
+    const formHelp = el('p', getLang() === 'ru'
+      ? 'Знаки относятся к выбранному такту: |: и Segno/Coda — перед ним; :|, Fine, ToCoda и D.C./D.S. — после него. Вольта начинается с [1 или [2 и заканчивается ] либо :|. Например: такт 1 — |:, такт 2 — [1 :|, такт 3 — [2 ]. После D.C./D.S. репризы идут один раз по последним вольтам. Поддерживается один D.C./D.S. на композицию.'
+      : 'Signs belong to the selected bar: |: and Segno/Coda are before it; :|, Fine, ToCoda and D.C./D.S. are after it. An ending starts with [1 or [2 and closes with ] or :|. Example: bar 1 — |:, bar 2 — [1 :|, bar 3 — [2 ]. After D.C./D.S., repeats play once using their final endings. One D.C./D.S. per song is supported.', 'textbook-help');
+    const order = el('p', '', 'textbook-help'); order.id = 'song-form-order';
+    root.append(formPicker, formHelp, order);
     const pickRoot = selectField(picker, words.root, 'song-chord-root', NOTES);
     const quality = selectField(picker, words.quality, 'song-chord-quality', CHORD_QUALITIES, CHORD_QUALITIES.map(q => q || (getLang() === 'ru' ? 'Мажор' : 'Major')), 'maj7');
     const bass = selectField(picker, words.bass, 'song-chord-bass', ['', ...NOTES], [words.none, ...NOTES]);

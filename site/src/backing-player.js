@@ -58,7 +58,9 @@ export class BackingPlayer {
     this.transport.setBpm(bpm);
     this.transport.tempoUnit = compiled.song.tempoUnit;
     const first = this.transport.nextStep(0);
-    await this.transport.start({ index: 0, countIn: countIn ? arrangement(first.training).steps.filter(step => step.barIndex === 0) : [] });
+    const firstBar = arrangement(first.training).steps;
+    const boundary = firstBar.findIndex((step, index) => index > 0 && step.beatIndex === 0);
+    await this.transport.start({ index: 0, countIn: countIn ? firstBar.slice(0, boundary < 0 ? firstBar.length : boundary) : [] });
   }
 
   stop() { this.transport.stop(); }

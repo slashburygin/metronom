@@ -21,6 +21,7 @@ styling follows exordos.com.
 - Scales & chords practice: major, natural minor, harmonic minor and jazz melodic minor in 12 keys, with diatonic seventh chords, cadence guide tones and four guided steps. Progress is saved per key and scale type. Every task has a small help button with examples that follow the selected key. A tempo button sets the metronome to 60 BPM.
 - Backing band in the cadence and improvisation steps: a four-bar ii–V–I, twelve-bar major or minor blues, straight, swing, bossa nova, ballad or rock feel, synthesized bass, keys and drums. Includes a one-bar count-in, 1/2/4/8 choruses or continuous playback, current-bar highlighting and individual volume/mute controls. Tempo is shared with the metronome; starting either player stops the other. Concert key and written instrument part are separate, with C, B♭, E♭, F and G instrument settings.
 - Songs tab: create and duplicate songs, edit sections, meters, chord grids and comments, copy/paste bars, undo/redo and autosave drafts locally. Chords support triads, sevenths, extensions, alterations, slash bass, N.C. and Break; unknown input remains in the draft and blocks playback. Multiple chords divide a bar equally or use explicit beat durations such as `Dm7:2 G7:2`. Alternate chords are displayed only. Custom songs play through the existing backing band with count-in, repeats and bar highlighting. See [song editor](docs/song-editor.md).
+- Song form: repeat signs, nested repeats, first/second/shared endings, D.C./D.S., Coda and Fine. Preview the expanded bar order before playback; invalid targets block playback while preserving the draft. Highlighting follows source bars, and automatic practice changes key/tempo after the entire form. See [form rules](docs/song-editor.md#репризы-и-переходы).
 - Transposition and automatic practice: keep original chords while changing concert key and written part, cycle keys by semitone or fourth after N choruses, and increase BPM to a limit. Both players save training settings. The Songs editor can also transpose source chords as an undoable edit.
 - Shared accompaniment arranger for exercises and songs: close-position chord inversions minimize voice movement, swing uses walking bass with chromatic approaches, slash bass and pauses remain explicit. A saved performance variation number reproduces velocity changes without changing timing.
 - Settings are saved in the browser; **Reset** restores the defaults
@@ -43,7 +44,8 @@ for the API, count-in, looping, and seeking contracts.
 | `dist/site/` | Production build, packed as `site.tar.zst`. |
 | `site/src/notation.js` | Draws a rhythm pattern as notation: noteheads, stems, beams, dots, tuplets. |
 | `site/src/musical-time.js` | Exact fractional musical durations and conversion to seconds. |
-| `site/src/song.js` | Validates songs and compiles measures and chord events into pulses. |
+| `site/src/song.js` | Validates source songs, pulse grids and form playback order. |
+| `site/src/song-form.js` | Repeat/ending/jump validation and finite playback expansion with source mappings. |
 | `site/src/transport.js` | Shared audio-clock scheduling, count-in, loops, seeking, and source lifecycle. |
 | `site/src/accompaniment.js` | Practice forms and exact musical events for bass, keys and drums. |
 | `site/src/backing-player.js` | Procedural audio voices, mixer and repeated accompaniment playback. |

@@ -1,5 +1,6 @@
 import { fraction, asFraction, add, subtract, compare, ZERO, QUARTER } from './musical-time.js';
 import { DENOMINATORS, MAX_BEATS } from './tempo.js';
+import { normalizeForm, compileForm, FormError } from './song-form.js';
 
 // The grouping defines audible pulses. 6/8 defaults to two dotted quarters;
 // use groups: [1, 1, 1, 1, 1, 1] to practise all six eighth notes.
@@ -27,6 +28,9 @@ export function compileSong(input) {
   const sections = input.sections.map((section, sectionIndex) => {
     if (!Array.isArray(section.measures) || !section.measures.length) throw new RangeError('Section needs measures');
     const measures = section.measures.map((measure, measureIndex) => {
+      let form;
+      try { form = normalizeForm(measure.form); }
+      catch (error) { throw new FormError(error.message, barIndex); }
       const meter = normalizeMeter(measure.meter);
       const length = fraction(meter.numerator, meter.denominator);
       if (measure.chords !== undefined && !Array.isArray(measure.chords)) throw new TypeError('Expected chords array');
@@ -60,9 +64,10 @@ export function compileSong(input) {
       position = add(position, length);
       barIndex++;
       if (measure.text !== undefined && typeof measure.text !== 'string') throw new TypeError('Invalid measure text');
-      return { meter, chords, ...(measure.text !== undefined ? { text: measure.text } : {}) };
+      return { meter, chords, ...(Object.keys(form).length ? { form } : {}), ...(measure.text !== undefined ? { text: measure.text } : {}) };
     });
     return { name: section.name ?? '', measures };
   });
-  return { song: { version: 1, title: input.title ?? '', composer: input.composer ?? '', key: input.key ?? 'C', bpm, tempoUnit, sections }, steps, duration: position };
+  const playOrder = compileForm(sections.flatMap(section => section.measures));
+  return { song: { version: 1, title: input.title ?? '', composer: input.composer ?? '', key: input.key ?? 'C', bpm, tempoUnit, sections }, steps, duration: position, playOrder };
 }

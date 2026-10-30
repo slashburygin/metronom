@@ -1,4 +1,5 @@
 import { compileSong } from './song.js';
+import { expandSong } from './song-form.js';
 import { parseChord } from './chords.js';
 import { BACKING_STYLES, randomSequence, voiceChord, bassNote } from './arrangement.js';
 import { fraction as f, ZERO, add, subtract, multiply, compare } from './musical-time.js';
@@ -8,7 +9,8 @@ const max = (a, b) => compare(a, b) > 0 ? a : b;
 export function arrangeSong(song, { style = 'swing', seed = 1 } = {}) {
   if (!BACKING_STYLES.includes(style)) throw new RangeError('Invalid style');
   const compiled = compileSong(song);
-  const measures = compiled.song.sections.flatMap(section => section.measures);
+  const expanded = expandSong(compiled);
+  const measures = expanded.measures;
   const random = randomSequence(seed);
   const velocity = base => base * (0.93 + random() * 0.14);
   let bar = -1, local = ZERO, voicing = [], lastChord, previousBass;
@@ -22,8 +24,8 @@ export function arrangeSong(song, { style = 'swing', seed = 1 } = {}) {
     const first = measures[barIndex + 1]?.chords[0];
     return compare(end, length) === 0 && first?.offset.n === 0 ? parseChord(first.symbol) : null;
   }
-  const steps = compiled.steps.map(step => {
-    if (step.barIndex !== bar) { bar = step.barIndex; local = ZERO; }
+  const steps = expanded.steps.map(step => {
+    if (step.playbackBarIndex !== bar) { bar = step.playbackBarIndex; local = ZERO; }
     const start = local, end = add(local, step.duration);
     local = end;
     const measure = measures[bar];
@@ -87,5 +89,5 @@ export function arrangeSong(song, { style = 'swing', seed = 1 } = {}) {
     events.sort((a, b) => compare(a.offset, b.offset));
     return { ...step, events };
   });
-  return { ...compiled, steps, symbols: measures.map(measure => measure.chords.map(chord => chord.symbol).join(' · ') || '—') };
+  return { ...compiled, duration: expanded.duration, steps, symbols: compiled.song.sections.flatMap(section => section.measures.map(measure => measure.chords.map(chord => chord.symbol).join(' · ') || '—')) };
 }

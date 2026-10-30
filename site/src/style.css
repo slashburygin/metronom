@@ -591,6 +591,8 @@ kbd {
 .song-bars button.playing { background: var(--color-glow); border-color: var(--color-highlight); }
 .song-bars button.invalid { border-color: #c84545; }
 .song-bar-chords { font: 13px var(--font-mono); }
+.song-bar-form { font: 11px var(--font-mono); color: var(--color-text-muted); }
+#song-form-order { overflow-wrap: anywhere; }
 .song-bar-alternate { font: 11px var(--font-mono); color: var(--color-text-muted); }
 .song-bar-text { font-size: 11px; color: var(--color-text-muted); }
 .song-chart h3 { margin: 14px 0 8px; }

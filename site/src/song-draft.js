@@ -2,8 +2,9 @@ import { fraction as f, ZERO, add, compare } from './musical-time.js';
 import { compileSong } from './song.js';
 import { parseChord } from './chords.js';
 import { parseKey } from './transposition.js';
+import { parseForm } from './song-form.js';
 
-export const emptyMeasure = () => ({ chords: '', alternate: '', text: '', meter: '4/4' });
+export const emptyMeasure = () => ({ chords: '', alternate: '', text: '', meter: '4/4', form: '' });
 export function newDraft() {
   return { title: '', composer: '', key: 'C', bpm: 120, sections: [{ name: 'A', measures: Array.from({ length: 4 }, emptyMeasure) }] };
 }
@@ -37,7 +38,7 @@ export function compileDraft(draft) {
       const parsed = parseMeasure(measure.chords, measure.meter);
       const alternates = measure.alternate.trim() ? measure.alternate.trim().split(/\s+/).map(parseChord) : [];
       if (alternates.length && alternates.length !== parsed.chords.length) throw new RangeError('One alternate per chord');
-      return { ...parsed, text: measure.text, chords: parsed.chords.map((chord, i) => ({ ...chord, ...(alternates[i] ? { alternate: alternates[i].symbol } : {}) })) };
+      return { ...parsed, form: parseForm(measure.form), text: measure.text, chords: parsed.chords.map((chord, i) => ({ ...chord, ...(alternates[i] ? { alternate: alternates[i].symbol } : {}) })) };
     } catch (error) {
       errors.push({ sectionIndex, measureIndex, message: error.message });
       return { meter: { numerator: 4, denominator: 4 }, chords: [] };
@@ -45,7 +46,13 @@ export function compileDraft(draft) {
   }) }));
   if (errors.length) return { errors, compiled: null };
   try { return { errors, compiled: compileSong({ ...draft, sections }) }; }
-  catch (error) { return { errors: [{ message: error.message }], compiled: null }; }
+  catch (error) {
+    let bar = 0, location = {};
+    draft.sections.forEach((section, sectionIndex) => section.measures.forEach((_, measureIndex) => {
+      if (bar++ === error.barIndex) location = { sectionIndex, measureIndex };
+    }));
+    return { errors: [{ ...location, message: error.message }], compiled: null };
+  }
 }
 
 const clone = data => JSON.parse(JSON.stringify(data));
@@ -76,7 +83,8 @@ export function loadDrafts(storage) {
     for (const section of draft.sections) {
       if (typeof section.name !== 'string' || !Array.isArray(section.measures) || !section.measures.length) throw new RangeError('Invalid section');
       count += section.measures.length;
-      for (const measure of section.measures) if (!['chords','alternate','text','meter'].every(k => typeof measure[k] === 'string')) throw new RangeError('Invalid measure');
+      for (const measure of section.measures) if (!['chords','alternate','text','meter'].every(k => typeof measure[k] === 'string')
+        || (measure.form !== undefined && typeof measure.form !== 'string')) throw new RangeError('Invalid measure');
     }
     if (count > 256) throw new RangeError('Too many measures');
   }
