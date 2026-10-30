@@ -1,3 +1,5 @@
+import { BACKING_STYLES, STYLE_NAMES, normalizeSeed } from './arrangement.js';
+import { seedControl } from './arrangement-controls.js';
 import { newDraft, emptyMeasure, DraftHistory, compileDraft, loadDrafts, DRAFT_STORAGE } from './song-draft.js';
 import { CHORD_QUALITIES } from './chords.js';
 import { arrangeSong } from './song-arrangement.js';
@@ -33,18 +35,19 @@ export function initSongEditor({ getLang, getContext }) {
   if (!currentDocument) { currentDocument = { id: uid(), draft: newDraft() }; collection.documents.push(currentDocument); }
   collection.currentId = currentDocument.id;
   let training = normalizeTraining();
-  let style = 'swing', repeats = 1, countIn = true;
+  let style = 'swing', seed = 1, repeats = 1, countIn = true;
   const loadTraining = () => {
-    style = 'swing'; repeats = 1; countIn = true; training = normalizeTraining();
+    style = 'swing'; seed = 1; repeats = 1; countIn = true; training = normalizeTraining();
     try {
       const saved = JSON.parse(localStorage.getItem(`metronome-song-training:${currentDocument.id}`));
       training = normalizeTraining(saved);
-      if (['straight','swing'].includes(saved?.style)) style = saved.style;
+      if (BACKING_STYLES.includes(saved?.style)) style = saved.style;
+      seed = normalizeSeed(saved?.seed);
       if ([0,1,2,4,8,12,24].includes(saved?.repeats)) repeats = saved.repeats;
       if (typeof saved?.countIn === 'boolean') countIn = saved.countIn;
     } catch {}
   };
-  const saveTraining = () => { try { localStorage.setItem(`metronome-song-training:${currentDocument.id}`, JSON.stringify({ ...training, style, repeats, countIn })); } catch {} };
+  const saveTraining = () => { try { localStorage.setItem(`metronome-song-training:${currentDocument.id}`, JSON.stringify({ ...training, style, seed, repeats, countIn })); } catch {} };
   loadTraining();
   let history = new DraftHistory(currentDocument.draft), sectionIndex = 0, measureIndex = 0, clipboard = null;
   let timer, dirty = false, focusGroup = 0, engine, position, generation = 0, soundError = false, notice = '';
@@ -233,7 +236,8 @@ export function initSongEditor({ getLang, getContext }) {
     root.append(picker, el('p', words.help, 'textbook-help'));
     const errors = el('p', '', 'song-errors'); errors.id = 'song-errors'; errors.setAttribute('role', 'alert'); root.append(errors);
     const playback = el('div', '', 'song-fields');
-    selectField(playback, words.style, 'song-style', ['straight','swing'], [words.straight,'Swing'], style, v => { style = v; saveTraining(); });
+    selectField(playback, words.style, 'song-style', BACKING_STYLES, STYLE_NAMES[getLang()], style, v => { style = v; saveTraining(); });
+    playback.append(seedControl({ prefix: 'song', lang: getLang(), seed, onChange(value) { stop(); seed = value; saveTraining(); } }));
     selectField(playback, words.repeats, 'song-repeats', ['1','2','4','8','12','24','0'], ['1','2','4','8','12','24',getLang() === 'ru' ? 'До остановки' : 'Until stopped'], String(repeats), v => { repeats = Number(v); saveTraining(); });
     const countLabel = el('label', '', 'check'), count = el('input'); count.type = 'checkbox'; count.checked = countIn; count.id = 'song-count-in'; count.addEventListener('change', () => { stop(); countIn = count.checked; saveTraining(); }); countLabel.append(count, el('span', words.countLabel));
     const play = button(words.play, 'song-play', async () => {
@@ -241,7 +245,7 @@ export function initSongEditor({ getLang, getContext }) {
       const request = ++generation; soundError = false; notice = '';
       try {
         validation = compileDraft(history.current); if (!validation.compiled) { validate(); return; }
-        const compiled = arrangeSong(validation.compiled.song, { style });
+        const compiled = arrangeSong(validation.compiled.song, { style, seed });
         const context = getContext();
         engine ??= new BackingPlayer({ context, onStep: p => { position = p; updatePlayback(); }, onStop: () => { position = null; updatePlayback(); } });
         const pending = engine.start(compiled, { bpm: history.current.bpm, repeats, countIn, training }); updatePlayback(); await pending;

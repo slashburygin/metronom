@@ -19,9 +19,10 @@ styling follows exordos.com.
 - Local PDF textbook or sheet music beside the metronome, with the browser's page and zoom controls. Files stay on device. On narrow screens the viewer sits below the controls; browsers without embedded PDF support can use the separate-tab link.
 - Practice tab beside the metronome: Haimovich exercises for each weekday and daily chromatic exercises, with the current day selected automatically. Scores open at full size in a separate tab.
 - Scales & chords practice: major, natural minor, harmonic minor and jazz melodic minor in 12 keys, with diatonic seventh chords, cadence guide tones and four guided steps. Progress is saved per key and scale type. Every task has a small help button with examples that follow the selected key. A tempo button sets the metronome to 60 BPM.
-- Backing band in the cadence and improvisation steps: a four-bar ii–V–I, twelve-bar major or minor blues, straight or swing feel, synthesized bass, keys and drums. Includes a one-bar count-in, 1/2/4/8 choruses or continuous playback, current-bar highlighting and individual volume/mute controls. Tempo is shared with the metronome; starting either player stops the other. Concert key and written instrument part are separate, with C, B♭, E♭, F and G instrument settings.
+- Backing band in the cadence and improvisation steps: a four-bar ii–V–I, twelve-bar major or minor blues, straight, swing, bossa nova, ballad or rock feel, synthesized bass, keys and drums. Includes a one-bar count-in, 1/2/4/8 choruses or continuous playback, current-bar highlighting and individual volume/mute controls. Tempo is shared with the metronome; starting either player stops the other. Concert key and written instrument part are separate, with C, B♭, E♭, F and G instrument settings.
 - Songs tab: create and duplicate songs, edit sections, meters, chord grids and comments, copy/paste bars, undo/redo and autosave drafts locally. Chords support triads, sevenths, extensions, alterations, slash bass, N.C. and Break; unknown input remains in the draft and blocks playback. Multiple chords divide a bar equally or use explicit beat durations such as `Dm7:2 G7:2`. Alternate chords are displayed only. Custom songs play through the existing backing band with count-in, repeats and bar highlighting. See [song editor](docs/song-editor.md).
 - Transposition and automatic practice: keep original chords while changing concert key and written part, cycle keys by semitone or fourth after N choruses, and increase BPM to a limit. Both players save training settings. The Songs editor can also transpose source chords as an undoable edit.
+- Shared accompaniment arranger for exercises and songs: close-position chord inversions minimize voice movement, swing uses walking bass with chromatic approaches, slash bass and pauses remain explicit. A saved performance variation number reproduces velocity changes without changing timing.
 - Settings are saved in the browser; **Reset** restores the defaults
 - Keyboard: `Space` start/stop, `↑`/`↓` ±1 BPM (`Shift` ±5), `T` tap
 
@@ -52,7 +53,9 @@ for the API, count-in, looping, and seeking contracts.
 | `site/src/training-controls.js` | Bilingual training controls and written/concert key labels. |
 | `site/src/chords.js` | Explicit chord vocabulary, alterations, slash bass and silence markers. |
 | `site/src/song-draft.js` | Raw draft validation, exact bar durations, history and saved-draft schema. |
-| `site/src/song-arrangement.js` | Accompaniment for user songs, including intra-pulse changes and mixed meters. |
+| `site/src/song-arrangement.js` | Shared style patterns, intra-pulse chord changes and mixed meters. |
+| `site/src/arrangement.js` | Voice leading, walking bass, style names and seeded variations. |
+| `site/src/arrangement-controls.js` | Saved performance variation control shared by both players. |
 | `site/src/song-editor.js` | Local song drafts, editing UI, autosave and playback. |
 | `site/src/select.js` | Dropdown listbox, so the popup follows the site's tokens instead of the OS. |
 | `test/` | Unit tests for the tempo logic (`node --test`). |

@@ -1,3 +1,5 @@
+import { BACKING_STYLES, STYLE_NAMES, normalizeSeed } from './arrangement.js';
+import { seedControl } from './arrangement-controls.js';
 import { buildAccompaniment, PARTS } from './accompaniment.js';
 import { BackingPlayer } from './backing-player.js';
 import { clampBpm } from './tempo.js';
@@ -6,16 +8,16 @@ import { createTrainingControls, readTraining, trainingLabel } from './training-
 
 const COPY = {
   ru: { title: 'Аккомпанемент', form: 'Упражнение', forms: ['ii–V–I · 4 такта', 'Мажорный блюз · 12 тактов', 'Минорный блюз · 12 тактов'],
-    style: 'Ритм', styles: ['Ровный', 'Swing'], repeats: 'Круги', forever: 'До остановки', countIn: 'Отсчёт · 1 такт', play: 'Играть аккомпанемент', stop: 'Остановить аккомпанемент', cancel: 'Отменить запуск',
+    style: 'Ритм', repeats: 'Круги', forever: 'До остановки', countIn: 'Отсчёт · 1 такт', play: 'Играть аккомпанемент', stop: 'Остановить аккомпанемент', cancel: 'Отменить запуск',
     parts: ['Бас', 'Клавиши', 'Ударные'], mute: 'Отключить', volume: 'Громкость', ready: 'Выберите темп и начните играть.', counting: 'Отсчёт', pass: 'Круг', bar: 'Такт', beat: 'Доля', error: 'Не удалось включить звук. Попробуйте запустить ещё раз.',
     help: 'Аккорды звучат в выбранной тональности, сетка показывает партию выбранного инструмента. Мажорный блюз: I7–IV7–V7; минорный: i7–iv7–V7.' },
   en: { title: 'Backing band', form: 'Exercise', forms: ['ii–V–I · 4 bars', 'Major blues · 12 bars', 'Minor blues · 12 bars'],
-    style: 'Feel', styles: ['Straight', 'Swing'], repeats: 'Choruses', forever: 'Until stopped', countIn: 'Count-in · 1 bar', play: 'Play backing band', stop: 'Stop backing band', cancel: 'Cancel start',
+    style: 'Feel', repeats: 'Choruses', forever: 'Until stopped', countIn: 'Count-in · 1 bar', play: 'Play backing band', stop: 'Stop backing band', cancel: 'Cancel start',
     parts: ['Bass', 'Keys', 'Drums'], mute: 'Mute', volume: 'Volume', ready: 'Choose a tempo and start playing.', counting: 'Count-in', pass: 'Chorus', bar: 'Bar', beat: 'Beat', error: 'Could not start audio. Try starting again.',
     help: 'Chords sound in the selected key; the chart shows the selected instrument’s part. Major blues: I7–IV7–V7; minor blues: i7–iv7–V7.' },
 };
 const FORMS = ['cadence', 'majorBlues', 'minorBlues'];
-const STYLES = ['straight', 'swing'];
+const STYLES = BACKING_STYLES;
 const REPEATS = [1, 2, 4, 8, 12, 24, 0];
 
 export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
@@ -24,12 +26,13 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
   const element = document.createElement('section');
   element.className = 'backing-player';
   let harmony, compiled, engine, lastPosition, failed = false, run = 0;
-  const settings = { form: 'cadence', style: 'swing', repeats: 4, countIn: true,
+  const settings = { form: 'cadence', style: 'swing', seed: 1, repeats: 4, countIn: true,
     mix: Object.fromEntries(PARTS.map(part => [part, { volume: part === 'drums' ? 0.55 : 0.75, muted: false }])) };
   try {
     const saved = JSON.parse(localStorage.getItem('metronome-backing'));
     if (FORMS.includes(saved?.form)) settings.form = saved.form;
     if (STYLES.includes(saved?.style)) settings.style = saved.style;
+    settings.seed = normalizeSeed(saved?.seed);
     if (REPEATS.includes(saved?.repeats)) settings.repeats = saved.repeats;
     if (typeof saved?.countIn === 'boolean') settings.countIn = saved.countIn;
     for (const part of PARTS) {
@@ -94,7 +97,8 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
       wrapper.append(select); controls.append(wrapper);
     }
     selectField(s.form, 'backing-form', FORMS, [harmony.progressionLabel + ' · ' + (getLang() === 'ru' ? '4 такта' : '4 bars'), ...s.forms.slice(1)], settings.form, value => { settings.form = value; });
-    selectField(s.style, 'backing-style', STYLES, s.styles, settings.style, value => { settings.style = value; });
+    selectField(s.style, 'backing-style', STYLES, STYLE_NAMES[getLang()], settings.style, value => { settings.style = value; });
+    controls.append(seedControl({ prefix: 'backing', lang: getLang(), seed: settings.seed, onChange(value) { stop(); settings.seed = value; save(); render(); element.querySelector('#backing-seed').focus(); } }));
     const bpmLabel = node('label', 'BPM');
     bpmInput = node('input'); bpmInput.type = 'number'; bpmInput.id = 'backing-bpm'; bpmInput.min = 30; bpmInput.max = 300; bpmInput.step = 1; bpmInput.value = getBpm();
     bpmInput.addEventListener('change', () => { const bpm = clampBpm(bpmInput.value); bpmInput.value = bpm; engine?.transport.setBpm(bpm); onTempo(bpm); });

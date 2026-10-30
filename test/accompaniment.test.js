@@ -39,7 +39,7 @@ test('major and minor blues preserve root spelling and twelve-bar form', () => {
   assert.equal((minor[8].notes[1] - minor[8].notes[0] + 12) % 12, 4);
 });
 
-test('all arrangements stay within their pulses and use chord tones for bass and keys', () => {
+test('all styles stay inside pulses; only marked walking approaches leave chord tones', () => {
   for (const type of SCALE_TYPES) for (const key of keysFor(type)) for (const form of BACKING_FORMS) for (const style of BACKING_STYLES) {
     const harmony = scaleHarmony(key, type);
     const chords = practiceChords(harmony, form);
@@ -50,12 +50,17 @@ test('all arrangements stay within their pulses and use chord tones for bass and
         assert.ok(compare(event.offset, ZERO) >= 0 && compare(event.offset, step.duration) < 0);
         if (event.part && event.duration) assert.ok(compare(add(event.offset, event.duration), step.duration) <= 0);
         if (event.kind === 'note') {
-          assert.ok(pcs.includes(event.midi % 12), `${key} ${form} ${event.midi}`);
+          if (event.approach) {
+            assert.equal(style, 'swing'); assert.equal(event.part, 'bass'); assert.equal(step.beatIndex, 3);
+            const next = chords[step.barIndex + 1]; assert.ok(next);
+            const root = typeof next.notes[0] === 'number' ? next.notes[0] : pitchClass(next.notes[0]);
+            assert.equal((event.midi + 1) % 12, root);
+          } else assert.ok(pcs.includes(event.midi % 12), `${key} ${form} ${event.midi}`);
           assert.ok(event.midi >= 36 && event.midi <= 95);
         }
       }
       const hats = step.events.filter(e => e.sound === 'hat');
-      assert.deepEqual(hats.map(e => e.offset), [ZERO, style === 'swing' ? f(1, 6) : f(1, 8)]);
+      assert.deepEqual(hats.map(e => e.offset), style === 'ballad' ? [ZERO] : [ZERO, style === 'swing' ? f(1, 6) : f(1, 8)]);
     }
   }
 });
