@@ -618,3 +618,5 @@ kbd {
 .training-controls label { display: flex; flex-direction: column; min-width: 0; gap: 5px; font-size: 13px; color: var(--color-text-muted); }
 .training-controls input, .training-controls select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); color: var(--color-text); font: inherit; }
 .backing-key-status, .song-key-status { font: 13px var(--font-mono); overflow-wrap: anywhere; }
+
+.offline-status { margin: 0; padding: .5rem 1rem; text-align: center; font-size: .8rem; color: var(--color-text-muted); }

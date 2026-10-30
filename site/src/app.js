@@ -1,3 +1,4 @@
+import { initOffline } from './offline.js';
 import { initLessons } from './lessons.js';
 import { Tuner } from './tuner.js';
 import { Metronome } from './metronome.js';
@@ -40,6 +41,8 @@ const els = {
 
 // UI-only state; audio state lives on the metronome instance.
 const ui = { lang: detectLang(), view: 'digital', noteValue: DEFAULTS.noteValue };
+
+const offline = initOffline(() => ui.lang);
 
 let activeDot = null;
 const metronome = new Metronome({
@@ -178,6 +181,7 @@ function reset() {
 // --- rendering ---
 
 function renderText() {
+  offline.render();
   const s = t();
   document.documentElement.lang = ui.lang;
   document.title = s.pageTitle;

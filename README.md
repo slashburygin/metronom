@@ -27,6 +27,7 @@ styling follows exordos.com.
 - Local song library: versioned IndexedDB storage with non-destructive migration from localStorage, search by title/composer/key, recoverable trash, and JSON export/import. Stable IDs and revision ancestry allow manual transfer between devices: newer versions update existing songs, divergent changes retain both copies, and repeated imports do not duplicate known conflicts. Cross-tab writes use optimistic concurrency checks; unfinished writes have a local recovery journal. Account-based server sync is not implemented yet.
 - Transposition and automatic practice: keep original chords while changing concert key and written part, cycle keys by semitone or fourth after N choruses, and increase BPM to a limit. Both players save training settings. The Songs editor can also transpose source chords as an undoable edit.
 - Shared accompaniment arranger for exercises and songs: close-position chord inversions minimize voice movement, swing uses walking bass with chromatic approaches, slash bass and pauses remain explicit. A saved performance variation number reproduces velocity changes without changing timing.
+- Production PWA: after the offline-ready message, reopen the app without a network connection to use the metronome, backing band, song library and all 24 practice pages. Install from the browser menu where supported. Updates wait for all app tabs/windows to close. External fonts and analytics are not cached; local PDFs must be selected again. See [offline behavior](docs/song-editor.md#офлайн-приложение).
 - Settings are saved in the browser; **Reset** restores the defaults
 - Keyboard: `Space` start/stop, `↑`/`↓` ±1 BPM (`Shift` ±5), `T` tap
 
@@ -44,6 +45,9 @@ for the API, count-in, looping, and seeking contracts.
 |---|---|
 | `site/` | App HTML and source modules, used as the Vite root. |
 | `site/public/` | Static resources copied unchanged to `/`, including lesson scores. |
+| `scripts/offline-plugin.js` | Generates a versioned Service Worker from the finished production files and their SHA-256 hashes. |
+| `scripts/service-worker.js` | Verifies and caches each release; bypasses APIs and external requests. |
+| `site/src/offline.js` | Production registration and localized offline/update status. |
 | `dist/site/` | Production build, packed as `site.tar.zst`. |
 | `site/src/notation.js` | Draws a rhythm pattern as notation: noteheads, stems, beams, dots, tuplets. |
 | `site/src/musical-time.js` | Exact fractional musical durations and conversion to seconds. |
