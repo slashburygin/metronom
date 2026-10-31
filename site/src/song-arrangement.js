@@ -1,3 +1,4 @@
+import { grooveFor } from './style-grooves.js';
 import { compileSong } from './song.js';
 import { expandSong } from './song-form.js';
 import { parseChord } from './chords.js';
@@ -35,6 +36,7 @@ export function arrangeSong(song, { style = 'swing', seed = 1, arrangement } = {
     local = end;
     const measure = measures[bar];
     const events = [...step.events];
+    const groove = grooveFor(style, step.beatIndex, bar);
     const segments = measure.chords.flatMap((chord, chordIndex) => {
       const from = max(start, chord.offset), to = min(end, add(chord.offset, chord.duration));
       if (compare(from, to) >= 0) return [];
@@ -61,6 +63,27 @@ export function arrangeSong(song, { style = 'swing', seed = 1, arrangement } = {
       const target = compare(add(source.offset, source.duration), end) === 0 ? following(bar, chordIndex) : null;
       const bass = bassNote(chord, onset || ending ? 0 : step.beatIndex, previousBass,
         { walking: style === 'swing', target: !onset && !ending ? target : null });
+      if (groove) {
+        const endingHit = ornaments.fills && ending;
+        const emitNotes = (part, pattern, midis, strength) => {
+          const positions = pattern.map(hit => ({ ...hit, offset: multiply(step.duration, hit.at) }))
+            .filter(hit => compare(hit.offset, from) >= 0 && compare(hit.offset, to) < 0);
+          // Every harmonic change is articulated, even in a sparse groove.
+          if (onset && !positions.some(hit => compare(hit.offset, from) === 0)) positions.unshift({ offset: from, velocity: 1 });
+          if (endingHit && !positions.some(hit => compare(hit.offset, from) === 0)) positions.unshift({ offset: from, velocity: 1 });
+          positions.forEach((hit, index) => {
+            const limit = min(to, positions[index + 1]?.offset ?? to);
+            const duration = multiply(subtract(limit, hit.offset), endingHit ? f(1,2) : groove.gate);
+            for (const midi of midis) events.push({ kind: 'note', part, midi, offset: hit.offset, duration,
+              velocity: velocity(strength * hit.velocity),
+              ...(part === 'piano' && voicingColors.includes(midi % 12) ? { color: true } : {}),
+              ...(endingHit ? { ending: true } : {}) });
+          });
+          return positions.length > 0;
+        };
+        if (emitNotes('bass', groove.bass, [bass.midi], .7)) previousBass = bass.midi;
+        emitNotes('piano', groove.piano, voicing, style === 'bolero' ? .34 : .43);
+      } else {
       // Ballads leave space on alternate pulses; changes always get a new bass.
       if (style !== 'ballad' || step.beatIndex % 2 === 0 || onset || ending) {
         events.push({ kind: 'note', part: 'bass', ...bass, offset: from,
@@ -75,6 +98,7 @@ export function arrangeSong(song, { style = 'swing', seed = 1, arrangement } = {
         for (const midi of voicing) events.push({ kind: 'note', part: 'piano', midi, offset,
           duration: multiply(subtract(to, offset), ornaments.fills && ending ? f(1,2) : style === 'ballad' ? f(15, 16) : f(3, 4)), velocity: strength,
           ...(voicingColors.includes(midi % 12) ? { color: true } : {}), ...(ornaments.fills && ending ? { ending: true } : {}) });
+      }
       }
       lastChord = chord.symbol;
     }
@@ -93,6 +117,8 @@ export function arrangeSong(song, { style = 'swing', seed = 1, arrangement } = {
     const fill = ornaments.fills && beat === measure.meter.groups.length - 1 && fullPulse && canLead ? transitionKind(bars, bar) : null;
     if (fill) {
       for (const hit of fillPattern(style, fill, Math.floor(fillRandom() * 2))) addDrum(hit.sound, multiply(step.duration, hit.at), hit.velocity, fill);
+    } else if (groove) {
+      for (const hit of groove.drums) addDrum(hit.sound, multiply(step.duration, hit.at), hit.velocity);
     } else if (style === 'ballad') {
       addDrum('hat', ZERO, 0.2);
       if (beat % 2 === 0) addDrum('kick', ZERO, 0.3);

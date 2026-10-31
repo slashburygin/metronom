@@ -81,3 +81,32 @@ test('a gap before the next chord does not create a chromatic approach', () => {
   assert.equal(notes(result.steps[3], 'bass')[0].approach, undefined);
   assert.equal(notes(result.steps[4], 'bass').length, 0);
 });
+
+
+test('new grooves express shuffle triplets, disco four-on-floor and reggae one-drop', () => {
+  const source = song(['C7', 'F7']);
+  const hits = (style, beat, part, sound) => arrangeSong(source, { style }).steps[beat].events
+    .filter(e => e.part === part && (!sound || e.sound === sound));
+  assert.deepEqual(hits('shuffle', 0, 'drums', 'hat').map(e=>e.offset), [f(0), f(1,6)]);
+  for (let beat=0;beat<4;beat++) {
+    assert.equal(hits('disco',beat,'drums','kick').length,1);
+    assert.equal(hits('reggae',beat,'drums','kick').length,beat===2?1:0);
+  }
+  assert.equal(hits('jazzTwoFeel',1,'bass').length,0);
+  assert.equal(hits('country',1,'bass').length,0);
+  assert.equal(hits('funk',1,'bass').length,2);
+  assert.deepEqual(hits('reggae',1,'piano').map(e=>e.offset), Array(4).fill(f(1,8)));
+});
+
+test('all styles preserve exact fractional chord boundaries with optional colors and fills', () => {
+  for (const style of BACKING_STYLES) {
+    const result=arrangeSong(song(['C7:1/2 Dm7:1/2 G7:3','Break','N.C.','Cmaj7']),{style, arrangement:{colors:true,fills:true}});
+    for (const step of result.steps) {
+      const sounding=step.events.filter(e=>e.part);
+      if(step.barIndex===1)assert.equal(sounding.length,0);
+      if(step.barIndex===2)assert(sounding.every(e=>e.part==='drums'));
+      for(const e of sounding){assert(compare(e.duration,f(0))>0);assert(compare(add(e.offset,e.duration),step.duration)<=0);}
+      if(step.barIndex===0&&step.beatIndex===0)for(const e of sounding.filter(e=>e.kind==='note'&&compare(e.offset,f(1,8))<0))assert(compare(add(e.offset,e.duration),f(1,8))<=0);
+    }
+  }
+});

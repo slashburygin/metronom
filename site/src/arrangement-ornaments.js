@@ -31,6 +31,7 @@ export function transitionKind(bars, index) {
 // Original short figures, expressed as fractions of the final audible pulse.
 // They replace that pulse's ordinary drum pattern rather than layering a roll.
 export function fillPattern(style, reason, variation) {
+  style = ({ jazzTwoFeel: 'swing', shuffle: 'swing', samba: 'bossa', mambo: 'bossa', bolero: 'ballad', funk: 'rock', reggae: 'bossa', disco: 'rock', pop: 'straight', country: 'straight' })[style] ?? style;
   const hit = (sound, n, d, velocity) => ({ sound, at: f(n,d), velocity });
   if (reason === 'ending') return style === 'rock'
     ? [hit('kick',0,1,0.6),hit('snare',0,1,0.45),hit('hat',0,1,0.4)]

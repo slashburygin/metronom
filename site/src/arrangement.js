@@ -1,8 +1,9 @@
+import { GROOVE_STYLES } from './style-grooves.js';
 // Shared musical choices for custom songs and practice exercises.
-export const BACKING_STYLES = ['straight', 'swing', 'bossa', 'ballad', 'rock'];
+export const BACKING_STYLES = ['straight', 'swing', 'bossa', 'ballad', 'rock', ...GROOVE_STYLES];
 export const STYLE_NAMES = {
-  ru: ['Ровный', 'Swing', 'Bossa nova', 'Баллада', 'Rock'],
-  en: ['Straight', 'Swing', 'Bossa nova', 'Ballad', 'Rock'],
+  ru: ['Ровный', 'Swing', 'Bossa nova', 'Баллада', 'Rock', 'Jazz Two Feel', 'Shuffle', 'Samba', 'Mambo', 'Bolero', 'Funk', 'Reggae', 'Disco', 'Pop', 'Country'],
+  en: ['Straight', 'Swing', 'Bossa nova', 'Ballad', 'Rock', 'Jazz Two Feel', 'Shuffle', 'Samba', 'Mambo', 'Bolero', 'Funk', 'Reggae', 'Disco', 'Pop', 'Country'],
 };
 
 export function normalizeSeed(value = 1) {

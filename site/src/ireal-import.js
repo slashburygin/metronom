@@ -104,7 +104,8 @@ export function parseIreal(input){
      if(fields.slice(keyIndex+1,music).some(field=>field&&field!=='0'))throw new RangeError('Header transposition needs manual conversion');
     }else{if(fields.length!==6)throw new RangeError('Invalid open protocol song');style=fields[2];key=fields[3];body=fields[5];if(fields[4]&&fields[4]!=='n'){const packed=fields[4];body=`T${packed}`+body;}}
     const parsed=parseBody(body,key.replace(/-$/,'m'),bpm);parsed.draft.title=titleText;parsed.draft.composer=composer;
-    const mapped=/bossa/i.test(style)?'bossa':/ballad/i.test(style)?'ballad':/rock|pop/i.test(style)?'rock':/swing|jazz/i.test(style)?'swing':'straight';
+    const styleMap = [[/two.?feel|2.?feel/i,'jazzTwoFeel'],[/shuffle/i,'shuffle'],[/samba/i,'samba'],[/mambo/i,'mambo'],[/bolero/i,'bolero'],[/funk/i,'funk'],[/reggae/i,'reggae'],[/disco/i,'disco'],[/country/i,'country'],[/bossa/i,'bossa'],[/ballad/i,'ballad'],[/pop/i,'pop'],[/rock/i,'rock'],[/swing|jazz/i,'swing']];
+    const mapped = styleMap.find(([pattern]) => pattern.test(style))?.[1] ?? 'straight';
     const warnings=[...parsed.warnings];if(style)warnings.push(`Style “${style}” mapped to ${mapped} .`);
     songs.push({draft:parsed.draft,settings:{style:mapped,repeats,countIn:true},warnings,source:entry});
    }catch(error){songs.push({title,error:error.message,source:entry});}
