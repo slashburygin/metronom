@@ -23,7 +23,10 @@ export function initOffline(getLang) {
   let checkSequence = 0;
   function render() {
     const strings = TEXT[getLang()] || TEXT.en;
-    status.textContent = strings[waiting ? 'update' : state === 'ready' && !navigator.onLine ? 'offline' : state];
+    const message = strings[waiting ? 'update' : state === 'ready' && !navigator.onLine ? 'offline' : state];
+    status.querySelector('.offline-status-text').textContent = message;
+    status.title = message;
+    status.dataset.state = waiting ? 'update' : state;
   }
   if (!import.meta.env.PROD || !window.isSecureContext || !('serviceWorker' in navigator)) return { render() {} };
   status.hidden = false;
