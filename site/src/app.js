@@ -1,3 +1,5 @@
+import { initRecording } from './recording-controls.js';
+import { initOffline } from './offline.js';
 import { initLessons } from './lessons.js';
 import { Tuner } from './tuner.js';
 import { Metronome } from './metronome.js';
@@ -10,7 +12,7 @@ import {
 } from './tempo.js';
 
 const STORAGE_KEY = 'metronome-settings';
-const TEMPO_PRESETS = [60, 70, 80, 88, 100, 112, 120, 130, 140];
+const TEMPO_PRESETS = [60, 70, 80, 88, 100, 112, 116, 120, 130, 135, 140, 150, 160];
 const THEME_KEY = 'metronome-theme';
 const PENDULUM_MAX_DEG = 28;
 const $ = (id) => document.getElementById(id);
@@ -41,6 +43,8 @@ const els = {
 // UI-only state; audio state lives on the metronome instance.
 const ui = { lang: detectLang(), view: 'digital', noteValue: DEFAULTS.noteValue };
 
+const offline = initOffline(() => ui.lang);
+
 let activeDot = null;
 const metronome = new Metronome({
   onTick(beat, sub) {
@@ -57,7 +61,18 @@ const metronome = new Metronome({
 const tapper = new TapTempo();
 const t = () => STRINGS[ui.lang];
 const tuner = new Tuner(renderTuner);
-const lessons = initLessons(() => ui.lang, setBpm);
+const lessons = initLessons(() => ui.lang, setBpm, {
+  getBpm: () => metronome.bpm,
+  stopMetronome() { metronome.stop();renderPlay(); },
+  getContext() {
+    metronome.stop();
+    renderPlay();
+    if (!metronome.ctx) metronome.initAudio();
+    return metronome.ctx;
+  },
+});
+
+const recording = initRecording({ getLang: () => ui.lang, getContext() { tuner.stop(); if (!metronome.ctx) metronome.initAudio(); return metronome.ctx; } });
 
 function renderTuner() {
   const strings = t();
@@ -96,6 +111,7 @@ const selects = {
   noteValue: createSelect($('note-value'), {
     onChange(value) {
       ui.noteValue = Number(value);
+      metronome.setNoteValue(ui.noteValue);
       renderSignature();
       save();
     },
@@ -148,14 +164,19 @@ function apply(s) {
   if (s.pitch in PITCHES) metronome.pitch = s.pitch;
   if (typeof s.volume === 'number') metronome.setVolume(s.volume);
   if (TIMER_MINUTES.includes(s.timerMinutes)) metronome.timerMinutes = s.timerMinutes;
-  if (DENOMINATORS.includes(s.noteValue)) ui.noteValue = s.noteValue;
+  if (DENOMINATORS.includes(s.noteValue)) {
+    ui.noteValue = s.noteValue;
+    metronome.setNoteValue(ui.noteValue);
+  }
   if (s.lang in STRINGS) ui.lang = s.lang;
   if (s.view === 'digital' || s.view === 'pendulum') ui.view = s.view;
 }
 
 function reset() {
+  lessons.stopPlayback();
   metronome.accents = resizeAccents([], DEFAULTS.beatsPerBar);
   apply({ ...DEFAULTS, lang: ui.lang, view: ui.view });
+  lessons.setBpm(metronome.bpm);
   tapper.taps = [];
   save();
   renderAll();
@@ -164,6 +185,8 @@ function reset() {
 // --- rendering ---
 
 function renderText() {
+  offline.render();
+  recording.render();
   const s = t();
   document.documentElement.lang = ui.lang;
   document.title = s.pageTitle;
@@ -282,6 +305,7 @@ function renderStressFirst() {
 function renderPlay() {
   els.play.textContent = metronome.playing ? t().stop : t().start;
   els.play.classList.toggle('playing', metronome.playing);
+  els.play.setAttribute('aria-pressed',String(metronome.playing));
   if (!metronome.playing) {
     activeDot?.classList.remove('active');
     activeDot = null;
@@ -342,11 +366,13 @@ function animateFrame() {
 
 function setBpm(value) {
   metronome.setBpm(value);
+  lessons.setBpm(metronome.bpm);
   renderTempo();
   save();
 }
 
 async function togglePlay() {
+  lessons.stopPlayback();
   await metronome.toggle();
   renderPlay();
 }
@@ -411,7 +437,8 @@ els.fullscreen.addEventListener('click', () => {
 document.addEventListener('fullscreenchange', renderFullscreen);
 
 document.addEventListener('keydown', (e) => {
-  if (e.target.closest('.practice-column')) return;
+  if (lessons.handleShortcut(e)) return;
+  if (e.target.closest('.practice-column, #recording-panel, dialog, button, a, audio')) return;
   if (e.target.matches('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   const step = e.shiftKey ? 5 : 1;
   switch (e.key) {
