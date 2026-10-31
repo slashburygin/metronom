@@ -1,3 +1,4 @@
+import { playbackOutput } from './audio-output.js';
 import { Transport } from './transport.js';
 import { midiFrequency, PARTS } from './accompaniment.js';
 import { trainingState, trainingArrangement } from './training.js';
@@ -15,7 +16,7 @@ export class BackingPlayer {
     this.output = context.createGain();
     this.output.gain.value = 0.65;
     this.compressor = context.createDynamicsCompressor();
-    this.output.connect(this.compressor).connect(context.destination);
+    this.output.connect(this.compressor).connect(playbackOutput(context));
     this.channels = Object.fromEntries(PARTS.map(part => {
       const gain = context.createGain();
       gain.gain.value = part === 'drums' ? 0.55 : 0.75;

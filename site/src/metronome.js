@@ -1,3 +1,4 @@
+import { playbackOutput } from './audio-output.js';
 // Audio engine. Uses the Web Audio "lookahead scheduler" pattern: a coarse timer
 // wakes up every few ms and schedules any clicks due soon on the audio clock,
 // which is sample-accurate, instead of relying on JS timers for timing.
@@ -99,7 +100,7 @@ export class Metronome {
     this.transport.context = this.ctx;
     this.master = this.ctx.createGain();
     this.master.gain.value = this.volume;
-    this.master.connect(this.ctx.destination);
+    this.master.connect(playbackOutput(this.ctx));
     const len = this.ctx.sampleRate;
     this.noise = this.ctx.createBuffer(1, len, len);
     const data = this.noise.getChannelData(0);

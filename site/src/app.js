@@ -1,3 +1,4 @@
+import { initRecording } from './recording-controls.js';
 import { initOffline } from './offline.js';
 import { initLessons } from './lessons.js';
 import { Tuner } from './tuner.js';
@@ -62,6 +63,7 @@ const t = () => STRINGS[ui.lang];
 const tuner = new Tuner(renderTuner);
 const lessons = initLessons(() => ui.lang, setBpm, {
   getBpm: () => metronome.bpm,
+  stopMetronome() { metronome.stop();renderPlay(); },
   getContext() {
     metronome.stop();
     renderPlay();
@@ -69,6 +71,8 @@ const lessons = initLessons(() => ui.lang, setBpm, {
     return metronome.ctx;
   },
 });
+
+const recording = initRecording({ getLang: () => ui.lang, getContext() { tuner.stop(); if (!metronome.ctx) metronome.initAudio(); return metronome.ctx; } });
 
 function renderTuner() {
   const strings = t();
@@ -182,6 +186,7 @@ function reset() {
 
 function renderText() {
   offline.render();
+  recording.render();
   const s = t();
   document.documentElement.lang = ui.lang;
   document.title = s.pageTitle;
@@ -300,6 +305,7 @@ function renderStressFirst() {
 function renderPlay() {
   els.play.textContent = metronome.playing ? t().stop : t().start;
   els.play.classList.toggle('playing', metronome.playing);
+  els.play.setAttribute('aria-pressed',String(metronome.playing));
   if (!metronome.playing) {
     activeDot?.classList.remove('active');
     activeDot = null;
@@ -431,7 +437,8 @@ els.fullscreen.addEventListener('click', () => {
 document.addEventListener('fullscreenchange', renderFullscreen);
 
 document.addEventListener('keydown', (e) => {
-  if (e.target.closest('.practice-column')) return;
+  if (lessons.handleShortcut(e)) return;
+  if (e.target.closest('.practice-column, #recording-panel, dialog, button, a, audio')) return;
   if (e.target.matches('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   const step = e.shiftKey ? 5 : 1;
   switch (e.key) {

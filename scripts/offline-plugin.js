@@ -19,7 +19,7 @@ export function offlinePlugin() {
           if (entry.isDirectory()) await visit(path);
           else {
             const url = relative(outDir, path).replaceAll('\\', '/');
-            if (/^(index\.html|favicon\.svg|manifest\.webmanifest|icons\/[^/]+|assets\/[^/]+|lessons\/haimovich\/[^/]+)$/.test(url)) {
+            if (/^(index\.html|help\.html|favicon\.svg|manifest\.webmanifest|icons\/[^/]+|assets\/[^/]+|lessons\/haimovich\/[^/]+)$/.test(url)) {
               resources.push({ url, hash: digest(await readFile(path)) });
             }
           }

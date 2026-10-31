@@ -13,7 +13,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}"
 npm run build
 
-for f in index.html sw.js manifest.webmanifest icons/icon-192.png icons/icon-512.png robots.txt sitemap.xml favicon.svg yandex_631a0a33d8d10bed.html lessons/haimovich/schedule.json; do
+for f in index.html help.html sw.js manifest.webmanifest icons/icon-192.png icons/icon-512.png robots.txt sitemap.xml favicon.svg yandex_631a0a33d8d10bed.html lessons/haimovich/schedule.json; do
     if [ ! -f "${REPO_ROOT}/dist/site/${f}" ]; then
         echo "dist/site/${f} not found" >&2
         exit 1

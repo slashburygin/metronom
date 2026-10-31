@@ -1,39 +1,31 @@
-import { loadDrafts } from './song-draft.js';
+import { loadDrafts, validateDraftCollection } from './song-draft.js';
 
-export const LIBRARY_LIMIT = 100;
-export const BACKUP_LIMIT = 10 * 1024 * 1024;
-export function libraryId() {
-  if (crypto.randomUUID) return crypto.randomUUID();
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
-  const hex = [...bytes].map(value => value.toString(16).padStart(2,'0')).join('');
-  return [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');
-}
-const clone = value => JSON.parse(JSON.stringify(value));
-const now = () => new Date().toISOString();
+export const LIBRARY_LIMIT = 5000;
+export const BACKUP_LIMIT = 50 * 1024 * 1024;
+export { libraryId } from './library-revisions.js';
+import { clone, libraryId, validId as id, revisionMetadata, reviseRecord, validateRevision, mergeRecords } from './library-revisions.js';
+import { newPlaylist, validatePlaylists } from './playlists.js';
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
-const id = value => typeof value === 'string' && value.length > 0 && value.length <= 512;
-const timestamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
-const canonical = value => JSON.stringify(value, (_key, item) => object(item) ? Object.fromEntries(Object.entries(item).sort(([a],[b]) => a.localeCompare(b))) : item);
 
 export function newDocument(draft, settings = {}, documentId = libraryId()) {
-  return { id: documentId, draft: clone(draft), settings: clone(settings), revision: libraryId(), ancestors: [], updatedAt: now(), deletedAt: null };
+  return { id: documentId, draft: clone(draft), settings: clone(settings), ...revisionMetadata() };
 }
 
 export function reviseDocument(doc, changes) {
-  const next = { ...doc, ...changes };
-  if (['draft','settings','deletedAt'].every(key => JSON.stringify(next[key]) === JSON.stringify(doc[key]))) return doc;
-  return { ...next, id: doc.id, revision: libraryId(), ancestors: [doc.revision, ...doc.ancestors].slice(0,100), updatedAt: now() };
+  return reviseRecord(doc, changes, ['draft','settings','deletedAt']);
 }
 
 export function validateLibrary(data) {
-  loadDrafts({ getItem: () => JSON.stringify(data) });
+  if (![1,2].includes(data?.version)) throw new RangeError('Unsupported library version');
+  validateDraftCollection({ ...data, version: 1 }, data.version === 2 ? LIBRARY_LIMIT : 100);
+  if (data.version === 2) {
+    validatePlaylists(data.playlists, data.documents);
+    if (data.currentPlaylistId !== null && (!id(data.currentPlaylistId) || !data.playlists.some(item => item.id === data.currentPlaylistId))) throw new RangeError('Invalid current playlist');
+  } else if (data.playlists !== undefined || data.currentPlaylistId !== undefined) throw new RangeError('Playlists require library version 2');
   if (data.currentId !== null && !id(data.currentId)) throw new RangeError('Invalid current song');
   for (const doc of data.documents) {
-    if (!id(doc.id) || !id(doc.revision) || !Array.isArray(doc.ancestors) || doc.ancestors.length > 100 || !doc.ancestors.every(id)
-      || new Set([doc.revision,...doc.ancestors]).size !== doc.ancestors.length + 1 || !timestamp(doc.updatedAt)
-      || (doc.deletedAt !== null && !timestamp(doc.deletedAt)) || !object(doc.settings) || JSON.stringify(doc.settings).length > 20000
-      || (doc.conflictOf !== undefined && !id(doc.conflictOf)) || (doc.forkRevision !== undefined && !id(doc.forkRevision))) throw new RangeError('Invalid song revision');
+    validateRevision(doc);
+    if (!object(doc.settings) || JSON.stringify(doc.settings).length > 20000) throw new RangeError('Invalid song settings');
     const draft = doc.draft;
     if ([draft.title,draft.composer,draft.key].some(text => text.length > 1000)) throw new RangeError('Song metadata too long');
     for (const section of draft.sections) {
@@ -55,15 +47,15 @@ export function migrateLegacy(storage) {
 
 export function exportLibrary(library) {
   validateLibrary(library);
-  const text = JSON.stringify({ format: 'metronom-library', version: 1, exportedAt: now(), library }, null, 2);
-  if (new TextEncoder().encode(text).length > BACKUP_LIMIT) throw new RangeError('Backup exceeds 10 MB');
+  const text = JSON.stringify({ format: 'metronom-library', version: library.version, exportedAt: new Date().toISOString(), library }, null, 2);
+  if (new TextEncoder().encode(text).length > BACKUP_LIMIT) throw new RangeError('Backup exceeds 50 MB');
   return text;
 }
 
 export function parseBackup(text) {
-  if (typeof text !== 'string' || new TextEncoder().encode(text).length > BACKUP_LIMIT) throw new RangeError('Backup exceeds 10 MB');
+  if (typeof text !== 'string' || new TextEncoder().encode(text).length > BACKUP_LIMIT) throw new RangeError('Backup exceeds 50 MB');
   const data = JSON.parse(text);
-  if (data?.format !== 'metronom-library' || data.version !== 1) throw new RangeError('Unsupported backup format');
+  if (data?.format !== 'metronom-library' || ![1,2].includes(data.version) || data.library?.version !== data.version) throw new RangeError('Unsupported backup format');
   return validateLibrary(data.library);
 }
 
@@ -71,21 +63,16 @@ export function parseBackup(text) {
 // Divergent edits/deletions produce a separate recoverable record.
 export function mergeLibrary(local, incoming) {
   validateLibrary(local); validateLibrary(incoming);
-  const library = clone(local), report = { added: 0, updated: 0, conflicts: 0 };
-  for (const remote of incoming.documents) {
-    const index = library.documents.findIndex(doc => doc.id === remote.id);
-    if (index < 0) { library.documents.push(clone(remote)); report.added++; continue; }
-    const current = library.documents[index];
-    if (current.revision === remote.revision) {
-      if (canonical(current) !== canonical(remote)) throw new RangeError('Revision payload mismatch');
-      continue;
-    }
-    if (current.ancestors.includes(remote.revision)) continue;
-    if (remote.ancestors.includes(current.revision)) { library.documents[index] = clone(remote); report.updated++; continue; }
-    if (library.documents.some(doc => doc.conflictOf === remote.id && doc.forkRevision === remote.revision)) continue;
-    const fork = newDocument(remote.draft, remote.settings);
-    library.documents.push({ ...fork, deletedAt: remote.deletedAt, conflictOf: remote.id, forkRevision: remote.revision });
-    report.conflicts++;
+  const upgraded = local.version === 2 || incoming.version === 2;
+  const library = upgraded ? upgradeLibrary(local) : clone(local);
+  const songs = mergeRecords(local.documents, incoming.documents, remote => newDocument(remote.draft, remote.settings));
+  library.documents = songs.records;
+  const report = { added: songs.added, updated: songs.updated, conflicts: songs.conflicts };
+  if (upgraded) {
+    const playlists = mergeRecords(local.playlists ?? [], incoming.playlists ?? [], remote => newPlaylist(remote.name, remote.entries));
+    library.playlists = playlists.records;
+    for (const key of ['added','updated','conflicts']) report[key] += playlists[key];
+    if (!library.playlists.some(item => item.id === library.currentPlaylistId && !item.deletedAt)) library.currentPlaylistId = library.playlists.find(item => !item.deletedAt)?.id ?? null;
   }
   if (library.documents.length > LIBRARY_LIMIT) throw new RangeError('Library limit exceeded');
   const active = library.documents.filter(doc => !doc.deletedAt);
@@ -97,4 +84,10 @@ export function findSongs(library, query = '', deleted = false) {
   const needle = query.trim().toLocaleLowerCase();
   return library.documents.filter(doc => Boolean(doc.deletedAt) === deleted &&
     [doc.draft.title,doc.draft.composer,doc.draft.key].join(' ').toLocaleLowerCase().includes(needle));
+}
+
+// Version 1 remains importable. Version 2 is rejected by older clients rather than silently losing playlists.
+export function upgradeLibrary(library) {
+  validateLibrary(library);
+  return library.version === 2 ? clone(library) : { ...clone(library), version: 2, playlists: [], currentPlaylistId: null };
 }

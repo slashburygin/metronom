@@ -16,7 +16,7 @@ const notes = (step, part) => step.events.filter(e => e.kind === 'note' && e.par
 test('voicings preserve chord colors, fit the register and minimize full-voice motion', () => {
   for (const quality of CHORD_QUALITIES) {
     const chord = parseChord('F#' + quality), voicing = voiceChord(chord);
-    assert.ok(voicing.length >= 3 && voicing.length <= 4);
+    assert.ok(voicing.length >= (quality === '5' ? 2 : 3) && voicing.length <= 4);
     assert.equal(new Set(voicing.map(n => n % 12)).size, voicing.length);
     for (const midi of voicing) { assert.ok(midi >= 48 && midi <= 76); assert.ok(chord.pitchClasses.includes(midi % 12)); }
   }

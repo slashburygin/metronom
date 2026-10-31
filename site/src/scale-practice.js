@@ -1,3 +1,4 @@
+import { openChordReference } from './chord-reference-ui.js';
 import { createTaskHelp } from './practice-help.js';
 import { SCALE_TYPES, keysFor, scaleHarmony } from './harmony.js';
 import { createPracticePlayer } from './practice-player.js';
@@ -112,7 +113,8 @@ export function initScalePractice(getLang, onTempo, playback) {
       const body = element('tbody');
       harmony.chords.forEach((chord) => {
         const row = element('tr');
-        const name = element('th', `${chord.roman} · ${chord.symbol}`);
+        const name = element('th');
+        const reference=element('button',`${chord.roman} · ${chord.symbol}`,'btn btn--ghost');reference.type='button';reference.addEventListener('click',()=>openChordReference(chord.symbol,getLang()));name.append(reference);
         name.scope = 'row';
         row.append(name, element('td', chord.notes.join(' – ')));
         body.append(row);
@@ -120,7 +122,7 @@ export function initScalePractice(getLang, onTempo, playback) {
       table.append(body);
       score.append(table);
     } else {
-      score.append(element('p', harmony.progression.map((chord) => chord.symbol).join(' → '), 'scale-notes'));
+      const reference=element('div','','song-toolbar');for(const chord of harmony.progression){const button=element('button',chord.symbol,'btn btn--secondary');button.type='button';button.addEventListener('click',()=>openChordReference(chord.symbol,getLang()));reference.append(button);}score.append(reference);
       score.append(element('p', s.tones, 'field-label'));
       for (const line of harmony.guideTones) score.append(element('p', line.join(' → '), 'scale-notes'));
     }

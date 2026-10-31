@@ -82,8 +82,8 @@ test('invalid revisions and oversized merges fail atomically', () => {
   const doc = newDocument(newDraft()), local = library(doc), before = clone(local);
   const forged = clone(doc); forged.draft.title = 'Same revision, different payload';
   assert.throws(() => mergeLibrary(local, library(forged)), /payload/); assert.deepEqual(local,before);
-  const full = library(...Array.from({length:100}, () => newDocument(newDraft())));
-  assert.throws(() => mergeLibrary(full, local), /limit/); assert.equal(full.documents.length, 100);
+  const full = { ...library(...Array.from({length:5000}, () => newDocument(newDraft()))), version: 2, playlists: [], currentPlaylistId: null };
+  assert.throws(() => mergeLibrary(full, local), /limit/); assert.equal(full.documents.length, 5000);
   const duplicate = library(doc,doc); assert.throws(() => validateLibrary(duplicate));
 });
 

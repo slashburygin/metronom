@@ -33,7 +33,9 @@ export function initLessons(getLang, onTempo, playback) {
   function showTab(id) {
     if (id !== 'lessons') scales.stop();
     if (id !== 'songs') songs.stop();
+    if(id==='songs')playback.stopMetronome?.();
     active = id;
+    document.querySelector('.app').classList.toggle('songs-workspace',id==='songs');
     for (const name of tabs) {
       $(`${name}-tab`).setAttribute('aria-selected', name === id);
       $(`${name}-tab`).tabIndex = name === id ? 0 : -1;
@@ -107,5 +109,5 @@ export function initLessons(getLang, onTempo, playback) {
     if (!response.ok) throw new Error(response.status);
     return response.json();
   }).then((data) => { schedule = data; render(); }).catch(() => { failed = true; render(); });
-  return { render, stopPlayback() { scales.stop(); songs.stop(); }, setBpm: scales.setBpm };
+  return { handleShortcut: event => active==='songs' && songs.handleShortcut(event), render, stopPlayback() { scales.stop(); songs.stop(); }, setBpm: scales.setBpm };
 }

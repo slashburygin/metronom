@@ -71,8 +71,10 @@ export const DRAFT_STORAGE = 'metronome-song-drafts';
 export function loadDrafts(storage) {
   const raw = storage.getItem(DRAFT_STORAGE);
   if (raw === null) return { version: 1, documents: [], currentId: null };
-  const data = JSON.parse(raw);
-  if (data?.version !== 1 || !Array.isArray(data.documents) || data.documents.length > 100) throw new RangeError('Invalid draft collection');
+  return validateDraftCollection(JSON.parse(raw));
+}
+export function validateDraftCollection(data, limit = 100) {
+  if (data?.version !== 1 || !Array.isArray(data.documents) || data.documents.length > limit) throw new RangeError('Invalid draft collection');
   for (const doc of data.documents) {
     const draft = doc.draft;
     if (typeof doc.id !== 'string' || !draft || !Array.isArray(draft.sections) || !draft.sections.length

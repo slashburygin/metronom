@@ -1,5 +1,13 @@
+import { restoreExercises } from './exercise-library.js';
+import { openIrealImport,mergeIrealSelection } from './ireal-controls.js';
+import { normalizeRange,selectPlaybackRange,createRangeControls } from './playback-range.js';
+import { openChordReference } from './chord-reference-ui.js';
+import { normalizeMix, createMixer } from './mixer.js';
+import { createExportControls } from './export-controls.js';
+import { createPlaylistControls } from './playlist-controls.js';
+import { playlistQueue, setPlaylistEntryKey, revisePlaylist } from './playlists.js';
 import { openLibrary, LibraryConflictError } from './library-storage.js';
-import { newDocument, reviseDocument, migrateLegacy, exportLibrary, parseBackup, mergeLibrary, findSongs, LIBRARY_LIMIT, BACKUP_LIMIT } from './song-library.js';
+import { newDocument, reviseDocument, migrateLegacy, exportLibrary, parseBackup, mergeLibrary, findSongs, LIBRARY_LIMIT, BACKUP_LIMIT, upgradeLibrary } from './song-library.js';
 import { normalizeArrangement } from './arrangement-ornaments.js';
 import { normalizeSound } from './backing-sound.js';
 import { createSoundControls } from './sound-controls.js';
@@ -9,7 +17,7 @@ import { newDraft, emptyMeasure, DraftHistory, compileDraft } from './song-draft
 import { CHORD_QUALITIES } from './chords.js';
 import { arrangeSong } from './song-arrangement.js';
 import { BackingPlayer } from './backing-player.js';
-import { clampBpm } from './tempo.js';
+import { clampBpm, TapTempo } from './tempo.js';
 import { normalizeTraining, trainingState, displaySong } from './training.js';
 import { createTrainingControls, trainingLabel } from './training-controls.js';
 import { transposeDraft } from './transposition.js';
@@ -19,50 +27,67 @@ const WORDS = {
     name: 'Название', composer: 'Автор', key: 'Исходная тональность', undo: 'Отменить', redo: 'Повторить', section: 'Секция', addSection: '+ Секция', removeSection: 'Удалить секцию', addBar: '+ Такт', removeBar: 'Удалить такт', copy: 'Копировать такт', paste: 'Вставить такт',
     bar: 'Такт', meter: 'Размер', chords: 'Аккорды', alternate: 'Альтернативные аккорды', text: 'Комментарий', insert: 'Добавить аккорд', root: 'Основной тон', quality: 'Тип аккорда', bass: 'Бас', none: 'Как основной тон',
     help: 'Аккорды через пробел делят такт поровну. Длительности в долях: Dm7:2 G7:2. Пустой такт — без гармонии; N.C. оставляет ударные, Break — полная пауза. Альтернативы вводятся по одной на аккорд и не звучат.',
-    invalid: 'Проверьте аккорды, длительности и форму. Неизвестный ввод оставлен в черновике.', play: 'Играть', stop: 'Стоп', cancel: 'Отменить запуск', sound: 'Не удалось включить звук. Попробуйте ещё раз.', count: 'Отсчёт', countLabel: 'Отсчёт · первый звучащий такт', form: 'Знаки формы', order: 'Порядок тактов', formPosition: 'Форма', chorus: 'Круг', style: 'Ритм', repeats: 'Круги', ready: 'Готово к воспроизведению', limit: 'Достигнут предел: 100 композиций, 32 секции или 256 тактов.',
+    invalid: 'Проверьте аккорды, длительности и форму. Неизвестный ввод оставлен в черновике.', play: 'Играть', stop: 'Стоп', cancel: 'Отменить запуск', sound: 'Не удалось включить звук. Попробуйте ещё раз.', count: 'Отсчёт', countLabel: 'Отсчёт · первый звучащий такт', form: 'Знаки формы', order: 'Порядок тактов', formPosition: 'Форма', chorus: 'Круг', style: 'Ритм', repeats: 'Круги', ready: 'Готово к воспроизведению', limit: 'Достигнут предел: 5000 композиций, 32 секции или 256 тактов.',
   },
   en: { title: 'Songs', untitled: 'Untitled', create: 'New', duplicate: 'Duplicate', save: 'Save', saved: 'Saved on this device', saving: 'Saving…', storage: 'Could not save the library. Export your changes to JSON.', load: 'Could not read saved songs. They will not be overwritten.',
     name: 'Title', composer: 'Composer', key: 'Source key', undo: 'Undo', redo: 'Redo', section: 'Section', addSection: '+ Section', removeSection: 'Remove section', addBar: '+ Bar', removeBar: 'Remove bar', copy: 'Copy bar', paste: 'Paste bar',
     bar: 'Bar', meter: 'Meter', chords: 'Chords', alternate: 'Alternate chords', text: 'Comment', insert: 'Insert chord', root: 'Root', quality: 'Quality', bass: 'Bass', none: 'Same as root',
     help: 'Space-separated chords divide the bar equally. Beat durations: Dm7:2 G7:2. Empty bars have no harmony; N.C. keeps drums, Break silences all parts. Enter one alternate per chord; alternates are not played.',
-    invalid: 'Check chords, durations and form. Unrecognized input remains in the draft.', play: 'Play', stop: 'Stop', cancel: 'Cancel start', sound: 'Could not start audio. Try again.', count: 'Count-in', countLabel: 'Count-in · first played bar', form: 'Form signs', order: 'Bar order', formPosition: 'Form', chorus: 'Chorus', style: 'Feel', repeats: 'Choruses', ready: 'Ready to play', limit: 'Limit reached: 100 songs, 32 sections or 256 bars.',
+    invalid: 'Check chords, durations and form. Unrecognized input remains in the draft.', play: 'Play', stop: 'Stop', cancel: 'Cancel start', sound: 'Could not start audio. Try again.', count: 'Count-in', countLabel: 'Count-in · first played bar', form: 'Form signs', order: 'Bar order', formPosition: 'Form', chorus: 'Chorus', style: 'Feel', repeats: 'Choruses', ready: 'Ready to play', limit: 'Limit reached: 5000 songs, 32 sections or 256 bars.',
   },
 };
 const clone = v => JSON.parse(JSON.stringify(v));
 const NOTES = ['C','C♯','D♭','D','D♯','E♭','E','F','F♯','G♭','G','G♯','A♭','A','A♯','B♭','B'];
 const LIBRARY_WORDS = {
-  ru: { loading: 'Загрузка библиотеки…', search: 'Поиск по названию, автору и тональности', trash: 'Корзина', remove: 'В корзину', restore: 'Восстановить', export: 'Экспорт JSON', import: 'Импорт JSON', empty: 'Выберите или создайте композицию.', noMatches: 'Нет совпадений', failed: 'Операция не выполнена: ', conflict: 'Библиотека изменилась в другой вкладке. Экспортируйте текущие изменения в JSON и перезагрузите страницу.', imported: 'Импорт: добавлено / обновлено / конфликтных копий', recovered: 'Восстановлены незавершённые сохранения. Проверьте библиотеку и конфликтные копии.', recoveryWarning: 'Некоторые данные восстановления не удалось прочитать; они сохранены без изменений.', limit: 'Не более 100 композиций вместе с корзиной.', fork: 'конфликтная копия' },
-  en: { loading: 'Loading library…', search: 'Search title, composer and key', trash: 'Trash', remove: 'Move to trash', restore: 'Restore', export: 'Export JSON', import: 'Import JSON', empty: 'Choose or create a song.', noMatches: 'No matches', failed: 'Operation failed: ', conflict: 'The library changed in another tab. Export your current changes to JSON and reload the page.', imported: 'Import: added / updated / conflict copies', recovered: 'Recovered unfinished saves. Check the library and conflict copies.', recoveryWarning: 'Some recovery data could not be read; it has been left unchanged.', limit: 'Up to 100 songs including trash.', fork: 'conflict copy' },
+  ru: { loading: 'Загрузка библиотеки…', search: 'Поиск по названию, автору и тональности', trash: 'Корзина', remove: 'В корзину', restore: 'Восстановить', export: 'Экспорт JSON', import: 'Импорт JSON', empty: 'Выберите или создайте композицию.', noMatches: 'Нет совпадений', failed: 'Операция не выполнена: ', conflict: 'Библиотека изменилась в другой вкладке. Экспортируйте текущие изменения в JSON и перезагрузите страницу.', imported: 'Импорт: добавлено / обновлено / конфликтных копий', recovered: 'Восстановлены незавершённые сохранения. Проверьте библиотеку и конфликтные копии.', recoveryWarning: 'Некоторые данные восстановления не удалось прочитать; они сохранены без изменений.', limit: 'Не более 5000 композиций вместе с корзиной.', fork: 'конфликтная копия' },
+  en: { loading: 'Loading library…', search: 'Search title, composer and key', trash: 'Trash', remove: 'Move to trash', restore: 'Restore', export: 'Export JSON', import: 'Import JSON', empty: 'Choose or create a song.', noMatches: 'No matches', failed: 'Operation failed: ', conflict: 'The library changed in another tab. Export your current changes to JSON and reload the page.', imported: 'Import: added / updated / conflict copies', recovered: 'Recovered unfinished saves. Check the library and conflict copies.', recoveryWarning: 'Some recovery data could not be read; it has been left unchanged.', limit: 'Up to 5000 songs including trash.', fork: 'conflict copy' },
 };
 
 export function initSongEditor({ getLang, getContext }) {
   const root = document.getElementById('songs');
-  let collection = { version: 1, documents: [], currentId: null }, blocked = false, storageError = false;
+  let collection = { version: 2, documents: [], currentId: null, playlists: [], currentPlaylistId: null }, blocked = false, storageError = false;
   let libraryStore, loading = true, currentDocument, conflict = false, editVersion = 0;
   let search = '', showTrash = false, libraryNotice = '', importing = false;
   let training = normalizeTraining();
+  let mix = normalizeMix(), range = normalizeRange(), playbackBpm = 120;
   let style = 'swing', seed = 1, repeats = 1, countIn = true, sound = normalizeSound(), arrangement = normalizeArrangement();
   const loadTraining = () => {
+    mix = normalizeMix(); range = normalizeRange();
     style = 'swing'; seed = 1; repeats = 1; countIn = true; sound = normalizeSound(); arrangement = normalizeArrangement(); training = normalizeTraining();
     try {
-      const saved = currentDocument?.settings;
+      const entry=playlistEntryContext?collection.playlists?.find(item=>item.id===playlistEntryContext.playlistId&&!item.deletedAt)?.entries.find(item=>item.id===playlistEntryContext.entryId&&item.songId===currentDocument?.id):null;
+      const saved = { ...currentDocument?.settings, ...entry?.settings };playbackBpm=saved.bpm??currentDocument?.draft.bpm??120;
       training = normalizeTraining(saved);
       if (BACKING_STYLES.includes(saved?.style)) style = saved.style;
       seed = normalizeSeed(saved?.seed);
       sound = normalizeSound(saved?.sound);
+      mix = normalizeMix(saved?.mix); range = normalizeRange(saved?.range);
       arrangement = normalizeArrangement(saved?.arrangement);
-      if ([0,1,2,4,8,12,24].includes(saved?.repeats)) repeats = saved.repeats;
+      if (Number.isInteger(saved?.repeats) && saved.repeats>=0 && saved.repeats<=32) repeats = saved.repeats;
       if (typeof saved?.countIn === 'boolean') countIn = saved.countIn;
     } catch {}
   };
   const saveTraining = () => {
     if (!currentDocument) return;
-    replaceDocument(reviseDocument(currentDocument, { settings: { ...training, style, seed, repeats, countIn, sound, arrangement } }));
+    if(playlistEntryContext){
+      const index=collection.playlists.findIndex(item=>item.id===playlistEntryContext.playlistId&&!item.deletedAt);
+      if(index>=0){const playlist=collection.playlists[index],entries=playlist.entries.map(entry=>entry.id===playlistEntryContext.entryId?{...entry,key:training.targetKey,settings:{...training,style,seed,repeats,countIn,sound,arrangement,mix,range,bpm:playbackBpm}}:entry);collection.playlists[index]=revisePlaylist(playlist,{entries});}
+    }else replaceDocument(reviseDocument(currentDocument, { settings: { ...currentDocument.settings, ...training, style, seed, repeats, countIn, sound, arrangement, mix, range } }));
     markDirty(); save();
   };
   let history, sectionIndex = 0, measureIndex = 0, clipboard = null;
   let timer, dirty = false, focusGroup = 0, engine, position, generation = 0, soundError = false, notice = '';
-  let validation;
+  let validation, playlistRun = null, playlistEntryContext = null, editorMode = false;
+  const songTapper = new TapTempo(), panelOpen = new Map();
+  const playlistControls = createPlaylistControls({ getLang, getSongSettings:()=>({...training,style,seed,repeats,countIn,sound,arrangement,mix,bpm:playbackBpm}), onStop: stop, onOpen(doc,entry,playlistId){chooseDocument(doc,{playlistId,entryId:entry.id});}, onRun: startPlaylist, redraw: render,
+    onChange(next) { captureCurrent(); collection = { ...next, documents: collection.documents }; if(playlistEntryContext){const entry=collection.playlists.find(item=>item.id===playlistEntryContext.playlistId&&!item.deletedAt)?.entries.find(item=>item.id===playlistEntryContext.entryId);if(!entry)playlistEntryContext=null;loadTraining();if(entry?.key!==undefined)training=normalizeTraining({...training,targetKey:entry.key});}markDirty(); save(); render(); },
+  });
+  const exportControls = createExportControls({ getLang, stop, getDraft: () => history.current,
+    getSong() { const result=compileDraft(history.current); if(!result.compiled)throw new RangeError(s().invalid);return { ...result.compiled.song, bpm: playbackBpm }; },
+    getConcert(){const result=compileDraft(history.current);if(!result.compiled)throw new RangeError(s().invalid);return displaySong({...result.compiled.song,bpm:playbackBpm},trainingState(history.current.key,1,playbackBpm,{...training,instrument:'C'}));},
+    getWritten() { const result=compileDraft(history.current);if(!result.compiled)throw new RangeError(s().invalid);return displaySong({...result.compiled.song,bpm:playbackBpm},trainingState(history.current.key,1,playbackBpm,training)); },
+    getOptions: () => ({style,seed,repeats,countIn,sound,arrangement,mix,training}),
+  });
   const s = () => WORDS[getLang()];
   const el = (tag, text, className) => { const node = window.document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node; };
   const active = () => Boolean(engine?.transport.playing || engine?.transport.pending);
@@ -81,6 +106,7 @@ export function initSongEditor({ getLang, getContext }) {
     currentDocument = doc; collection.currentId = doc?.id ?? null;
     history = doc ? new DraftHistory(doc.draft) : null;
     sectionIndex = measureIndex = 0; loadTraining();
+    if(playlistEntryContext){const entry=collection.playlists?.find(item=>item.id===playlistEntryContext.playlistId&&!item.deletedAt)?.entries.find(item=>item.id===playlistEntryContext.entryId&&item.songId===doc?.id);if(!entry)playlistEntryContext=null;else if(entry.key!==undefined)training=normalizeTraining({...training,targetKey:entry.key});}
   }
   async function save() {
     clearTimeout(timer); captureCurrent();
@@ -97,10 +123,20 @@ export function initSongEditor({ getLang, getContext }) {
     ref('song-save-status').textContent = blocked ? s().load : conflict ? libraryWords().conflict : storageError ? s().storage : dirty ? s().saving : s().saved;
     ref('song-save-status').setAttribute('role', blocked || storageError ? 'alert' : 'status');
   }
+  function drawChordSymbols(container, symbols) {
+    const key = JSON.stringify(symbols);
+    if (container.dataset.symbols === key && container.childElementCount) return;
+    container.dataset.symbols = key; container.replaceChildren();
+    if (!symbols.length) { container.textContent = '—'; return; }
+    for (const symbol of symbols) {
+      const button=el('button',symbol,'chord-symbol');button.type='button';button.title=getLang()==='ru'?'Звуки, гаммы и аппликатуры':'Tones, scales and fingerings';
+      button.addEventListener('click',event=>{event.stopPropagation();openChordReference(symbol,getLang());});container.append(button);
+    }
+  }
   function updateWrittenChart() {
     let written;
     if (validation.compiled) {
-      const state = position?.step.training ?? trainingState(validation.compiled.song.key,1,history.current.bpm,training);
+      const state = position?.step.training ?? trainingState(validation.compiled.song.key,1,playbackBpm,training);
       const label = trainingLabel(state,getLang());
       if (ref('song-key-status') && ref('song-key-status').textContent !== label) ref('song-key-status').textContent = label;
       written = displaySong(validation.compiled.song,state).sections.flatMap(section => section.measures);
@@ -108,16 +144,17 @@ export function initSongEditor({ getLang, getContext }) {
     for (const bar of root.querySelectorAll('[data-global-bar]')) {
       const m = written?.[Number(bar.dataset.globalBar)];
       if (m) {
-        bar.querySelector('.song-bar-chords').textContent = m.chords.map(c => c.symbol).join(' · ') || '—';
+        drawChordSymbols(bar.querySelector('.song-bar-chords'),m.chords.map(c=>c.symbol));
         bar.querySelector('.song-bar-alternate').textContent = m.chords.map(c => c.alternate || '').filter(Boolean).join(' · ');
       } else {
         const source = history.current.sections[Number(bar.dataset.section)].measures[Number(bar.dataset.measure)];
-        bar.querySelector('.song-bar-chords').textContent = source.chords || '—';
+        const chords=bar.querySelector('.song-bar-chords');delete chords.dataset.symbols;chords.textContent = source.chords || '—';
         bar.querySelector('.song-bar-alternate').textContent = source.alternate;
       }
     }
   }
   function updatePlayback() {
+    playlistControls.updateRun(playlistRun);
     if (!ref('song-play')) return;
     ref('song-play').textContent = engine?.transport.pending ? s().cancel : active() ? s().stop : s().play;
     ref('song-play').setAttribute('aria-pressed', String(active()));
@@ -132,9 +169,11 @@ export function initSongEditor({ getLang, getContext }) {
       if (current) node.setAttribute('aria-current', 'true'); else node.removeAttribute('aria-current');
     });
   }
-  function stop() { ++generation; engine?.stop(); position = null; updatePlayback(); }
+  function stop() { playlistRun = null; ++generation; engine?.stop(); position = null; updatePlayback(); }
   function validate() {
     validation = compileDraft(history.current);
+    playlistControls.updateSongTitle(currentDocument.id, history.current.title);
+    const heading=root.querySelector('.song-document > h2');if(heading)heading.textContent=history.current.title||s().untitled;
     ref('song-errors').textContent = validation.errors.length ? s().invalid + ' ' + validation.errors.map(error => error.sectionIndex === undefined ? error.message : `${history.current.sections[error.sectionIndex].name || s().section}, ${s().bar} ${error.measureIndex + 1}: ${error.message}`).join('; ') : '';
     for (const button of root.querySelectorAll('[data-section]')) {
       const section = Number(button.dataset.section), index = Number(button.dataset.measure);
@@ -170,14 +209,14 @@ export function initSongEditor({ getLang, getContext }) {
     measureIndex = Math.min(measureIndex, history.current.sections[sectionIndex].measures.length - 1);
   }
   function restore(which) { stop(); if (history[which]()) { normalizeSelection(); markDirty(); save(); render(); } }
-  function chooseDocument(doc) {
+  function chooseDocument(doc, entryContext = null) {
     if (!doc || doc.deletedAt) return;
-    save(); stop(); selectCurrent(collection.documents.find(item => item.id === doc.id)); notice = ''; markDirty(); save(); render();
+    save(); stop(); playlistEntryContext=entryContext; selectCurrent(collection.documents.find(item => item.id === doc.id)); notice = ''; markDirty(); save(); render();
   }
   function createDocument(duplicate) {
     if (blocked) return;
     if (collection.documents.length >= LIBRARY_LIMIT) { libraryNotice = libraryWords().limit; render(); return; }
-    captureCurrent();
+    captureCurrent(); editorMode = true;
     const draft = duplicate ? clone(history.current) : newDraft();
     if (duplicate) draft.title = `${draft.title || s().untitled} (${s().duplicate})`;
     const doc = newDocument(draft, duplicate ? currentDocument.settings : {});
@@ -189,9 +228,48 @@ export function initSongEditor({ getLang, getContext }) {
     replaceDocument(reviseDocument(currentDocument, { deletedAt: new Date().toISOString() }));
     selectCurrent(collection.documents.find(doc => !doc.deletedAt)); markDirty(); save(); render();
   }
-  function renderLibrary(button) {
+  async function startCurrent() {
+    const request = ++generation; soundError = false; notice = '';
+    try {
+      validation = compileDraft(history.current); if (!validation.compiled) { validate(); return; }
+      const compiled = selectPlaybackRange(arrangeSong(validation.compiled.song, { style, seed, arrangement }), playlistRun ? {} : range);
+      const context = getContext();
+      engine ??= new BackingPlayer({ context, onStep: p => { position = p; updatePlayback(); }, onStop: finishSong });
+      for (const [part,value] of Object.entries(mix)) engine.setPart(part,value.volume,value.muted);
+      const pending = engine.start(compiled, { bpm: playbackBpm, repeats, countIn, training, sound }); updatePlayback(); await pending;
+    } catch (error) { if (request === generation) { engine?.stop(); playlistRun = null; soundError = !(error instanceof RangeError);notice=error.message; } }
+    if (request === generation) updatePlayback();
+  }
+  function startPlaylist(playlist) {
+    stop(); captureCurrent(); libraryNotice = '';
+    try {
+      const queue = playlistQueue(collection, playlist.id);
+      for (const { document: doc, settings: overrides } of queue) {
+        const compiled = compileDraft(doc.draft);
+        if (!compiled.compiled) throw new RangeError(`${doc.draft.title || s().untitled}: ${s().invalid}`);
+        if ((overrides?.repeats ?? doc.settings.repeats) === 0) throw new RangeError(getLang() === 'ru' ? 'Выберите конечное число кругов у каждой композиции.' : 'Choose a finite chorus count for each song.');
+      }
+      playlistRun = { playlistId: playlist.id, queue, index: 0 };
+      openRunEntry();
+    } catch (error) { libraryNotice = libraryWords().failed + error.message; render(); }
+  }
+  function openRunEntry() {
+    const item = playlistRun.queue[playlistRun.index];
+    playlistEntryContext={playlistId:playlistRun.playlistId,entryId:item.entryId};
+    selectCurrent(collection.documents.find(doc => doc.id === item.document.id));
+    playlistControls.setEntry(item.entryId); notice = ''; position = null; markDirty(); save(); render();
+    void startCurrent();
+  }
+  function finishSong() {
+    position = null;
+    if (playlistRun && ++playlistRun.index < playlistRun.queue.length) { openRunEntry(); return; }
+    const finished = Boolean(playlistRun); playlistRun = null;
+    if (finished) notice = getLang() === 'ru' ? 'Плейлист завершён' : 'Playlist finished';
+    updatePlayback();
+  }
+  function renderLibrary(button, parent = root) {
     const words = libraryWords(), tools = el('div', '', 'song-toolbar');
-    tools.append(button(s().create, 'song-new', () => createDocument(false), blocked));
+    tools.append(button(s().create, 'song-new', () => createDocument(false), blocked),button(getLang()==='ru'?'50 упражнений':'50 exercises','song-exercises',()=>{try{stop();captureCurrent();collection=restoreExercises(collection,getLang());playlistEntryContext=null;selectCurrent(collection.documents.find(doc=>doc.id===collection.currentId&&!doc.deletedAt));markDirty();save();render();}catch(error){libraryNotice=libraryWords().failed+error.message;render();}},blocked));
     tools.append(button(words.remove, 'song-trash', trashCurrent, blocked || !currentDocument));
     tools.append(button(words.export, 'song-export', () => {
       try {
@@ -206,7 +284,7 @@ export function initSongEditor({ getLang, getContext }) {
       const selected = file.files[0]; if (!selected || importing || blocked) return;
       importing = true; importButton.disabled = true;
       try {
-        if (selected.size > BACKUP_LIMIT) throw new RangeError('Backup exceeds 10 MB');
+        if (selected.size > BACKUP_LIMIT) throw new RangeError('Backup exceeds 50 MB');
         const incoming = parseBackup(await selected.text());
         stop(); captureCurrent();
         const merged = mergeLibrary(collection, incoming); collection = merged.library;
@@ -216,13 +294,15 @@ export function initSongEditor({ getLang, getContext }) {
       } catch (error) { libraryNotice = words.failed + error.message; }
       finally { importing = false; render(); }
     });
-    tools.append(importButton, file); root.append(tools);
+    tools.append(importButton, file,button('iReal Pro', 'song-import-ireal', () => openIrealImport({lang:getLang(),
+      async onImport(parsed,selected){stop();captureCurrent();const merged=await mergeIrealSelection(collection,parsed,selected);collection=merged.library;editorMode=false;selectCurrent(collection.documents.find(doc=>doc.id===collection.currentId&&!doc.deletedAt));markDirty();if(!await save())throw new Error(s().storage);render();return merged;},
+    }),blocked)); parent.append(tools);
     const searchLabel = el('label', words.search), input = el('input'); input.type = 'search'; input.id = 'song-search'; input.value = search;
-    searchLabel.append(input); root.append(searchLabel);
+    searchLabel.append(input); parent.append(searchLabel);
     const chooserLabel = el('label', s().title), chooser = el('select'); chooser.id = 'song-select';
     function updateChooser() {
       chooser.replaceChildren();
-      const docs = findSongs(collection, search);
+      const docs = findSongs(collection, search).sort((a,b)=>a.draft.title.localeCompare(b.draft.title,getLang(),{sensitivity:'base',numeric:true}));chooser.size=Math.min(8,Math.max(3,docs.length));
       if (!docs.some(doc => doc.id === currentDocument?.id)) { const placeholder = el('option', words.noMatches + (docs.length ? ` · ${docs.length}` : '')); placeholder.value = ''; placeholder.selected = true; chooser.append(placeholder); }
       for (const doc of docs) {
         const title = doc.id === currentDocument?.id ? history.current.title : doc.draft.title;
@@ -232,20 +312,20 @@ export function initSongEditor({ getLang, getContext }) {
     }
     input.addEventListener('input', () => { search = input.value; captureCurrent(); updateChooser(); });
     chooser.addEventListener('change', () => chooseDocument(collection.documents.find(doc => doc.id === chooser.value)));
-    updateChooser(); chooserLabel.append(chooser); root.append(chooserLabel);
+    updateChooser(); chooserLabel.append(chooser); parent.append(chooserLabel);
     const trashLabel = el('label', '', 'check'), trash = el('input'); trash.type = 'checkbox'; trash.id = 'song-show-trash'; trash.checked = showTrash;
     trash.addEventListener('change', () => { showTrash = trash.checked; render(); ref('song-show-trash').focus(); });
-    trashLabel.append(trash, el('span', `${words.trash} (${collection.documents.filter(doc => doc.deletedAt).length})`)); root.append(trashLabel);
+    trashLabel.append(trash, el('span', `${words.trash} (${collection.documents.filter(doc => doc.deletedAt).length})`)); parent.append(trashLabel);
     if (showTrash) {
       const list = el('div', '', 'song-trash-list');
       for (const doc of findSongs(collection, '', true)) {
         const row = el('div', '', 'song-toolbar'); row.append(el('span', doc.draft.title || s().untitled));
         row.append(button(words.restore, '', () => { replaceDocument(reviseDocument(doc, { deletedAt: null })); chooseDocument(collection.documents.find(item => item.id === doc.id)); }, blocked)); list.append(row);
       }
-      root.append(list);
+      parent.append(list);
     }
-    const message = el('p', libraryNotice, 'textbook-help'); message.id = 'song-library-status'; message.setAttribute('role','status'); root.append(message);
-    const status = el('p', '', 'textbook-help'); status.id = 'song-save-status'; root.append(status); updateStatus();
+    const message = el('p', libraryNotice, 'textbook-help'); message.id = 'song-library-status'; message.setAttribute('role','status'); parent.append(message);
+    const status = el('p', '', 'textbook-help'); status.id = 'song-save-status'; parent.append(status); updateStatus();
   }
   function render() {
     if (history) normalizeSelection();
@@ -257,10 +337,12 @@ export function initSongEditor({ getLang, getContext }) {
     function button(label, id, action, disabled = false) {
       const node = el('button', label, 'btn btn--secondary'); node.id = id; node.type = 'button'; node.disabled = disabled; node.addEventListener('click', action); return node;
     }
-    renderLibrary(button);
-    if (!currentDocument) { root.append(el('p', libraryWords().empty)); return; }
+    const libraryPanel=el('aside','','song-library-panel');root.append(libraryPanel);renderLibrary(button,libraryPanel);
+    const sheet=el('div','','song-document');root.append(sheet);root.classList.toggle('song-editing',editorMode);
+    libraryPanel.append(playlistControls.render({ library: collection, currentSongId: currentDocument?.id, blocked, run: playlistRun }));
+    if (!currentDocument) { sheet.append(el('p', libraryWords().empty)); return; }
     toolbar.append(button(words.duplicate, 'song-duplicate', () => createDocument(true), blocked), button(words.save, 'song-save', save), button(words.undo, 'song-undo', () => restore('undo')), button(words.redo, 'song-redo', () => restore('redo')));
-    root.append(toolbar);
+    const viewToolbar=el('div','','song-toolbar song-view-toolbar');const edit=button(getLang()==='ru'?(editorMode?'Чтение':'Редактор'):(editorMode?'Read chart':'Edit chart'),'song-edit-toggle',()=>{editorMode=!editorMode;render();});edit.setAttribute('aria-pressed',String(editorMode));const help=el('a',getLang()==='ru'?'Как пользоваться':'How to use','btn btn--secondary');help.href=getLang()==='ru'?'help.html':'help.html#english';help.target='_blank';help.rel='noopener';viewToolbar.append(edit,help);sheet.append(viewToolbar,el('h2',history.current.title||words.untitled),el('p',`${history.current.composer} · ${history.current.key}`,'song-chart-meta'),toolbar);toolbar.dataset.editorControls='';
     const metadata = el('div', '', 'song-fields');
     function inputField(parent, label, id, value, apply, options = {}) {
       const wrapper = el('label', label), input = el(options.multiline ? 'textarea' : 'input');
@@ -271,30 +353,32 @@ export function initSongEditor({ getLang, getContext }) {
         if (options.number) return;
         change(draft => apply(draft, input.value), `${id}:${focusGroup}`);
       });
-      if (options.number) input.addEventListener('change', () => { input.value = clampBpm(input.value); change(draft => apply(draft, Number(input.value))); });
+      if (options.number) input.addEventListener('change', () => { updateSongBpm(input.value); });
       input.addEventListener('blur', () => { history.group = null; });
       wrapper.append(input); parent.append(wrapper); return input;
     }
     inputField(metadata, words.name, 'song-title', history.current.title, (d, v) => { d.title = v; }, { maxLength: 160 });
     inputField(metadata, words.composer, 'song-composer', history.current.composer, (d, v) => { d.composer = v; }, { maxLength: 160 });
     inputField(metadata, words.key, 'song-key', history.current.key, (d, v) => { d.key = v; }, { maxLength: 20 });
-    inputField(metadata, 'BPM', 'song-bpm', history.current.bpm, (d, v) => { d.bpm = v; }, { number: true });
-    root.append(metadata);
+    inputField(metadata, 'BPM', 'song-bpm', playbackBpm, (d, v) => { d.bpm = v; }, { number: true });
+    metadata.dataset.editorControls='';sheet.append(metadata);
     const chart = el('div', '', 'song-chart'); let globalBar = 0;
     history.current.sections.forEach((section, si) => {
       const heading = el('h3', section.name || words.section); heading.dataset.sectionHeading = si; chart.append(heading);
       const bars = el('div', '', 'song-bars');
       section.measures.forEach((m, mi) => {
-        const cell = button('', '', () => { sectionIndex = si; measureIndex = mi; render(); ref('song-chords').focus(); });
+        const choose = () => { sectionIndex = si; measureIndex = mi; render(); if(editorMode)ref('song-chords').focus(); };
+        const cell = el('div','','song-cell'); cell.addEventListener('click',choose);cell.setAttribute('role','group');
+        const selector = button('', '', event => { event.stopPropagation();choose(); });selector.className='song-bar-select';selector.setAttribute('aria-label',`${words.bar} ${globalBar+1}`);selector.setAttribute('aria-pressed',String(si===sectionIndex&&mi===measureIndex));
         cell.removeAttribute('id'); cell.dataset.section = si; cell.dataset.measure = mi; cell.dataset.globalBar = globalBar;
         cell.setAttribute('aria-label', `${words.section} ${section.name}, ${words.bar} ${globalBar + 1}`);
-        cell.setAttribute('aria-pressed', String(si === sectionIndex && mi === measureIndex));
-        cell.append(el('span', `${++globalBar} · ${m.meter}`, 'backing-bar-number'), el('span', m.form || '', 'song-bar-form'), el('span', m.alternate, 'song-bar-alternate'), el('span', m.chords || '—', 'song-bar-chords'), el('span', m.text, 'song-bar-text'));
+        cell.dataset.selected = String(si === sectionIndex && mi === measureIndex);
+        selector.append(el('span', `${++globalBar} · ${m.meter}`, 'backing-bar-number'));cell.append(selector, el('span', m.form || '', 'song-bar-form'), el('span', m.alternate, 'song-bar-alternate'), el('span', m.chords || '—', 'song-bar-chords'), el('span', m.text, 'song-bar-text'));
         bars.append(cell);
       });
       chart.append(bars);
     });
-    root.append(chart);
+    sheet.append(chart);
     const actions = el('div', '', 'song-toolbar');
     actions.append(button(words.addSection, 'song-add-section', () => {
       if (barCount() >= 256 || history.current.sections.length >= 32) { notice = words.limit; updatePlayback(); return; }
@@ -305,7 +389,7 @@ export function initSongEditor({ getLang, getContext }) {
       change(d => { const meter = measure().meter; d.sections[sectionIndex].measures.splice(++measureIndex, 0, { ...emptyMeasure(), meter }); }, null, true);
     }), button(words.removeBar, 'song-remove-bar', () => change(d => { d.sections[sectionIndex].measures.splice(measureIndex, 1); measureIndex = Math.max(0, measureIndex - 1); }, null, true), history.current.sections[sectionIndex].measures.length === 1),
     button(words.copy, 'song-copy-bar', () => { clipboard = clone(measure()); ref('song-paste-bar').disabled = false; }), button(words.paste, 'song-paste-bar', () => change(d => { d.sections[sectionIndex].measures[measureIndex] = clone(clipboard); }, null, true), !clipboard));
-    root.append(actions);
+    actions.dataset.editorControls='';sheet.append(actions);
     const form = el('div', '', 'song-fields song-measure-editor');
     inputField(form, words.section, 'song-section-name', history.current.sections[sectionIndex].name, (d, v) => { d.sections[sectionIndex].name = v; }, { maxLength: 80 });
     inputField(form, words.meter, 'song-meter', measure().meter, (d, v) => { d.sections[sectionIndex].measures[measureIndex].meter = v; }, { maxLength: 8 });
@@ -313,7 +397,7 @@ export function initSongEditor({ getLang, getContext }) {
     inputField(form, words.alternate, 'song-alternate', measure().alternate, (d, v) => { d.sections[sectionIndex].measures[measureIndex].alternate = v; }, { multiline: true });
     inputField(form, words.text, 'song-comment', measure().text, (d, v) => { d.sections[sectionIndex].measures[measureIndex].text = v; }, { multiline: true });
     inputField(form, words.form, 'song-form', measure().form || '', (d, v) => { d.sections[sectionIndex].measures[measureIndex].form = v; }, { maxLength: 200 });
-    root.append(form);
+    form.dataset.editorControls='';sheet.append(form);
     const picker = el('div', '', 'song-fields');
     function selectField(parent, label, id, values, labels = values, value = values[0], action) {
       const wrapper = el('label', label), select = el('select'); select.id = id;
@@ -336,7 +420,7 @@ export function initSongEditor({ getLang, getContext }) {
       ? 'Знаки относятся к выбранному такту: |: и Segno/Coda — перед ним; :|, Fine, ToCoda и D.C./D.S. — после него. Вольта начинается с [1 или [2 и заканчивается ] либо :|. Например: такт 1 — |:, такт 2 — [1 :|, такт 3 — [2 ]. После D.C./D.S. репризы идут один раз по последним вольтам. Поддерживается один D.C./D.S. на композицию.'
       : 'Signs belong to the selected bar: |: and Segno/Coda are before it; :|, Fine, ToCoda and D.C./D.S. are after it. An ending starts with [1 or [2 and closes with ] or :|. Example: bar 1 — |:, bar 2 — [1 :|, bar 3 — [2 ]. After D.C./D.S., repeats play once using their final endings. One D.C./D.S. per song is supported.', 'textbook-help');
     const order = el('p', '', 'textbook-help'); order.id = 'song-form-order';
-    root.append(formPicker, formHelp, order);
+    formPicker.dataset.editorControls='';formHelp.dataset.editorControls='';sheet.append(formPicker, formHelp, order);
     const pickRoot = selectField(picker, words.root, 'song-chord-root', NOTES);
     const quality = selectField(picker, words.quality, 'song-chord-quality', CHORD_QUALITIES, CHORD_QUALITIES.map(q => q || (getLang() === 'ru' ? 'Мажор' : 'Major')), 'maj7');
     const bass = selectField(picker, words.bass, 'song-chord-bass', ['', ...NOTES], [words.none, ...NOTES]);
@@ -344,45 +428,66 @@ export function initSongEditor({ getLang, getContext }) {
       const symbol = pickRoot.value + quality.value + (bass.value ? '/' + bass.value : '');
       change(d => { const m = d.sections[sectionIndex].measures[measureIndex]; m.chords = [m.chords.trim(), symbol].filter(Boolean).join(' '); }, null, true); ref('song-chords').focus();
     }));
-    root.append(picker, el('p', words.help, 'textbook-help'));
-    const errors = el('p', '', 'song-errors'); errors.id = 'song-errors'; errors.setAttribute('role', 'alert'); root.append(errors);
+    picker.dataset.editorControls='';const chordHelp=el('p',words.help,'textbook-help');chordHelp.dataset.editorControls='';sheet.append(picker,chordHelp);
+    const errors = el('p', '', 'song-errors'); errors.id = 'song-errors'; errors.setAttribute('role', 'alert'); sheet.append(errors);
     const playback = el('div', '', 'song-fields');
     selectField(playback, words.style, 'song-style', BACKING_STYLES, STYLE_NAMES[getLang()], style, v => { style = v; saveTraining(); });
     playback.append(seedControl({ prefix: 'song', lang: getLang(), seed, onChange(value) { stop(); seed = value; saveTraining(); } }));
-    selectField(playback, words.repeats, 'song-repeats', ['1','2','4','8','12','24','0'], ['1','2','4','8','12','24',getLang() === 'ru' ? 'До остановки' : 'Until stopped'], String(repeats), v => { repeats = Number(v); saveTraining(); });
+    selectField(playback, words.repeats, 'song-repeats', [...Array.from({length:32},(_,i)=>String(i+1)),'0'], [...Array.from({length:32},(_,i)=>String(i+1)),getLang() === 'ru' ? 'До остановки' : 'Until stopped'], String(repeats), v => { repeats = Number(v); saveTraining(); });
     const countLabel = el('label', '', 'check'), count = el('input'); count.type = 'checkbox'; count.checked = countIn; count.id = 'song-count-in'; count.addEventListener('change', () => { stop(); countIn = count.checked; saveTraining(); }); countLabel.append(count, el('span', words.countLabel));
     const play = button(words.play, 'song-play', async () => {
-      if (active()) { stop(); return; }
-      const request = ++generation; soundError = false; notice = '';
-      try {
-        validation = compileDraft(history.current); if (!validation.compiled) { validate(); return; }
-        const compiled = arrangeSong(validation.compiled.song, { style, seed, arrangement });
-        const context = getContext();
-        engine ??= new BackingPlayer({ context, onStep: p => { position = p; updatePlayback(); }, onStop: () => { position = null; updatePlayback(); } });
-        const pending = engine.start(compiled, { bpm: history.current.bpm, repeats, countIn, training, sound }); updatePlayback(); await pending;
-      } catch { if (request === generation) { engine?.stop(); soundError = true; } }
-      if (request === generation) updatePlayback();
+      if (active()) stop(); else await startCurrent();
     });
     const playStatus = el('p', '', 'textbook-help'); playStatus.id = 'song-play-status'; playStatus.setAttribute('role', 'status');
-    const trainingControls = createTrainingControls({ prefix: 'song-training', getLang, settings: training, sourceKey: history.current.key, bpm: history.current.bpm,
+    const trainingControls = createTrainingControls({ prefix: 'song-training', getLang, settings: training, sourceKey: history.current.key, bpm: playbackBpm,
       onChange(name, value) { stop(); training = normalizeTraining({ ...training, [name]: value }); saveTraining(); render(); ref(`song-training-${name}`)?.focus(); },
     });
     const keyStatus = el('p', '', 'song-key-status'); keyStatus.id = 'song-key-status'; keyStatus.setAttribute('role','status');
     const transpose = button(getLang() === 'ru' ? 'Транспонировать исходные аккорды' : 'Transpose source chords', 'song-transpose-source', () => {
       if (!training.targetKey || validation.errors.length) return;
       const target = training.targetKey;
-      training = normalizeTraining({ ...training, targetKey: '' }); saveTraining();
-      change(d => Object.assign(d,transposeDraft(d,target)),null,true);
+      training = normalizeTraining({ ...training, targetKey: '' });
+      replaceDocument(reviseDocument(currentDocument,{settings:{...currentDocument.settings,targetKey:''}}));
+      collection.playlists=collection.playlists.map(playlist=>{const entries=playlist.entries.map(entry=>{if(entry.songId!==currentDocument.id||(entry.key===undefined&&!entry.settings?.targetKey))return entry;const {key,...rest}=entry;return {...rest,...(rest.settings?{settings:{...rest.settings,targetKey:''}}:{})};});return revisePlaylist(playlist,{entries});});
+      change(d => Object.assign(d,transposeDraft(d,target)),null,true);save();
     });
     const sourceHelp = el('p', getLang() === 'ru' ? 'Поля редактора содержат исходные аккорды. Сетка показывает партию инструмента. Кнопка транспонирования изменяет оригинал; это действие можно отменить.' : 'Editor fields contain source chords. The chart shows the instrument part. Transpose source chords changes the original and can be undone.', 'textbook-help');
+    validation=compileDraft(history.current);
+    const rangeControls=createRangeControls({lang:getLang(),range,total:validation?.compiled?.playOrder.length??0,selectedBar:history.current.sections.slice(0,sectionIndex).reduce((sum,section)=>sum+section.measures.length,0)+measureIndex,
+      onChange(value){stop();range=normalizeRange(value);saveTraining();render();},
+      onSelected(){stop();const result=compileDraft(history.current);if(!result.compiled)return;const source=history.current.sections.slice(0,sectionIndex).reduce((sum,section)=>sum+section.measures.length,0)+measureIndex;const index=result.compiled.playOrder.indexOf(source);if(index<0){notice=getLang()==='ru'?'Этот такт не входит в порядок исполнения.':'This bar is not in the playback order.';updatePlayback();return;}range={enabled:true,start:index+1,end:0};saveTraining();render();void startCurrent();},
+    });
     const soundControls = createSoundControls({ prefix: 'song', lang: getLang(), sound,
       onChange(value) { stop(); sound = value; saveTraining(); },
     });
     const arrangementControls = createArrangementControls({ prefix: 'song', lang: getLang(), arrangement,
       onChange(value) { stop(); arrangement = value; saveTraining(); },
     });
-    root.append(playback, countLabel, trainingControls, keyStatus, transpose, sourceHelp, play, playStatus, soundControls, arrangementControls);
+    const mixer = createMixer({ prefix: 'song', lang: getLang(), mix, onChange(value,part) { mix=value;engine?.setPart(part,mix[part].volume,mix[part].muted);saveTraining(); } });
+    const dock=el('div','','song-player-dock');
+    const tempoLabel=el('label','BPM'),quickTempo=el('input');quickTempo.type='number';quickTempo.id='song-player-bpm';quickTempo.min=30;quickTempo.max=300;quickTempo.value=playbackBpm;quickTempo.addEventListener('change',()=>updateSongBpm(quickTempo.value));tempoLabel.append(quickTempo);playback.prepend(tempoLabel);
+    const tap=button(getLang()==='ru'?'Тап':'Tap','song-tap',()=>{const bpm=songTapper.tap(performance.now());if(bpm)updateSongBpm(bpm);});
+    const from=rangeControls.querySelector('#song-play-from-bar');const record=button(getLang()==='ru'?'Запись занятия':'Record practice','song-record',()=>{const panel=document.querySelector('#recording-panel details');panel.open=true;panel.scrollIntoView({block:'start',behavior:'smooth'});document.getElementById('recording-toggle')?.focus({preventScroll:true});});dock.append(playback,countLabel,keyStatus,play,playStatus,tap,from,record);chart.after(dock);
+    function panel(key,label,...nodes){const details=el('details','','song-player-panel'),summary=el('summary',label);details.dataset.panel=key;details.open=panelOpen.get(key)??false;details.addEventListener('toggle',()=>panelOpen.set(key,details.open));details.append(summary,...nodes);sheet.append(details);return details;}
+    panel('practice',getLang()==='ru'?'Практика и транспонирование':'Practice and transposition',trainingControls,rangeControls);
+    panel('mixer',getLang()==='ru'?'Микшер и аранжировка':'Mixer and arrangement',mixer,soundControls,arrangementControls);
+    panel('export',getLang()==='ru'?'Поделиться и экспортировать':'Share and export',exportControls.render());
+    transpose.dataset.editorControls='';sourceHelp.dataset.editorControls='';sheet.append(transpose,sourceHelp);
+
     validate();
+  }
+  function updateSongBpm(value) {
+    if(!history)return;const bpm=clampBpm(value);playbackBpm=bpm;engine?.transport.setBpm(bpm);
+    if(playlistEntryContext)saveTraining();else{const draft=clone(history.current);draft.bpm=bpm;if(history.update(draft)){markDirty();save();}}
+    validate();for(const id of ['song-bpm','song-player-bpm'])if(ref(id))ref(id).value=bpm;
+  }
+
+  function handleShortcut(event) {
+    if(!history||event.ctrlKey||event.metaKey||event.altKey||event.target.closest('input,textarea,select,button,a,dialog,audio'))return false;
+    if(event.key===' '){event.preventDefault();ref('song-play')?.click();return true;}
+    if(['ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();updateSongBpm(playbackBpm+(event.key==='ArrowUp'?1:-1)*(event.shiftKey?5:1));return true;}
+    if(['t','T','е','Е'].includes(event.key)){const bpm=songTapper.tap(performance.now());if(bpm)updateSongBpm(bpm);return true;}
+    return false;
   }
   root.addEventListener('keydown', event => {
     if (history && (event.ctrlKey || event.metaKey) && ['z','y','s'].includes(event.key.toLowerCase())) {
@@ -400,7 +505,7 @@ export function initSongEditor({ getLang, getContext }) {
       if (libraryStore.recoveryWarning) libraryNotice += ' ' + libraryWords().recoveryWarning;
     } catch {
       blocked = true;
-      try { collection = migrateLegacy(localStorage); } catch {}
+      try { collection = upgradeLibrary(migrateLegacy(localStorage)); } catch {}
     }
     if (!collection.documents.length) {
       const doc = newDocument(newDraft()); collection.documents.push(doc); collection.currentId = doc.id; markDirty();
@@ -409,5 +514,5 @@ export function initSongEditor({ getLang, getContext }) {
     loading = false; render();
     if (dirty && !blocked) await save();
   })();
-  return { render, stop, ready };
+  return { render, stop, ready, handleShortcut };
 }

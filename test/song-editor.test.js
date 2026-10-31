@@ -19,8 +19,8 @@ test('chord parser distinguishes qualities, alterations, extensions and slash ba
   assert.equal(parseChord('C6/9/E').bassPitch, 4);
   assert.equal(parseChord('N.C.').silent, 'harmony');
   assert.equal(parseChord('Break').silent, 'all');
-  for (const quality of CHORD_QUALITIES) for (const root of ['C','F#','Bb','E♯','B♭♭']) assert.ok(parseChord(root + quality).pitchClasses.length >= 3);
-  for (const bad of ['Cunknown','Cconstructor','H7','C7b9#9','C/E4','Cmaj7oops']) assert.throws(() => parseChord(bad));
+  for (const quality of CHORD_QUALITIES) for (const root of ['C','F#','Bb','E♯','B♭♭']) assert.ok(parseChord(root + quality).pitchClasses.length >= (quality === '5' ? 2 : 3));
+  for (const bad of ['Cunknown','Cconstructor','H7','C7b9b9','C/E4','Cmaj7oops']) assert.throws(() => parseChord(bad));
 });
 
 test('measure input supports equal and explicit rational durations without guessing unknown input', () => {

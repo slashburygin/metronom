@@ -1,4 +1,4 @@
-import { libraryId, migrateLegacy, validateLibrary, mergeLibrary } from './song-library.js';
+import { libraryId, migrateLegacy, validateLibrary, mergeLibrary, upgradeLibrary } from './song-library.js';
 
 export const LIBRARY_DB = 'metronom-library';
 export const RECOVERY_PREFIX = 'metronom-library-recovery:';
@@ -49,6 +49,12 @@ export async function openLibrary({ factory = indexedDB, storage = localStorage 
       root = await transaction(db, 'readwrite', existing => existing ?? { schema: 1, sequence: 0, library: migrated });
     }
     validateRoot(root);
+    if (root.library.version === 1) {
+      root = await transaction(db, 'readwrite', existing => {
+        validateRoot(existing);
+        return existing.library.version === 2 ? existing : { ...existing, sequence: existing.sequence + 1, library: upgradeLibrary(existing.library) };
+      });
+    }
     const pending = [];
     let recoveryWarning = false;
     try {

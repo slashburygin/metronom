@@ -4,7 +4,16 @@ A browser metronome built on the Web Audio API with no runtime dependencies, pub
 `metronom` element. The feature set follows metronome-online.org and metronome-online.com, and the
 styling follows exordos.com.
 
+User documentation: [Russian guide and English quick start](docs/user-guide.md) (also available offline at `/help.html`). See the [iReal Pro comparison](docs/ireal-pro-comparison.md) for compatibility and remaining differences. [GitHub](https://github.com/slashburygin/metronom).
+
 ## Features
+
+- Dedicated song workspace with a library sidebar, reading/editing modes, live tempo, start from a bar and loop ranges; 50 original practice songs.
+- Playlists with repeated entries, independent playback settings, sequential playback, duplication and text set-list export.
+- Print/PDF, MIDI backing tracks, WAV and MusicXML chord charts; previewed iReal imports and open-protocol HTML exports with explicit compatibility limits.
+- Clickable chord reference with spelled notes, scales, keyboard, guitar and ukulele fingerings.
+- Microphone recording with optional backing track, local take history, playback and downloads. Server synchronization is excluded; JSON transfers libraries between devices.
+
 
 - Tempo from 30 to 300 BPM: slider, number field, −/+ buttons, tap tempo, and the Italian tempo name
 - Time signature from 1/1 to 32/32
@@ -27,6 +36,7 @@ styling follows exordos.com.
 - Local song library: versioned IndexedDB storage with non-destructive migration from localStorage, search by title/composer/key, recoverable trash, and JSON export/import. Stable IDs and revision ancestry allow manual transfer between devices: newer versions update existing songs, divergent changes retain both copies, and repeated imports do not duplicate known conflicts. Cross-tab writes use optimistic concurrency checks; unfinished writes have a local recovery journal. Account-based server sync is not implemented yet.
 - Transposition and automatic practice: keep original chords while changing concert key and written part, cycle keys by semitone or fourth after N choruses, and increase BPM to a limit. Both players save training settings. The Songs editor can also transpose source chords as an undoable edit.
 - Shared accompaniment arranger for exercises and songs: close-position chord inversions minimize voice movement, swing uses walking bass with chromatic approaches, slash bass and pauses remain explicit. A saved performance variation number reproduces velocity changes without changing timing.
+- Playlists: ordered references to library songs, repeated entries, move/remove controls, previous/next navigation, recoverable trash and sequential playback with each song’s saved settings. Version 2 JSON backups include playlists and retain divergent edits as conflict copies.
 - Production PWA: after the offline-ready message, reopen the app without a network connection to use the metronome, backing band, song library and all 24 practice pages. Install from the browser menu where supported. Updates wait for all app tabs/windows to close. External fonts and analytics are not cached; local PDFs must be selected again. See [offline behavior](docs/song-editor.md#офлайн-приложение).
 - Settings are saved in the browser; **Reset** restores the defaults
 - Keyboard: `Space` start/stop, `↑`/`↓` ±1 BPM (`Shift` ±5), `T` tap
@@ -71,6 +81,9 @@ for the API, count-in, looping, and seeking contracts.
 | `site/src/arrangement-ornaments.js` | Conservative chord colors and seeded phrase/transition/ending figures. |
 | `site/src/song-editor.js` | Local library, editing UI, autosave, JSON exchange and playback. |
 | `site/src/song-library.js` | Song revisions, legacy migration, backup validation, search and conflict-preserving merges. |
+| `site/src/playlists.js` | Versioned ordered playlist references and playback queue validation. |
+| `site/src/playlist-controls.js` | Playlist editing, navigation and sequential-playback controls. |
+| `site/src/library-revisions.js` | Shared song/playlist revision and conflict rules. |
 | `site/src/library-storage.js` | IndexedDB transactions, write serialization, cross-tab concurrency and recovery journal. |
 | `site/src/select.js` | Dropdown listbox, so the popup follows the site's tokens instead of the OS. |
 | `test/` | Unit tests for the tempo logic (`node --test`). |
