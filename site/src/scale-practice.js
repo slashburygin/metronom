@@ -1,11 +1,13 @@
+import { openChordReference } from './chord-reference-ui.js';
 import { createTaskHelp } from './practice-help.js';
 import { SCALE_TYPES, keysFor, scaleHarmony } from './harmony.js';
+import { createPracticePlayer } from './practice-player.js';
 
 const COPY = {
   ru: {
-    key: 'Тоника', scaleType: 'Гамма', types: ['Мажор', 'Минор натуральный', 'Минор гармонический', 'Минор мелодический (джаз)'], steps: ['Гамма', 'Аккорды', 'ii–V–I', 'Импровизация'],
+    key: 'Исходная тоника (концерт)', scaleType: 'Гамма', types: ['Мажор', 'Минор натуральный', 'Минор гармонический', 'Минор мелодический (джаз)'], steps: ['Гамма', 'Аккорды', 'ii–V–I', 'Импровизация'],
     times: ['5 мин', '7 мин', '5 мин', '13 мин'],
-    help: 'Ноты указаны по партии вашего инструмента. Буквы: C — до, D — ре, E — ми, F — фа, G — соль, A — ля, B — си. ♯♯ — дубль-диез.',
+    help: 'Учебные таблицы указаны в исходной концертной тональности; в сетке аккомпанемента отображается выбранная партия инструмента. Буквы: C — до, D — ре, E — ми, F — фа, G — соль, A — ля, B — си. ♯♯ — дубль-диез.',
     tasks: [
       ['Спойте гамму, затем сыграйте вверх и вниз в удобном регистре.', 'Начните с каждой ступени. Затем играйте терциями: 1–3, 2–4, 3–5…', 'Придумайте короткий ритм и сыграйте его на трёх соседних нотах.'],
       ['Сыграйте арпеджио каждой ступени: 1–3–5–7 и обратно.', 'Повторите с терции, квинты и септимы: 3–5–7–1, 5–7–1–3, 7–1–3–5. Поднимайте ноты в следующую октаву по необходимости.', 'Назовите и спойте терцию и септиму каждого аккорда, затем проверьте на инструменте.'],
@@ -16,9 +18,9 @@ const COPY = {
     tempo: 'Установить 60 BPM', tempoDone: 'Темп установлен: 60 BPM', previous: 'Назад', next: 'Далее', done: 'Шаг освоен', finish: 'Повторить цикл', formula: 'Ступень · аккорд · звуки 1–3–5–7',
   },
   en: {
-    key: 'Root', scaleType: 'Scale', types: ['Major', 'Natural minor', 'Harmonic minor', 'Melodic minor (jazz)'], steps: ['Scale', 'Chords', 'ii–V–I', 'Improvisation'],
+    key: 'Source tonic (concert)', scaleType: 'Scale', types: ['Major', 'Natural minor', 'Harmonic minor', 'Melodic minor (jazz)'], steps: ['Scale', 'Chords', 'ii–V–I', 'Improvisation'],
     times: ['5 min', '7 min', '5 min', '13 min'],
-    help: 'Notes are written pitches for your instrument. B means B natural; ♭ = flat, ♯ = sharp, ♯♯ = double sharp.',
+    help: 'Study tables use the original concert key; the backing chart shows the selected instrument part. B means B natural; ♭ = flat, ♯ = sharp, ♯♯ = double sharp.',
     tasks: [
       ['Sing the scale, then play up and down in a comfortable register.', 'Start on each degree. Then play thirds: 1–3, 2–4, 3–5…', 'Invent a short rhythm and play it using three neighbouring notes.'],
       ['Play each diatonic arpeggio: 1–3–5–7, then descend.', 'Start on the third, fifth and seventh: 3–5–7–1, 5–7–1–3, 7–1–3–5. Raise notes an octave as needed.', 'Name and sing the third and seventh of each chord, then check on your instrument.'],
@@ -30,8 +32,9 @@ const COPY = {
   },
 };
 
-export function initScalePractice(getLang, onTempo) {
+export function initScalePractice(getLang, onTempo, playback) {
   const root = document.getElementById('scale-practice');
+  const backing = createPracticePlayer({ ...playback, getLang, onTempo });
   let key = 'C';
   let type = 'major';
   let step = 0;
@@ -110,7 +113,8 @@ export function initScalePractice(getLang, onTempo) {
       const body = element('tbody');
       harmony.chords.forEach((chord) => {
         const row = element('tr');
-        const name = element('th', `${chord.roman} · ${chord.symbol}`);
+        const name = element('th');
+        const reference=element('button',`${chord.roman} · ${chord.symbol}`,'btn btn--ghost');reference.type='button';reference.addEventListener('click',()=>openChordReference(chord.symbol,getLang()));name.append(reference);
         name.scope = 'row';
         row.append(name, element('td', chord.notes.join(' – ')));
         body.append(row);
@@ -118,7 +122,7 @@ export function initScalePractice(getLang, onTempo) {
       table.append(body);
       score.append(table);
     } else {
-      score.append(element('p', harmony.progression.map((chord) => chord.symbol).join(' → '), 'scale-notes'));
+      const reference=element('div','','song-toolbar');for(const chord of harmony.progression){const button=element('button',chord.symbol,'btn btn--secondary');button.type='button';button.addEventListener('click',()=>openChordReference(chord.symbol,getLang()));reference.append(button);}score.append(reference);
       score.append(element('p', s.tones, 'field-label'));
       for (const line of harmony.guideTones) score.append(element('p', line.join(' → '), 'scale-notes'));
     }
@@ -153,7 +157,12 @@ export function initScalePractice(getLang, onTempo) {
           ? (getLang() === 'ru' ? `Натуральный минор: VI и VII понижены относительно мажора. В iiø–V–i на ${harmony.progression[1].symbol} используйте ${harmony.progression[1].notes[1]} вместо ${harmony.notes[6]}: это повышенная VII ступень из гармонического минора.` : `Natural minor: lowered sixth and seventh relative to major. In iiø–V–i, use ${harmony.progression[1].notes[1]} instead of ${harmony.notes[6]} on ${harmony.progression[1].symbol}: the raised seventh from harmonic minor.`)
           : '', 'textbook-help scale-mode-help');
     modeHelp.hidden = type === 'major';
-    root.append(toolbar, modeHelp, steps, heading, score, tasks, element('p', s.criterion, 'textbook-help'), checkLabel, navigation, element('p', s.help, 'textbook-help'));
+    root.append(toolbar, modeHelp, steps, heading, score);
+    if (step >= 2) {
+      backing.setHarmony(harmony);
+      root.append(backing.element);
+    } else backing.stop();
+    root.append(tasks, element('p', s.criterion, 'textbook-help'), checkLabel, navigation, element('p', s.help, 'textbook-help'));
   }
-  return { render };
+  return { render, stop: backing.stop, setBpm: backing.setBpm };
 }

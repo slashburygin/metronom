@@ -4,7 +4,16 @@ A browser metronome built on the Web Audio API with no runtime dependencies, pub
 `metronom` element. The feature set follows metronome-online.org and metronome-online.com, and the
 styling follows exordos.com.
 
+User documentation: [Russian guide and English quick start](docs/user-guide.md) (also available offline at `/help.html`). See the [iReal Pro comparison](docs/ireal-pro-comparison.md) for compatibility and remaining differences. [GitHub](https://github.com/slashburygin/metronom).
+
 ## Features
+
+- Dedicated song workspace with a library sidebar, reading/editing modes, live tempo, start from a bar and loop ranges; 50 original practice songs.
+- Playlists with repeated entries, independent playback settings, sequential playback, duplication and text set-list export.
+- Print/PDF, MIDI backing tracks, WAV and MusicXML chord charts; previewed iReal imports and open-protocol HTML exports with explicit compatibility limits.
+- Clickable chord reference with spelled notes, scales, keyboard, guitar and ukulele fingerings.
+- Microphone recording with optional backing track, local take history, playback and downloads. Server synchronization is excluded; JSON transfers libraries between devices.
+
 
 - Tempo from 30 to 300 BPM: slider, number field, −/+ buttons, tap tempo, and the Italian tempo name
 - Time signature from 1/1 to 32/32
@@ -19,11 +28,26 @@ styling follows exordos.com.
 - Local PDF textbook or sheet music beside the metronome, with the browser's page and zoom controls. Files stay on device. On narrow screens the viewer sits below the controls; browsers without embedded PDF support can use the separate-tab link.
 - Practice tab beside the metronome: Haimovich exercises for each weekday and daily chromatic exercises, with the current day selected automatically. Scores open at full size in a separate tab.
 - Scales & chords practice: major, natural minor, harmonic minor and jazz melodic minor in 12 keys, with diatonic seventh chords, cadence guide tones and four guided steps. Progress is saved per key and scale type. Every task has a small help button with examples that follow the selected key. A tempo button sets the metronome to 60 BPM.
+- Backing band in the cadence and improvisation steps: a four-bar ii–V–I, twelve-bar major or minor blues, 15 feels including swing, shuffle, bossa nova, samba, mambo, funk, reggae, disco and country, synthesized bass, keys and drums. Includes a one-bar count-in, 1/2/4/8 choruses or continuous playback, current-bar highlighting and individual volume/mute controls. Tempo is shared with the metronome; starting either player stops the other. Concert key and written instrument part are separate, with C, B♭, E♭, F and G instrument settings.
+- Songs tab: create and duplicate songs, edit sections, meters, chord grids and comments, copy/paste bars, undo/redo and autosave drafts in IndexedDB. Chords support triads, sevenths, extensions, alterations, slash bass, N.C. and Break; unknown input remains in the draft and blocks playback. Multiple chords divide a bar equally or use explicit beat durations such as `Dm7:2 G7:2`. Alternate chords are displayed only. Custom songs play through the existing backing band with count-in, repeats and bar highlighting. See [song editor](docs/song-editor.md).
+- Optional arrangement controls in both players: natural 9/13 chord colors for keys, style-specific fills before section changes, repeat/volta jumps and four-bar phrases, plus a short chorus ending. Source chords and bass stay intact; explicit extensions/alterations remain authoritative. Fills skip rests and share the saved performance seed.
+- Sound controls in both players: synthesized piano, electric piano or organ; acoustic or electric bass; reverb amount. Settings persist per song and separately for exercises. Mixer mute also silences reverb, while pauses, stop, seek and finite endings cut effect tails. Changing sound stops playback.
+- Song form: repeat signs, nested repeats, first/second/shared endings, D.C./D.S., Coda and Fine. Preview the expanded bar order before playback; invalid targets block playback while preserving the draft. Highlighting follows source bars, and automatic practice changes key/tempo after the entire form. See [form rules](docs/song-editor.md#репризы-и-переходы).
+- Local song library: versioned IndexedDB storage with non-destructive migration from localStorage, search by title/composer/key, recoverable trash, and JSON export/import. Stable IDs and revision ancestry allow manual transfer between devices: newer versions update existing songs, divergent changes retain both copies, and repeated imports do not duplicate known conflicts. Cross-tab writes use optimistic concurrency checks; unfinished writes have a local recovery journal. Account-based server sync is not implemented yet.
+- Transposition and automatic practice: keep original chords while changing concert key and written part, cycle keys by semitone or fourth after N choruses, and increase BPM to a limit. Both players save training settings. The Songs editor can also transpose source chords as an undoable edit.
+- Shared accompaniment arranger for exercises and songs: close-position chord inversions minimize voice movement, swing uses walking bass with chromatic approaches, slash bass and pauses remain explicit. A saved performance variation number reproduces velocity changes without changing timing.
+- Playlists: ordered references to library songs, repeated entries, move/remove controls, previous/next navigation, recoverable trash and sequential playback with each song’s saved settings. Version 2 JSON backups include playlists and retain divergent edits as conflict copies.
+- Production PWA: after the offline-ready message, reopen the app without a network connection to use the metronome, backing band, song library and all 24 practice pages. Install from the browser menu where supported. Updates wait for all app tabs/windows to close. External fonts and analytics are not cached; local PDFs must be selected again. See [offline behavior](docs/song-editor.md#офлайн-приложение).
 - Settings are saved in the browser; **Reset** restores the defaults
 - Keyboard: `Space` start/stop, `↑`/`↓` ±1 BPM (`Shift` ±5), `T` tap
 
 Timing uses a lookahead scheduler: clicks are placed on the audio clock ahead of time, and the
 scheduler runs in a Worker so it keeps time in background tabs.
+
+The metronome uses the shared `Transport` for timing and source cancellation. BPM counts the
+selected denominator note. The song model additionally supports independent tempo units,
+mixed meters and pulse grouping. See [music model and transport](docs/music-transport.md)
+for the API, count-in, looping, and seeking contracts.
 
 ## Layout
 
@@ -31,8 +55,36 @@ scheduler runs in a Worker so it keeps time in background tabs.
 |---|---|
 | `site/` | App HTML and source modules, used as the Vite root. |
 | `site/public/` | Static resources copied unchanged to `/`, including lesson scores. |
+| `scripts/offline-plugin.js` | Generates a versioned Service Worker from the finished production files and their SHA-256 hashes. |
+| `scripts/service-worker.js` | Verifies and caches each release; bypasses APIs and external requests. |
+| `site/src/offline.js` | Production registration and localized offline/update status. |
 | `dist/site/` | Production build, packed as `site.tar.zst`. |
 | `site/src/notation.js` | Draws a rhythm pattern as notation: noteheads, stems, beams, dots, tuplets. |
+| `site/src/musical-time.js` | Exact fractional musical durations and conversion to seconds. |
+| `site/src/song.js` | Validates source songs, pulse grids and form playback order. |
+| `site/src/song-form.js` | Repeat/ending/jump validation and finite playback expansion with source mappings. |
+| `site/src/transport.js` | Shared audio-clock scheduling, count-in, loops, seeking, and source lifecycle. |
+| `site/src/accompaniment.js` | Practice forms and exact musical events for bass, keys and drums. |
+| `site/src/backing-player.js` | Procedural audio voices, mixer and repeated accompaniment playback. |
+| `site/src/backing-sound.js` | Timbre profiles, sound settings and deterministic stereo room impulse. |
+| `site/src/backing-reverb.js` | Per-part convolution returns with audio-clock boundaries and cleanup. |
+| `site/src/sound-controls.js` | Shared bilingual timbre and reverb controls. |
+| `site/src/practice-player.js` | Bilingual backing-band controls and current-bar display. |
+| `site/src/transposition.js` | Key-aware spelling, chord/slash-bass transposition and source-preserving chart transforms. |
+| `site/src/training.js` | Per-chorus key and tempo plans shared by both players. |
+| `site/src/training-controls.js` | Bilingual training controls and written/concert key labels. |
+| `site/src/chords.js` | Explicit chord vocabulary, alterations, slash bass and silence markers. |
+| `site/src/song-draft.js` | Raw draft validation, exact bar durations, history and saved-draft schema. |
+| `site/src/song-arrangement.js` | Shared style patterns, intra-pulse chord changes and mixed meters. |
+| `site/src/arrangement.js` | Voice leading, walking bass, style names and seeded variations. |
+| `site/src/arrangement-controls.js` | Shared performance variation and optional colors/fills controls. |
+| `site/src/arrangement-ornaments.js` | Conservative chord colors and seeded phrase/transition/ending figures. |
+| `site/src/song-editor.js` | Local library, editing UI, autosave, JSON exchange and playback. |
+| `site/src/song-library.js` | Song revisions, legacy migration, backup validation, search and conflict-preserving merges. |
+| `site/src/playlists.js` | Versioned ordered playlist references and playback queue validation. |
+| `site/src/playlist-controls.js` | Playlist editing, navigation and sequential-playback controls. |
+| `site/src/library-revisions.js` | Shared song/playlist revision and conflict rules. |
+| `site/src/library-storage.js` | IndexedDB transactions, write serialization, cross-tab concurrency and recovery journal. |
 | `site/src/select.js` | Dropdown listbox, so the popup follows the site's tokens instead of the OS. |
 | `test/` | Unit tests for the tempo logic (`node --test`). |
 | `vite.config.js` | Development server and production build configuration. |

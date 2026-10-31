@@ -6,6 +6,7 @@ export const STRINGS = {
     dailyPractice: "By day",
     scalePractice: "Scales & chords",
     lessons: "Practice",
+    songs: 'Songs',
     practicePanel: "Practice materials",
     lessonDay: "Practice day",
 
@@ -101,6 +102,7 @@ export const STRINGS = {
     dailyPractice: "По дням",
     scalePractice: "Гаммы и аккорды",
     lessons: "Занятия",
+    songs: 'Композиции',
     practicePanel: "Материалы для занятий",
     lessonDay: "День занятия",
 
