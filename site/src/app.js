@@ -64,6 +64,14 @@ const tapper = new TapTempo();
 const t = () => STRINGS[ui.lang];
 const tuner = new Tuner(renderTuner);
 const lessons = initLessons(() => ui.lang, setBpm, {
+  configureMetronome(settings) {
+    lessons.stopPlayback();
+    metronome.stop();
+    apply(settings);
+    lessons.setBpm(metronome.bpm);
+    save();
+    renderAll();
+  },
   getBpm: () => metronome.bpm,
   stopMetronome() { metronome.stop();renderPlay(); },
   getContext() {
