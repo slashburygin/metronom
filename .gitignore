@@ -3,3 +3,5 @@ dist/
 output/
 exordos/exordos.push.yaml
 .DS_Store
+.idea
+.veai
