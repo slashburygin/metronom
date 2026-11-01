@@ -606,6 +606,11 @@ kbd {
 .finger-rows li { min-width: 0; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-soft); }
 .finger-notes { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin-top: 6px; font: 14px var(--font-mono); text-align: center; }
 .finger-notes span { padding-block: 6px; }
+.finger-staff { max-width: 100%; overflow-x: auto; margin-top: 6px; border-radius: var(--radius-sm); }
+.finger-staff svg { display: block; width: 100%; min-width: 420px; height: auto; }
+.finger-staff .staff-line { stroke-width: .8; opacity: .65; }
+.finger-staff .staff-ledger { stroke-width: 1; }
+.finger-staff .staff-stem, .finger-staff .staff-bar { stroke-width: 1.4; }
 .finger-rhythm { margin: 14px 0; color: var(--color-text); }
 .finger-rhythm svg { width: auto; height: 36px; }
 #technique-practice .scale-toolbar input { width: 100%; min-width: 0; min-height: 40px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); }
