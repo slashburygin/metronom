@@ -602,12 +602,12 @@ kbd {
 
 .lesson-modes { display: flex; flex-wrap: wrap; margin-bottom: 14px; }
 .lesson-modes button { flex: 1 1 140px; min-height: 36px; white-space: normal; }
-.finger-rows { list-style: none; padding: 0; display: grid; gap: 10px; }
-.finger-rows li { min-width: 0; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-soft); }
-.finger-notes { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin-top: 6px; font: 14px var(--font-mono); text-align: center; }
-.finger-notes span { padding-block: 6px; }
-.finger-staff { max-width: 100%; overflow-x: auto; margin-top: 6px; border-radius: var(--radius-sm); }
-.finger-staff svg { display: block; width: 100%; min-width: 420px; height: auto; }
+.finger-rows { list-style: none; padding: 0; display: grid; gap: 6px; }
+.finger-rows li { min-width: 0; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-soft); }
+.finger-notes { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); max-width: 520px; gap: 4px; margin-top: 2px; font: 14px var(--font-mono); text-align: center; }
+.finger-notes span { padding-block: 3px; }
+.finger-staff { max-width: 100%; overflow-x: auto; margin-top: 2px; border-radius: var(--radius-sm); }
+.finger-staff svg { display: block; width: 100%; min-width: 420px; max-width: 520px; height: auto; }
 .finger-staff .staff-line { stroke-width: .8; opacity: .65; }
 .finger-staff .staff-ledger { stroke-width: 1; }
 .finger-staff .staff-stem, .finger-staff .staff-bar { stroke-width: 1.4; }

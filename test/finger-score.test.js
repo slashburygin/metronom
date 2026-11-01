@@ -19,8 +19,15 @@ test('all keys, levels, registers and directions retain note spelling and fit th
     rows.forEach((row,i)=>{
       assert.deepEqual(row.notes.map(n=>n.name),exercise[i].notes.map(n=>n.name));
       for (const note of row.notes) {
-        assert.ok(note.y-32 > row.top);
-        assert.ok(note.y+32 < row.bottom);
+        assert.ok(note.y-5 > row.top);
+        assert.ok(note.y+5 < row.bottom);
+      }
+      for (let start = 0; start < row.notes.length; start += row.perBeat) {
+        const group = row.notes.slice(start, start + row.perBeat);
+        const up = group.reduce((sum,n) => sum + n.y,0) / group.length >= 80;
+        const stemEnd = up ? Math.min(...group.map(n=>n.y))-32 : Math.max(...group.map(n=>n.y))+32;
+        assert.ok(stemEnd - 4 > row.top);
+        assert.ok(stemEnd + 4 < row.bottom);
       }
       const svg=fingerStaffSvg(row);
       assert.equal((svg.match(/class="staff-note"/g)||[]).length,8);

@@ -12,6 +12,15 @@ const BOTTOM = 100; // E4, bottom line of a treble staff; line spacing is 10.
 const yFor = step => BOTTOM - (step - 30) * 5;
 const round = n => Math.round(n * 100) / 100;
 
+function stemGroups(notes, perBeat) {
+  return Array.from({ length: notes.length / perBeat }, (_, i) => {
+    const group = notes.slice(i * perBeat, (i + 1) * perBeat);
+    const up = group.reduce((sum, note) => sum + note.y, 0) / group.length >= 80;
+    const beamY = up ? Math.min(...group.map(note => note.y)) - 32 : Math.max(...group.map(note => note.y)) + 32;
+    return { notes: group, up, beamY };
+  });
+}
+
 export function fingerScore(key, direction, level, tonicOctave = 4) {
   if (!Object.hasOwn(FINGER_LEVELS, level) || ![3, 4, 5].includes(tonicOctave)) throw new RangeError('Invalid score settings');
   const exercise = fingerExercise(key, direction);
@@ -35,10 +44,12 @@ export function fingerScore(key, direction, level, tonicOctave = 4) {
         barAfter: (absoluteIndex + 1) % perBar === 0 };
     });
     const finalRest = rowIndex === exercise.length - 1 && 56 % perBar !== 0;
+    const stems = stemGroups(notes, perBeat);
     return { ...row, notes, keySignature, beams, perBeat, showTime: rowIndex === 0, finalRest, last: rowIndex === exercise.length - 1,
       width: notes.at(-1).x + (finalRest ? 70 : 26),
-      top: Math.min(20, ...notes.map(note => note.y - 50)),
-      bottom: Math.max(135, ...notes.map(note => note.y + 50)),
+      // Include the clef and the actual stem directions, with a small margin.
+      top: Math.min(32, ...notes.map(note => note.y - 6), ...stems.map(group => group.beamY - 5)),
+      bottom: Math.max(136, ...notes.map(note => note.y + 6), ...stems.map(group => group.beamY + 5)),
     };
   });
 }
@@ -65,10 +76,7 @@ export function fingerStaffSvg(row) {
     parts.push(`<ellipse class="staff-note" data-note="${note.label}" cx="${note.x}" cy="${note.y}" rx="5.2" ry="3.7" transform="rotate(-18 ${note.x} ${note.y})"/>`);
     if (note.barAfter) parts.push(line(note.x+17,60,note.x+17,100,'staff-bar'));
   }
-  for (let i = 0; i < row.notes.length; i += row.perBeat) {
-    const group = row.notes.slice(i, i + row.perBeat);
-    const up = group.reduce((sum,n) => sum+n.y,0) / group.length >= 80;
-    const beamY = up ? Math.min(...group.map(n=>n.y))-32 : Math.max(...group.map(n=>n.y))+32;
+  for (const { notes: group, up, beamY } of stemGroups(row.notes, row.perBeat)) {
     for (const note of group) parts.push(line(note.x+(up?4.6:-4.6),note.y,note.x+(up?4.6:-4.6),beamY,'staff-stem'));
     for (let beam = 0; beam < row.beams; beam++) {
       const x = group[0].x+(up?4.6:-4.6);
