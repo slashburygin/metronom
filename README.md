@@ -22,6 +22,7 @@ User documentation: [Russian guide and English quick start](docs/user-guide.md) 
 - Accent per beat: click a beat to cycle accent → normal → mute, plus a stress-first-beat checkbox
 - 8 sounds (click, beep, wood block, drum, tick, cowbell, hi-hat, ping) and 5 pitch levels
 - Digital or animated pendulum display, and a fullscreen mode
+- Focus mode hides secondary panels and keeps tempo, beats, start/stop, tap and quick 2/4, 3/4, 4/4, 6/8 signatures together. Exit with the header button or Escape; playback continues.
 - Practice timer: stops the run after 1 to 60 minutes, with a countdown while it plays
 - Chromatic microphone tuner (50–1500 Hz): note, frequency and cents, with A4 = 440 Hz; audio stays on device. Requires HTTPS or localhost.
 - Russian/English interface, light/dark theme

@@ -192,6 +192,37 @@ button { cursor: pointer; }
 
 .display-toggle { align-self: center; }
 
+.focus-toggle { min-height: 36px; padding: 0 12px; font-size: 13px; }
+.signature-presets { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+.signature-presets button { min-width: 56px; min-height: 40px; padding: 6px 12px; font-family: var(--font-mono); }
+.signature-presets button[aria-pressed="true"] { border-color: var(--color-highlight); color: var(--color-highlight); background: var(--color-glow); }
+
+/* Keep the same controls and audio instance when entering or leaving focus. */
+.focus-mode .practice-column,
+.focus-mode .metronome-column > :not(.stage),
+.focus-mode .recording-panel,
+.focus-mode .guide,
+.focus-mode .app-footer,
+.focus-mode .stage .display-toggle,
+.focus-mode .stage .pendulum,
+.focus-mode .stage .tempo-shortcuts,
+.focus-mode .stage .beats-hint,
+.focus-mode .stage .check,
+.focus-mode .stage #reset { display: none; }
+.focus-mode .app { display: block; max-width: 760px; padding-block: 20px; }
+.focus-mode .app .metronome-column { display: flex; }
+.focus-mode .stage { min-height: calc(100dvh - 96px); justify-content: center; gap: 28px; padding: clamp(16px, 4vw, 40px); }
+.focus-mode #bpm { font-size: clamp(80px, 16vw, 140px); }
+.focus-mode .actions { grid-template-columns: 2fr 1fr; }
+.focus-mode .actions #play { grid-column: auto; }
+.focus-mode .actions .btn { min-height: 56px; }
+.focus-mode .remaining { margin: 0; }
+@media (max-width: 600px) {
+  .header { height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding-block: 8px; }
+  .header-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .focus-mode .stage { gap: 22px; min-height: calc(100dvh - 120px); }
+}
+
 /* --- pendulum --- */
 
 .pendulum {
@@ -414,6 +445,65 @@ input[type="range"] { width: 100%; accent-color: var(--btn-primary-bg); }
 }
 .select-option.active { background: var(--color-bg-muted); }
 .select-option[aria-selected="true"] { color: var(--color-highlight); font-weight: 600; }
+
+/* Native controls share the same tokens, including dynamically created ones.
+   Keep listboxes (the song library) distinct from single-value dropdowns. */
+select {
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+select:not(:disabled):hover { border-color: var(--color-highlight); }
+select:disabled { opacity: .5; cursor: default; }
+select option { background: var(--color-bg-elevated); color: var(--color-text); }
+
+/* Progressive enhancement preserves native keyboard and change events.
+   Browsers without base-select keep their platform picker. */
+@supports (appearance: base-select) {
+  select:not([multiple]):not([size]),
+  select:not([multiple])[size="1"] {
+    appearance: base-select;
+    align-items: center;
+    gap: 8px;
+  }
+
+  select::picker(select) {
+    appearance: base-select;
+    min-width: anchor-size(width);
+    max-width: calc(100vw - 24px);
+    max-height: min(260px, 60dvh);
+    overflow: auto;
+    margin-block: 4px;
+    padding: 4px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-elevated);
+    color: var(--color-text);
+    box-shadow: var(--shadow-md, 0 16px 40px #15181d24);
+    font: 14px/1.55 var(--font-sans);
+  }
+
+  select::picker-icon { color: var(--color-text-subtle); }
+  select:open { border-color: var(--color-highlight); }
+  select:open::picker-icon { rotate: 180deg; }
+
+  select:not([multiple]):not([size]) option,
+  select:not([multiple])[size="1"] option {
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  select option:checked { color: var(--color-highlight); font-weight: 600; }
+  select option:not(:disabled):is(:hover, :focus) { background: var(--color-bg-muted); }
+  select option:disabled { color: var(--color-text-subtle); cursor: default; }
+}
 
 /* --- rhythm pictures --- */
 

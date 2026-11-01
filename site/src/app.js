@@ -36,12 +36,14 @@ const els = {
   theme: $('theme'),
   fullscreen: $('fullscreen'),
   display: $('display'),
+  focusMode: $('focus-mode'),
+  signaturePresets: $('signature-presets'),
   pendulumArm: $('pendulum-arm'),
   pendulumWeight: $('pendulum-weight'),
 };
 
 // UI-only state; audio state lives on the metronome instance.
-const ui = { lang: detectLang(), view: 'digital', noteValue: DEFAULTS.noteValue };
+const ui = { lang: detectLang(), view: 'digital', noteValue: DEFAULTS.noteValue, focus: false };
 
 const offline = initOffline(() => ui.lang);
 
@@ -205,6 +207,7 @@ function renderText() {
   );
   for (const [name, select] of Object.entries(selects)) select.setLabel(labelFor(name));
   for (const b of els.lang.children) b.setAttribute('aria-pressed', b.dataset.lang === ui.lang);
+  renderFocus();
   renderPlay();
   renderTuner();
   renderTempoPresets();
@@ -271,6 +274,28 @@ function renderTempoPresets() {
 
 function renderSignature() {
   els.signature.textContent = `${metronome.beatsPerBar}/${ui.noteValue}`;
+  for (const button of els.signaturePresets.children) {
+    button.setAttribute('aria-pressed', button.dataset.signature === els.signature.textContent);
+  }
+}
+
+function renderFocus() {
+  document.body.classList.toggle('focus-mode', ui.focus);
+  els.focusMode.setAttribute('aria-pressed', ui.focus);
+  els.focusMode.textContent = ui.focus ? t().exitFocus : t().focusMode;
+  els.focusMode.setAttribute('aria-label', ui.focus ? t().exitFocusLabel : t().focusModeLabel);
+  els.focusMode.title = els.focusMode.getAttribute('aria-label');
+}
+
+function setFocus(enabled) {
+  if (enabled) {
+    lessons.stopPlayback();
+    tuner.stop();
+    renderTuner();
+  }
+  ui.focus = enabled;
+  renderFocus();
+  els.focusMode.focus();
 }
 
 function beatTitle(i, level) {
@@ -400,6 +425,20 @@ els.down.addEventListener('click', (e) => setBpm(metronome.bpm - (e.shiftKey ? 5
 els.play.addEventListener('click', togglePlay);
 els.tap.addEventListener('click', tap);
 els.reset.addEventListener('click', reset);
+els.focusMode.addEventListener('click', () => setFocus(!ui.focus));
+els.signaturePresets.addEventListener('click', (event) => {
+  const signature = event.target.closest('[data-signature]')?.dataset.signature;
+  if (!signature) return;
+  const [beats, note] = signature.split('/').map(Number);
+  metronome.setBeatsPerBar(beats);
+  metronome.setNoteValue(note);
+  ui.noteValue = note;
+  selects.beatsPerBar.setValue(beats);
+  selects.noteValue.setValue(note);
+  renderBeats();
+  renderSignature();
+  save();
+});
 els.volume.addEventListener('input', () => { metronome.setVolume(Number(els.volume.value)); save(); });
 els.stressFirst.addEventListener('change', () => {
   metronome.accents[0] = els.stressFirst.checked ? 'accent' : 'normal';
@@ -437,6 +476,11 @@ els.fullscreen.addEventListener('click', () => {
 document.addEventListener('fullscreenchange', renderFullscreen);
 
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && ui.focus) {
+    e.preventDefault();
+    setFocus(false);
+    return;
+  }
   if (lessons.handleShortcut(e)) return;
   if (e.target.closest('.practice-column, #recording-panel, dialog, button, a, audio')) return;
   if (e.target.matches('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
