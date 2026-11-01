@@ -1,5 +1,6 @@
 import { initScalePractice } from './scale-practice.js';
 import { initSongEditor } from './song-editor.js';
+import { initFingerPractice } from './finger-practice.js';
 
 const BASE = 'lessons/haimovich/';
 const DAYS = {
@@ -11,8 +12,9 @@ export function initLessons(getLang, onTempo, playback) {
   const $ = (id) => document.getElementById(id);
   const scales = initScalePractice(getLang, onTempo, { ...playback, getContext() { songs.stop(); return playback.getContext(); } });
   const songs = initSongEditor({ getLang, getContext() { scales.stop(); return playback.getContext(); } });
+  const technique = initFingerPractice(getLang, playback.configureMetronome);
   let mode = 'daily';
-  for (const name of ['daily', 'scales']) {
+  for (const name of ['daily', 'scales', 'technique']) {
     $(`${name}-mode`).addEventListener('click', () => {
       mode = name;
       renderMode();
@@ -24,6 +26,8 @@ export function initLessons(getLang, onTempo, playback) {
     $('scale-practice').hidden = mode !== 'scales';
     $('daily-mode').setAttribute('aria-pressed', mode === 'daily');
     $('scales-mode').setAttribute('aria-pressed', mode === 'scales');
+    $('technique-practice').hidden = mode !== 'technique';
+    $('technique-mode').setAttribute('aria-pressed', mode === 'technique');
   }
   let day = new Date().getDay();
   let schedule;
@@ -54,6 +58,7 @@ export function initLessons(getLang, onTempo, playback) {
   });
   function render() {
     scales.render();
+    technique.render();
     songs.render();
     renderMode();
     const lang = getLang();

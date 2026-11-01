@@ -66,6 +66,7 @@
       <span data-i18n="title">Метроном</span>
     </div>
     <div class="header-actions">
+      <button id="focus-mode" class="btn btn--secondary focus-toggle" aria-pressed="false" aria-controls="metronome-stage" data-i18n="focusMode">Фокус</button>
       <a class="help-link" href="help.html" target="_blank" rel="noopener" aria-label="Руководство / User guide">?</a>
       <a class="icon-btn" href="https://github.com/slashburygin/metronom" target="_blank" rel="noopener noreferrer" data-i18n-aria="github" aria-label="Исходный код на GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
@@ -95,7 +96,7 @@
 
   <main class="app">
     <div class="metronome-column">
-    <section class="card stage">
+    <section class="card stage" id="metronome-stage">
       <div class="segmented display-toggle" id="display" role="group" data-i18n-aria="display">
         <button data-view="digital" data-i18n="digital">Цифровой</button>
         <button data-view="pendulum" data-i18n="pendulum">Маятник</button>
@@ -123,6 +124,13 @@
       </div>
 
       <input type="range" id="bpm-slider" min="30" max="300" value="120" data-i18n-aria="tempo" aria-label="Темп">
+
+      <div class="signature-presets" id="signature-presets" role="group" data-i18n-aria="quickSignatures" aria-label="Быстрые размеры">
+        <button class="btn btn--secondary" data-signature="2/4" aria-pressed="false">2/4</button>
+        <button class="btn btn--secondary" data-signature="3/4" aria-pressed="false">3/4</button>
+        <button class="btn btn--secondary" data-signature="4/4" aria-pressed="true">4/4</button>
+        <button class="btn btn--secondary" data-signature="6/8" aria-pressed="false">6/8</button>
+      </div>
 
       <div class="tempo-shortcuts">
         <div id="tempo-presets" role="group" data-i18n-aria="tempoPresets" aria-label="Темпы"></div>
@@ -199,8 +207,10 @@
         <div class="segmented lesson-modes" role="group" data-i18n-aria="practiceMode">
           <button id="daily-mode" aria-pressed="true" data-i18n="dailyPractice">По дням</button>
           <button id="scales-mode" aria-pressed="false" data-i18n="scalePractice">Гаммы и аккорды</button>
+          <button id="technique-mode" aria-pressed="false" data-i18n="fingerPractice">Техника пальцев</button>
         </div>
         <div id="scale-practice" hidden></div>
+        <div id="technique-practice" hidden></div>
         <div id="daily-practice" class="lesson-layout">
           <div id="lesson-days" class="lesson-days" role="group" data-i18n-aria="lessonDay"></div>
           <div class="lesson-pages">
