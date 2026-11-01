@@ -602,12 +602,12 @@ kbd {
 
 .lesson-modes { display: flex; flex-wrap: wrap; margin-bottom: 14px; }
 .lesson-modes button { flex: 1 1 140px; min-height: 36px; white-space: normal; }
-.finger-rows { list-style: none; padding: 0; display: grid; gap: 6px; }
-.finger-rows li { min-width: 0; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-soft); }
-.finger-notes { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); max-width: 520px; gap: 4px; margin-top: 2px; font: 14px var(--font-mono); text-align: center; }
-.finger-notes span { padding-block: 3px; }
-.finger-staff { max-width: 100%; overflow-x: auto; margin-top: 2px; border-radius: var(--radius-sm); }
-.finger-staff svg { display: block; width: 100%; min-width: 420px; max-width: 520px; height: auto; }
+.finger-rows { list-style: none; padding: 0; display: grid; gap: 4px; }
+.finger-rows li { min-width: 0; padding: 4px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-soft); }
+.finger-notes { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); max-width: 380px; gap: 2px; margin-top: 0; font: 12px var(--font-mono); text-align: center; }
+.finger-notes span { padding-block: 1px; }
+.finger-staff { max-width: 100%; overflow-x: auto; margin-top: 0; border-radius: var(--radius-sm); }
+.finger-staff svg { display: block; width: 100%; min-width: 340px; max-width: 380px; height: auto; }
 .finger-staff .staff-line { stroke-width: .8; opacity: .65; }
 .finger-staff .staff-ledger { stroke-width: 1; }
 .finger-staff .staff-stem, .finger-staff .staff-bar { stroke-width: 1.4; }
@@ -616,9 +616,6 @@ kbd {
 #technique-practice .scale-toolbar input { width: 100%; min-width: 0; min-height: 40px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); }
 #technique-practice > .btn { min-height: 40px; padding: 8px 14px; white-space: normal; }
 #technique-practice > a { color: var(--color-highlight); }
-@media (max-width: 420px) {
-  .finger-notes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
 .scale-toolbar { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; }
 .scale-toolbar label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--color-text-muted); flex: 1; }
 .scale-toolbar select { min-height: 40px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); color: var(--color-text); font: inherit; }
