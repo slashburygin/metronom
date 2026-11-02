@@ -33,13 +33,24 @@ export function initLessons(getLang, onTempo, playback) {
   let schedule;
   let failed = false;
   let active = 'lessons';
+  let practiceOpen = false;
+  const app = document.querySelector('.app');
+  function setPracticeOpen(open) {
+    practiceOpen = open;
+    $('practice-panel').hidden = !open;
+    $('practice-toggle').setAttribute('aria-expanded', open);
+    app.classList.toggle('practice-open', open);
+    app.classList.toggle('songs-workspace', open && active === 'songs');
+    if (!open) { scales.stop(); songs.stop(); }
+  }
+  $('practice-toggle').addEventListener('click', () => setPracticeOpen(!practiceOpen));
   const tabs = ['lessons', 'songs', 'textbook'];
-  function showTab(id) {
+  function showTab(id, open = true) {
     if (id !== 'lessons') scales.stop();
     if (id !== 'songs') songs.stop();
     if(id==='songs')playback.stopMetronome?.();
     active = id;
-    document.querySelector('.app').classList.toggle('songs-workspace',id==='songs');
+    setPracticeOpen(open);
     for (const name of tabs) {
       $(`${name}-tab`).setAttribute('aria-selected', name === id);
       $(`${name}-tab`).tabIndex = name === id ? 0 : -1;
@@ -108,11 +119,11 @@ export function initLessons(getLang, onTempo, playback) {
       }
       content.append(section);
     }
-    showTab(active);
+    showTab(active, practiceOpen);
   }
   fetch(`${BASE}schedule.json`).then((response) => {
     if (!response.ok) throw new Error(response.status);
     return response.json();
   }).then((data) => { schedule = data; render(); }).catch(() => { failed = true; render(); });
-  return { handleShortcut: event => active==='songs' && songs.handleShortcut(event), render, stopPlayback() { scales.stop(); songs.stop(); }, setBpm: scales.setBpm };
+  return { handleShortcut: event => practiceOpen && active==='songs' && songs.handleShortcut(event), render, stopPlayback() { scales.stop(); songs.stop(); }, setBpm: scales.setBpm };
 }

@@ -154,6 +154,9 @@ button { cursor: pointer; }
 }
 
 .metronome-column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.app:not(.practice-open) { max-width: 680px; grid-template-columns: minmax(0, 1fr); }
+.practice-column[hidden] { display: none; }
+#practice-toggle { min-height: 36px; padding: 0 12px; font-size: 13px; }
 .textbook { display: flex; flex-direction: column; gap: 12px; min-width: 0; position: sticky; top: 72px; }
 .textbook.file-drag .pdf-viewer { pointer-events: none; }
 .textbook.drop-active { outline: 2px dashed var(--color-highlight); outline-offset: -4px; }
@@ -191,14 +194,16 @@ button { cursor: pointer; }
 }
 
 .display-toggle { align-self: center; }
+.stage-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 
-.focus-toggle { min-height: 36px; padding: 0 12px; font-size: 13px; }
+.focus-toggle { min-height: 36px; padding: 0 12px; font-size: 13px; margin-left: auto; }
 .signature-presets { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
 .signature-presets button { min-width: 56px; min-height: 40px; padding: 6px 12px; font-family: var(--font-mono); }
 .signature-presets button[aria-pressed="true"] { border-color: var(--color-highlight); color: var(--color-highlight); background: var(--color-glow); }
 
 /* Keep the same controls and audio instance when entering or leaving focus. */
 .focus-mode .practice-column,
+.focus-mode #practice-toggle,
 .focus-mode .metronome-column > :not(.stage),
 .focus-mode .recording-panel,
 .focus-mode .guide,
@@ -211,13 +216,14 @@ button { cursor: pointer; }
 .focus-mode .app { display: block; max-width: 760px; padding-block: 20px; }
 .focus-mode .app .metronome-column { display: flex; }
 .focus-mode .stage { min-height: calc(100dvh - 96px); justify-content: center; gap: 28px; padding: clamp(16px, 4vw, 40px); }
-.focus-mode #bpm { font-size: clamp(80px, 16vw, 140px); }
+.focus-mode #bpm { font-size: clamp(48px, 16vw, 140px); max-width: 100%; min-width: 0; }
+.focus-mode .bpm-readout { flex: 1; }
 .focus-mode .actions { grid-template-columns: 2fr 1fr; }
 .focus-mode .actions #play { grid-column: auto; }
 .focus-mode .actions .btn { min-height: 56px; }
 .focus-mode .remaining { margin: 0; }
-.focus-mode #tempo-presets { margin-top: 0; }
-.focus-mode #tempo-presets button { min-width: 44px; min-height: 40px; padding: 6px 10px; font-variant-numeric: tabular-nums; }
+.focus-mode #tempo-presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); gap: 6px; margin-top: 0; }
+.focus-mode #tempo-presets button { min-width: 0; min-height: 40px; padding: 6px 4px; font-variant-numeric: tabular-nums; }
 @media (max-width: 600px) {
   .header { height: auto; min-height: 56px; flex-wrap: wrap; gap: 8px; padding-block: 8px; }
   .header-actions { flex-wrap: wrap; justify-content: flex-end; }
