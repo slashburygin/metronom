@@ -44,6 +44,15 @@ test('key signatures preserve sharps, flats and E sharp in F sharp major', () =>
   assert.equal(fingerScore('D♭','up','quarter')[0].keySignature.length,5);
   assert.ok(fingerScore('D♭','up','quarter')[0].keySignature.every(a=>a.symbol==='♭'));
 });
+test('sharp centres use the same staff coordinates as their notes, independent of font metrics', () => {
+  const row = fingerScore('G', 'up', 'quarter')[0];
+  const svg = fingerStaffSvg(row);
+  assert.match(svg, /data-symbol="♯" transform="translate\(50 60\)"/);
+  const fSharp = fingerScore('F♯', 'up', 'quarter')[0];
+  assert.equal(fingerScore('F♯', 'up', 'quarter', 5)[0].notes[0].y, 60);
+  assert.match(fingerStaffSvg(fSharp), /data-symbol="♯" transform="translate\(60 75\)"/);
+  assert.equal((fingerStaffSvg(fSharp).match(/data-symbol="♯"/g) || []).length, 6);
+});
 test('barlines and beams follow 4/4 and the selected durations', () => {
   const count=(row,cls)=>(fingerStaffSvg(row).match(new RegExp(`class="${cls}"`,'g'))||[]).length;
   const quarter=fingerScore('C','up','quarter');

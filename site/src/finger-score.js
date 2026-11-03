@@ -101,7 +101,14 @@ export function fingerStaffSvg(row) {
   parts.push(line(8,60,8,100,'staff-bar'));
   parts.push(clef);
   row.keySignature.forEach((accidental, index) => {
-    parts.push(`<text class="staff-accidental" x="${50 + index * 10}" y="${yFor(accidental.step) + 6}" font-family="serif" font-size="21">${accidental.symbol}</text>`);
+    const x = 50 + index * 10, y = yFor(accidental.step);
+    if (accidental.symbol === '♯') {
+      // The gap between the two crossbars is centred on the note's exact y.
+      // A text glyph's baseline does not reliably locate that gap across fonts.
+      parts.push(`<g class="staff-accidental" data-symbol="♯" transform="translate(${x} ${y})"><path d="M2 -11V11 M7 -13V9" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M0 -3 9 -6V-3L0 0Z M0 3 9 0V3L0 6Z"/></g>`);
+    } else {
+      parts.push(`<text class="staff-accidental" x="${x}" y="${y + 6}" font-family="serif" font-size="21">${accidental.symbol}</text>`);
+    }
   });
   if (row.showTime) {
     const x = 54 + row.keySignature.length * 10;
