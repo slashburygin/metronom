@@ -40,7 +40,7 @@ export function fingerScore(key, direction, level, tonicOctave = 4) {
       const step = tonicStep + (note.degree - 1) + note.octave * 7;
       const absoluteIndex = rowIndex * 8 + index;
       return { ...note, step, label: `${note.name}${Math.floor(step / 7)}`, y: yFor(step),
-        x: start + index * 36 + Math.floor(((rowIndex * 8) % perBar + index) / perBar) * 14,
+        x: start + index * 24 + Math.floor(((rowIndex * 8) % perBar + index) / perBar) * 10,
         barAfter: (absoluteIndex + 1) % perBar === 0 };
     });
     const finalRest = rowIndex === exercise.length - 1 && 56 % perBar !== 0;
@@ -74,7 +74,7 @@ export function fingerStaffSvg(row) {
     for (let y = 110; y <= note.y; y += 10) parts.push(line(note.x-9,y,note.x+9,y,'staff-ledger'));
     for (let y = 50; y >= note.y; y -= 10) parts.push(line(note.x-9,y,note.x+9,y,'staff-ledger'));
     parts.push(`<ellipse class="staff-note" data-note="${note.label}" cx="${note.x}" cy="${note.y}" rx="5.2" ry="3.7" transform="rotate(-18 ${note.x} ${note.y})"/>`);
-    if (note.barAfter) parts.push(line(note.x+17,60,note.x+17,100,'staff-bar'));
+    if (note.barAfter) parts.push(line(note.x+12,60,note.x+12,100,'staff-bar'));
   }
   for (const { notes: group, up, beamY } of stemGroups(row.notes, row.perBeat)) {
     for (const note of group) parts.push(line(note.x+(up?4.6:-4.6),note.y,note.x+(up?4.6:-4.6),beamY,'staff-stem'));
@@ -91,7 +91,7 @@ export function fingerStaffSvg(row) {
   }
   const end = row.notes.at(-1);
   if (end.barAfter || row.finalRest) {
-    const x = row.finalRest ? row.width-10 : end.x+21;
+    const x = row.finalRest ? row.width-10 : end.x+16;
     if (row.last) parts.push(line(x,60,x,100,'staff-bar'));
   }
   return `<svg viewBox="0 ${row.top} ${row.width} ${row.bottom-row.top}" fill="currentColor" role="img" xmlns="http://www.w3.org/2000/svg"><title>${row.notes.map(note=>note.label).join(' ')}</title>${parts.join('')}</svg>`;
