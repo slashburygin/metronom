@@ -54,6 +54,43 @@ export function fingerScore(key, direction, level, tonicOctave = 4) {
   });
 }
 
+// Reflow the same 56 notes into continuous systems, keeping beats intact and
+// preferring measure boundaries whenever a complete measure fits the screen.
+export function fingerScoreSystems(key, direction, level, tonicOctave = 4, availableWidth = 800, showNames = false) {
+  const source = fingerScore(key, direction, level, tonicOctave);
+  const template = source[0];
+  const notes = source.flatMap(row => row.notes.map((note, index) => ({
+    ...note, degreeLabel: index === 0 ? `${row.start} · ${row.chord}` : null,
+  })));
+  const width = Math.max(240, availableWidth);
+  const perBar = template.perBeat * 4;
+  const systems = [];
+  let offset = 0;
+  while (offset < notes.length) {
+    const showTime = offset === 0;
+    const start = 64 + template.keySignature.length * 10 + (showTime ? 28 : 8);
+    const xFor = index => start + index * 24 + Math.floor(((offset % perBar) + index) / perBar) * 10;
+    let count = 0;
+    while (offset + count < notes.length && xFor(count + template.perBeat - 1) + 26 <= width) count += template.perBeat;
+    count = Math.max(template.perBeat, count);
+    if (count >= perBar && offset + count < notes.length) count -= (offset + count) % perBar;
+    // Reserve the final half-note rest; move a whole beat to the next system
+    // if it would otherwise collide with the closing barline.
+    if (offset + count === notes.length && source.at(-1).finalRest && count > template.perBeat && xFor(count - 1) + 70 > width) count -= template.perBeat;
+    const systemNotes = notes.slice(offset, offset + count).map((note, index) => ({ ...note, x: xFor(index) }));
+    const last = offset + count === notes.length;
+    const finalRest = last && source.at(-1).finalRest;
+    const stems = stemGroups(systemNotes, template.perBeat);
+    const labelY = Math.min(42, ...systemNotes.map(note => note.y - 16), ...stems.map(group => group.beamY - 12));
+    const bottom = Math.max(136, ...systemNotes.map(note => note.y + 6), ...stems.map(group => group.beamY + 5));
+    systems.push({ ...template, notes: systemNotes, showTime, last, finalRest, showNames, labelY,
+      width: Math.max(width, systemNotes.at(-1).x + (finalRest ? 70 : 26)),
+      top: labelY - 16, bottom: bottom + (showNames ? 16 : 0), nameY: bottom + 10 });
+    offset += count;
+  }
+  return systems;
+}
+
 // An original vector clef, avoiding a dependency on system music fonts.
 const clef = '<path class="staff-clef" d="M29 105 C10 101 9 83 22 73 C36 62 38 51 31 39 C28 33 23 41 24 51 L34 115 C37 129 20 134 19 123 C18 114 29 113 29 120 C29 126 22 127 22 122 M19 87 C22 74 40 79 38 90 C36 103 18 102 15 91" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>';
 const line = (x1,y1,x2,y2,cls) => `<line class="${cls}" x1="${round(x1)}" y1="${round(y1)}" x2="${round(x2)}" y2="${round(y2)}" stroke="currentColor"/>`;
@@ -71,6 +108,8 @@ export function fingerStaffSvg(row) {
     parts.push(`<text x="${x}" y="77" font-family="serif" font-weight="bold" font-size="22">4</text><text x="${x}" y="97" font-family="serif" font-weight="bold" font-size="22">4</text>`);
   }
   for (const note of row.notes) {
+    if (note.degreeLabel) parts.push(`<text class="staff-degree" x="${note.x - 5}" y="${row.labelY}" font-size="11">${note.degreeLabel}</text>`);
+    if (row.showNames) parts.push(`<text class="staff-name" x="${note.x}" y="${row.nameY}" text-anchor="middle" font-size="9">${note.label}</text>`);
     for (let y = 110; y <= note.y; y += 10) parts.push(line(note.x-9,y,note.x+9,y,'staff-ledger'));
     for (let y = 50; y >= note.y; y -= 10) parts.push(line(note.x-9,y,note.x+9,y,'staff-ledger'));
     parts.push(`<ellipse class="staff-note" data-note="${note.label}" cx="${note.x}" cy="${note.y}" rx="5.2" ry="3.7" transform="rotate(-18 ${note.x} ${note.y})"/>`);

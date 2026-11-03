@@ -2,7 +2,7 @@ import { MAJOR_KEYS } from './harmony.js';
 import { FINGER_LEVELS, fingerSettings } from './finger-exercises.js';
 import { rhythmSvg } from './notation.js';
 import { SUBDIVISIONS } from './tempo.js';
-import { fingerScore, fingerStaffSvg } from './finger-score.js';
+import { fingerScore, fingerScoreSystems, fingerStaffSvg } from './finger-score.js';
 
 const STORAGE = 'metronome-finger-practice';
 const COPY = {
@@ -11,7 +11,7 @@ const COPY = {
     levels: ['Четверти · 1 нота на долю', 'Восьмые · 2 ноты на долю', 'Шестнадцатые · 4 ноты на долю'], directions: ['Вверх', 'Вниз'],
     tempo: 'Темп, BPM', apply: 'Настроить метроном · 5 мин', applied: 'Метроном настроен. Нажмите «Старт».',
     view: 'Отображение', views: ['Нотный стан', 'Названия нот', 'Ноты и названия'], octave: 'Октава тоники',
-    score: 'Нотный стан, скрипичный ключ', scroll: 'Играйте ступени слева направо, затем переходите к следующему ряду. В конце шестнадцатых — пауза на две доли.',
+    score: 'Нотный стан, скрипичный ключ', scroll: 'Играйте ноты подряд, переходя на следующую строку. В конце шестнадцатых — пауза на две доли.',
     intro: 'Сыграйте арпеджио септаккорда вверх, затем спуститесь по соседним ступеням. Переносите рисунок по мажорной гамме. В обратном направлении играйте арпеджио вниз и ступени вверх.',
     note: 'Ноты указаны для вашей партии: на саксофоне играйте написанные ноты без концертной транспозиции. Цифра рядом с нотой — октава: C4 — до первой октавы. Выберите удобный регистр.',
     row: 'Ступень', source: 'Идея занятия: Online Sax Academy — Faster Fingers Workout',
@@ -24,7 +24,7 @@ const COPY = {
     levels: ['Quarter notes · 1 note per beat', 'Eighth notes · 2 notes per beat', 'Sixteenth notes · 4 notes per beat'], directions: ['Up', 'Down'],
     tempo: 'Tempo, BPM', apply: 'Set metronome · 5 min', applied: 'Metronome configured. Press Start.',
     view: 'Display', views: ['Staff notation', 'Note names', 'Staff and names'], octave: 'Tonic octave',
-    score: 'Staff notation, treble clef', scroll: 'Play degrees from left to right, then continue on the next row. Sixteenth notes end with a two-beat rest.',
+    score: 'Staff notation, treble clef', scroll: 'Play the notes continuously, continuing on the next line. Sixteenth notes end with a two-beat rest.',
     intro: 'Play a seventh-chord arpeggio up, then descend by scale steps. Move the pattern through the major scale. In the opposite direction play the arpeggio down, then scale steps up.',
     note: 'Notes are written for your part: on saxophone, play them as written without concert transposition. Numbers indicate scientific pitch octaves: C4 is middle C. Choose a comfortable register.',
     row: 'Degree', source: 'Practice inspiration: Online Sax Academy — Faster Fingers Workout',
@@ -41,6 +41,7 @@ const node = (tag, text, className) => {
 };
 export function initFingerPractice(getLang, configure) {
   const root = document.getElementById('technique-practice');
+  let scoreObserver;
   let key = 'C', level = 'quarter', direction = 'up', bpm = 60, configured = false;
   let octave = 4, view = 'both';
   try {
@@ -57,6 +58,7 @@ export function initFingerPractice(getLang, configure) {
     try { localStorage.setItem(STORAGE, JSON.stringify({ key, level, direction, bpm, octave, view })); } catch {}
   }
   function render() {
+    scoreObserver?.disconnect();
     const s = COPY[getLang()];
     root.replaceChildren(node('h3', s.title));
     const toolbar = node('div', '', 'scale-toolbar');
@@ -80,17 +82,8 @@ export function initFingerPractice(getLang, configure) {
     const status = node('p', configured ? s.applied : ''); status.setAttribute('role', 'status');
     const rhythm = node('div', '', 'finger-rhythm'); rhythm.innerHTML = rhythmSvg(SUBDIVISIONS[level]); rhythm.setAttribute('aria-hidden', 'true');
     const rows = node('ol', '', 'finger-rows');
-    for (const row of fingerScore(key, direction, level, octave)) {
+    for (const row of view === 'names' ? fingerScore(key, direction, level, octave) : []) {
       const item = node('li'); item.append(node('span', `${s.row} ${row.start} · ${row.chord}`, 'field-label'));
-      if (view !== 'names') {
-        const staff = node('div', '', 'finger-staff');
-        staff.innerHTML = fingerStaffSvg(row);
-        staff.tabIndex = 0;
-        staff.setAttribute('role', 'region');
-        staff.setAttribute('aria-label', `${s.score} · ${s.row} ${row.start}`);
-        staff.querySelector('svg').setAttribute('aria-label', `${s.score} · ${s.levels[Object.keys(FINGER_LEVELS).indexOf(level)]} · ${row.notes.map(note => note.label).join(', ')}`);
-        item.append(staff);
-      }
       const notes = node('div', '', 'finger-notes');
       for (const note of row.notes) notes.append(node('span', note.label));
       if (view !== 'staff') item.append(notes);
@@ -99,6 +92,25 @@ export function initFingerPractice(getLang, configure) {
     const plan = node('ol', '', 'scale-tasks'); s.plan.forEach(text => plan.append(node('li', text)));
     const source = node('a', s.source); source.href = 'https://www.youtube.com/watch?v=WkRS9bX5ui8'; source.target = '_blank'; source.rel = 'noopener noreferrer';
     root.append(toolbar, rows, apply, status);
+    if (view !== 'names') {
+      rows.classList.add('finger-systems');
+      let previousWidth = 0;
+      const drawScore = () => {
+        const width = Math.floor(rows.getBoundingClientRect().width);
+        if (!width || width === previousWidth) return;
+        previousWidth = width;
+        rows.replaceChildren(...fingerScoreSystems(key, direction, level, octave, width, view === 'both').map(row => {
+          const item = node('li'), staff = node('div', '', 'finger-staff');
+          staff.innerHTML = fingerStaffSvg(row);
+          staff.querySelector('svg').setAttribute('aria-label', `${s.score} · ${row.notes.map(note => note.label).join(', ')}`);
+          item.append(staff);
+          return item;
+        }));
+      };
+      scoreObserver = new ResizeObserver(drawScore);
+      scoreObserver.observe(rows);
+      drawScore();
+    }
     if (view !== 'names') root.append(node('p', s.scroll, 'field-label'));
     root.append(node('p', s.intro), rhythm, node('p', direction === 'up' ? '1–3–5–7 → 6–5–4–3' : '7–5–3–1 → 2–3–4–5', 'scale-notes'), node('p', s.note, 'field-label'), plan, node('p', s.tips), source, node('p', s.adaptation, 'field-label'));
   }

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MAJOR_KEYS } from '../site/src/harmony.js';
 import { fingerExercise } from '../site/src/finger-exercises.js';
-import { fingerScore, fingerStaffSvg } from '../site/src/finger-score.js';
+import { fingerScore, fingerScoreSystems, fingerStaffSvg } from '../site/src/finger-score.js';
 
 test('staff pitches match the existing exercise, including B to C octave crossings', () => {
   const c = fingerScore('C', 'up', 'quarter');
@@ -70,4 +70,23 @@ test('octave changes move notes seven diatonic steps without changing the key', 
   });
   assert.throws(()=>fingerScore('C','up','unknown'),RangeError);
   assert.throws(()=>fingerScore('C','up','quarter',9),RangeError);
+});
+
+test('continuous systems preserve note order, beats, signatures and the final rest at every width', () => {
+  for (const key of MAJOR_KEYS) for (const direction of ['up', 'down']) for (const level of ['quarter', 'eighths', 'sixteenths']) for (const width of [240, 375, 800, 1400]) {
+    const original = fingerScore(key, direction, level);
+    const systems = fingerScoreSystems(key, direction, level, 4, width, true);
+    assert.deepEqual(systems.flatMap(row => row.notes.map(note => note.label)), original.flatMap(row => row.notes.map(note => note.label)));
+    assert.equal(systems.filter(row => row.showTime).length, 1);
+    assert.equal(systems.filter(row => row.finalRest).length, level === 'sixteenths' ? 1 : 0);
+    assert.equal(systems.flatMap(row => row.notes).filter(note => note.degreeLabel).length, 7);
+    for (const row of systems) {
+      assert.equal(row.notes.length % row.perBeat, 0);
+      assert.ok(row.notes.at(-1).x + (row.finalRest ? 70 : 26) <= row.width);
+      assert.ok(row.labelY > row.top);
+      assert.ok(row.nameY < row.bottom);
+      assert.ok(!/NaN|undefined|Infinity/.test(fingerStaffSvg(row)));
+    }
+  }
+  assert.ok(fingerScoreSystems('C', 'up', 'quarter', 4, 1400).length < fingerScoreSystems('C', 'up', 'quarter', 4, 375).length);
 });
