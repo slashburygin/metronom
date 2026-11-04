@@ -94,7 +94,8 @@ for the API, count-in, looping, and seeking contracts.
 | `exordos/manifests/metronom.yaml.j2` | The element: its organization, project and owner user, plus one route on the realm core LB vhost. |
 | `exordos/pack_site.sh` | Builds and checks production content before packing. |
 | `exordos/artifacts/` | Element store icon and previews. |
-| `.github/workflows/build.yml` | Tests and builds the element on a GitHub-hosted runner. |
+| `.github/workflows/build.yml` | Builds the frontend and publishes the Exordos element on GitHub-hosted runners. |
+| `.github/workflows/tests.yml` | Tests and builds the frontend on pull requests and main-branch pushes. |
 
 ## Run locally
 
@@ -128,10 +129,19 @@ commit builds as `0.0.1-rc+<stamp>`, and a commit tagged `1.0.0` builds as `1.0.
 
 ### CI
 
-`.github/workflows/build.yml` runs on `ubuntu-latest` on every push. It installs frontend dependencies with `npm ci`, runs the tests, installs
-the Exordos CLI, then builds and publishes the element in one step, and uploads `output/` as a
-workflow artifact. The publish half is skipped on pull requests and when the `PUSH_CFG` secret is
-missing; that secret holds the base64 of an `exordos push` config.
+`.github/workflows/build.yml` follows the Exordos Audit build convention: pushes to
+branches other than `main` and `master`, and all tags, build and publish the element.
+The Web job uses Node.js 22 on `ubuntu-latest` to install dependencies, run tests
+and build `dist/site/`. It uploads the result as the `metronom-site` artifact.
+The Build job also runs on GitHub-hosted `ubuntu-latest`: it downloads the
+frontend artifact, installs Exordos CLI, then builds and publishes the element.
+`pack_site.sh` validates the downloaded files instead of rebuilding them in
+GitHub Actions. Local element builds still run the frontend build. The finished
+`output/` directory is uploaded as a versioned workflow artifact.
+The required `PUSH_CFG` secret holds the base64-encoded Exordos push config.
+
+`.github/workflows/tests.yml` runs tests and the frontend build on pull requests
+and pushes to `main` or `master`, without publishing an element.
 
 ## Practice materials
 

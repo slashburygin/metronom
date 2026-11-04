@@ -11,7 +11,12 @@ set -o pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "${REPO_ROOT}"
-npm run build
+# GitHub Actions builds the frontend in the Web job and downloads its artifact
+# before calling this script. The element job does not need Node.js.
+# Local builds always rebuild the frontend instead of reusing stale files.
+if [ "${GITHUB_ACTIONS:-false}" != "true" ]; then
+    npm run build
+fi
 
 for f in index.html help.html sw.js manifest.webmanifest icons/icon-192.png icons/icon-512.png robots.txt sitemap.xml favicon.svg favicon.ico yandex_631a0a33d8d10bed.html lessons/haimovich/schedule.json; do
     if [ ! -f "${REPO_ROOT}/dist/site/${f}" ]; then

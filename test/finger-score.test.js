@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MAJOR_KEYS } from '../site/src/harmony.js';
 import { fingerExercise } from '../site/src/finger-exercises.js';
-import { fingerScore, fingerStaffSvg } from '../site/src/finger-score.js';
+import { fingerScore, fingerScoreSystems, fingerStaffSvg } from '../site/src/finger-score.js';
 
 test('staff pitches match the existing exercise, including B to C octave crossings', () => {
   const c = fingerScore('C', 'up', 'quarter');
@@ -44,6 +44,15 @@ test('key signatures preserve sharps, flats and E sharp in F sharp major', () =>
   assert.equal(fingerScore('D♭','up','quarter')[0].keySignature.length,5);
   assert.ok(fingerScore('D♭','up','quarter')[0].keySignature.every(a=>a.symbol==='♭'));
 });
+test('sharp centres use the same staff coordinates as their notes, independent of font metrics', () => {
+  const row = fingerScore('G', 'up', 'quarter')[0];
+  const svg = fingerStaffSvg(row);
+  assert.match(svg, /data-symbol="♯" transform="translate\(50 60\)"/);
+  const fSharp = fingerScore('F♯', 'up', 'quarter')[0];
+  assert.equal(fingerScore('F♯', 'up', 'quarter', 5)[0].notes[0].y, 60);
+  assert.match(fingerStaffSvg(fSharp), /data-symbol="♯" transform="translate\(60 75\)"/);
+  assert.equal((fingerStaffSvg(fSharp).match(/data-symbol="♯"/g) || []).length, 6);
+});
 test('barlines and beams follow 4/4 and the selected durations', () => {
   const count=(row,cls)=>(fingerStaffSvg(row).match(new RegExp(`class="${cls}"`,'g'))||[]).length;
   const quarter=fingerScore('C','up','quarter');
@@ -70,4 +79,23 @@ test('octave changes move notes seven diatonic steps without changing the key', 
   });
   assert.throws(()=>fingerScore('C','up','unknown'),RangeError);
   assert.throws(()=>fingerScore('C','up','quarter',9),RangeError);
+});
+
+test('continuous systems preserve note order, beats, signatures and the final rest at every width', () => {
+  for (const key of MAJOR_KEYS) for (const direction of ['up', 'down']) for (const level of ['quarter', 'eighths', 'sixteenths']) for (const width of [240, 375, 800, 1400]) {
+    const original = fingerScore(key, direction, level);
+    const systems = fingerScoreSystems(key, direction, level, 4, width, true);
+    assert.deepEqual(systems.flatMap(row => row.notes.map(note => note.label)), original.flatMap(row => row.notes.map(note => note.label)));
+    assert.equal(systems.filter(row => row.showTime).length, 1);
+    assert.equal(systems.filter(row => row.finalRest).length, level === 'sixteenths' ? 1 : 0);
+    assert.equal(systems.flatMap(row => row.notes).filter(note => note.degreeLabel).length, 7);
+    for (const row of systems) {
+      assert.equal(row.notes.length % row.perBeat, 0);
+      assert.ok(row.notes.at(-1).x + (row.finalRest ? 70 : 26) <= row.width);
+      assert.ok(row.labelY > row.top);
+      assert.ok(row.nameY < row.bottom);
+      assert.ok(!/NaN|undefined|Infinity/.test(fingerStaffSvg(row)));
+    }
+  }
+  assert.ok(fingerScoreSystems('C', 'up', 'quarter', 4, 1400).length < fingerScoreSystems('C', 'up', 'quarter', 4, 375).length);
 });

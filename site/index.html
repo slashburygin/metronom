@@ -66,7 +66,7 @@
       <span data-i18n="title">Метроном</span>
     </div>
     <div class="header-actions">
-      <button id="focus-mode" class="btn btn--secondary focus-toggle" aria-pressed="false" aria-controls="metronome-stage" data-i18n="focusMode">Фокус</button>
+      <button id="practice-toggle" class="btn btn--secondary" aria-expanded="false" aria-controls="practice-panel" data-i18n="lessons">Занятия</button>
       <a class="help-link" href="help.html" target="_blank" rel="noopener" aria-label="Руководство / User guide">?</a>
       <a class="icon-btn" href="https://github.com/slashburygin/metronom" target="_blank" rel="noopener noreferrer" data-i18n-aria="github" aria-label="Исходный код на GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
@@ -97,9 +97,12 @@
   <main class="app">
     <div class="metronome-column">
     <section class="card stage" id="metronome-stage">
-      <div class="segmented display-toggle" id="display" role="group" data-i18n-aria="display">
-        <button data-view="digital" data-i18n="digital">Цифровой</button>
-        <button data-view="pendulum" data-i18n="pendulum">Маятник</button>
+      <div class="stage-toolbar">
+        <div class="segmented display-toggle" id="display" role="group" data-i18n-aria="display">
+          <button data-view="digital" data-i18n="digital">Цифровой</button>
+          <button data-view="pendulum" data-i18n="pendulum">Маятник</button>
+        </div>
+        <button id="focus-mode" class="btn btn--secondary focus-toggle" aria-pressed="false" aria-controls="metronome-stage" data-i18n="focusMode">Фокус</button>
       </div>
 
       <svg id="pendulum" class="pendulum" viewBox="0 0 200 230" aria-hidden="true">
@@ -197,7 +200,7 @@
       <kbd>Space</kbd> <kbd>↑</kbd><kbd>↓</kbd> <kbd>T</kbd> — <span data-i18n="keys">старт/стоп · ±1 уд/мин (Shift ±5) · тап</span>
     </p>
     </div>
-    <aside class="practice-column">
+    <aside class="practice-column" id="practice-panel" hidden>
       <div class="segmented practice-tabs" role="tablist" data-i18n-aria="practicePanel">
         <button id="lessons-tab" role="tab" aria-controls="lessons" aria-selected="true" data-i18n="lessons">Занятия</button>
         <button id="songs-tab" role="tab" aria-controls="songs" aria-selected="false" tabindex="-1" data-i18n="songs">Композиции</button>
