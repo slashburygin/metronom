@@ -273,6 +273,9 @@ button { cursor: pointer; }
 }
 .round:hover { background: var(--btn-secondary-hover); }
 
+.tempo-buttons { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: none; }
+.round--small { width: 40px; height: 36px; font-size: 16px; }
+
 .bpm-readout { display: flex; flex-direction: column; align-items: center; min-width: 0; }
 
 #bpm {

@@ -116,14 +116,20 @@
       </svg>
 
       <div class="tempo">
-        <button class="round" id="bpm-down" data-i18n-aria="slower" aria-label="Медленнее">−</button>
+        <div class="tempo-buttons">
+          <button class="round" id="bpm-down" data-i18n-aria="slower" aria-label="Медленнее">−</button>
+          <button class="round round--small" id="bpm-down-five" data-i18n-aria="slowerFive" aria-label="Медленнее на 5 уд/мин">−5</button>
+        </div>
         <div class="bpm-readout">
           <input id="bpm" type="number" min="30" max="300" value="120" inputmode="numeric" data-i18n-aria="tempo" aria-label="Темп">
           <div class="meta">
             <span data-i18n="bpm">уд/мин</span> · <span id="marking">Allegro</span> · <span id="signature">4/4</span>
           </div>
         </div>
-        <button class="round" id="bpm-up" data-i18n-aria="faster" aria-label="Быстрее">+</button>
+        <div class="tempo-buttons">
+          <button class="round" id="bpm-up" data-i18n-aria="faster" aria-label="Быстрее">+</button>
+          <button class="round round--small" id="bpm-up-five" data-i18n-aria="fasterFive" aria-label="Быстрее на 5 уд/мин">+5</button>
+        </div>
       </div>
 
       <input type="range" id="bpm-slider" min="30" max="300" value="120" data-i18n-aria="tempo" aria-label="Темп">

@@ -430,6 +430,8 @@ els.slider.addEventListener('input', () => setBpm(els.slider.value));
 els.bpm.addEventListener('change', () => setBpm(els.bpm.value));
 els.up.addEventListener('click', (e) => setBpm(metronome.bpm + (e.shiftKey ? 5 : 1)));
 els.down.addEventListener('click', (e) => setBpm(metronome.bpm - (e.shiftKey ? 5 : 1)));
+$('bpm-up-five').addEventListener('click', () => setBpm(metronome.bpm + 5));
+$('bpm-down-five').addEventListener('click', () => setBpm(metronome.bpm - 5));
 els.play.addEventListener('click', togglePlay);
 els.tap.addEventListener('click', tap);
 els.reset.addEventListener('click', reset);
