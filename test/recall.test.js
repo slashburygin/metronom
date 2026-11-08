@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { keysFor } from '../site/src/harmony.js';
 import { recallDeck, nextRecall, rateRecall, normalizeRecall } from '../site/src/recall.js';
 
 const DAY = 86400000;
@@ -113,4 +114,34 @@ test('mixed queue alternates keys and skills; failure does not reset another ski
   state=recordRecall(state,inversion,'again',now);
   assert.equal(state.progress['major:C:0:triad'].level,1);
   assert.equal(state.progress[inversion.id].level,0);
+});
+
+test('random tonic uses only major scales in all twelve keys, preserving reviews and daily limits', () => {
+  const now = 100000;
+  let state = normalizeLearning();
+  state.randomOrder = true;
+  state.collections = [];
+  state.skills = ['tone'];
+  const first = learningQueue(state, now, () => 0).card;
+  const last = learningQueue(state, now, () => 0.999999).card;
+  assert.notEqual(first.id, last.id);
+  assert.equal(last.key, 'B');
+  for (let i = 0; i < 12; i++) {
+    const card = learningQueue(state, now, () => (i + 0.5) / 12).card;
+    assert.equal(card.type, 'major');
+    assert.equal(card.skill, 'scale');
+    assert.equal(card.key, keysFor('major')[i]);
+  }
+  state = recordRecall(state, first, 'again', now - 60000);
+  assert.equal(learningQueue(state, now, () => 0.999999).card.id, first.id);
+  state = recordRecall(state, first, 'good', now);
+  assert.notEqual(learningQueue(state, now, () => 0).card.id, first.id);
+  state.newLimit = 0;
+  assert.equal(learningQueue(state, now, () => 0).card, null);
+});
+test('random order persists and defaults to sequential for old or invalid settings', () => {
+  assert.equal(normalizeLearning().randomOrder, false);
+  assert.equal(normalizeLearning({randomOrder: 'true'}).randomOrder, false);
+  const state = normalizeLearning({randomOrder: true});
+  assert.equal(normalizeLearning(JSON.parse(JSON.stringify(state))).randomOrder, true);
 });

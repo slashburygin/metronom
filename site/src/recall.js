@@ -70,12 +70,13 @@ export function normalizeLearning(value) {
     collections: collections.filter((item, index) => collections.findIndex(other => other.key === item.key && other.type === item.type) === index).map(({ key, type }) => ({ key, type })),
     skills: Array.isArray(value?.skills) ? RECALL_SKILLS.filter(skill => value.skills.includes(skill)) : ['scale', 'triad'],
     newLimit: Number.isInteger(value?.newLimit) && value.newLimit >= 0 && value.newLimit <= 50 ? value.newLimit : 5,
+    randomOrder: value?.randomOrder === true,
     daily: { day: typeof value?.daily?.day === 'string' ? value.daily.day : '', ids: [...new Set((Array.isArray(value?.daily?.ids) ? value.daily.ids : []).filter(id => Object.hasOwn(progress, id)))] },
   };
 }
-export function learningQueue(state, now) {
+export function learningQueue(state, now, random = Math.random) {
   // Round-robin collections and skills so new material is mixed rather than exhausted by key.
-  const groups = state.collections.flatMap(({ key, type }) => {
+  const groups = state.randomOrder ? keysFor('major').map(key => [learningDeck(key, 'major')[0]]) : state.collections.flatMap(({ key, type }) => {
     const deck = learningDeck(key, type);
     return state.skills.map(skill => deck.filter(card => card.skill === skill));
   });
@@ -84,7 +85,9 @@ export function learningQueue(state, now) {
   const used = state.daily.day === localDay(now) ? state.daily.ids.length : 0;
   const due = deck.filter(card => state.progress[card.id]?.due <= now).sort((a, b) => state.progress[a.id].due - state.progress[b.id].due);
   const fresh = deck.filter(card => !state.progress[card.id]);
-  return { card: due[0] ?? (used < state.newLimit ? fresh[0] : null), due: due.length, fresh: fresh.length, remaining: Math.max(0, state.newLimit - used), next: Math.min(Infinity, ...deck.filter(card => state.progress[card.id]?.due > now).map(card => state.progress[card.id].due)) };
+  const available = due.length ? due : used < state.newLimit ? fresh : [];
+  const card = available.length ? available[state.randomOrder ? Math.floor(random() * available.length) : 0] : null;
+  return { card, due: due.length, fresh: fresh.length, remaining: Math.max(0, state.newLimit - used), next: Math.min(Infinity, ...deck.filter(card => state.progress[card.id]?.due > now).map(card => state.progress[card.id].due)) };
 }
 export function recordRecall(state, card, rating, now) {
   const daily = state.daily.day === localDay(now) ? { ...state.daily, ids: [...state.daily.ids] } : { day: localDay(now), ids: [] };

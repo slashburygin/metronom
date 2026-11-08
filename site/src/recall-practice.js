@@ -7,6 +7,7 @@ const COPY = {
     types: ['Мажор', 'Минор натуральный', 'Минор гармонический', 'Минор мелодический (джаз)'],
     skills: ['Гаммы', 'Трезвучия', 'Септаккорды', 'Обращения трезвучий', 'Ступени аккордов'],
     settings: 'Что изучать', add: 'Добавить в очередь', remove: 'Убрать', limit: 'Новых заданий в день',
+    random: 'Случайная тоника · мажор', randomHelp: 'Мажорная гамма от случайной тоники из всех 12 тональностей. Выбранные наборы и виды заданий не ограничивают этот режим. Дневной лимит и сроки повторений сохраняются.',
     hint: 'Вспомните ноты, затем проверьте ответ. Играйте и пойте в удобном темпе. Все задания — в концертном строе.',
     input: 'Ноты по порядку', placeholder: 'Например: C D E F G A B',
     keyboard: 'Клавиатура нот', clear: 'Очистить ответ', spelling: 'Сохраняйте написание нот гаммы: например, F♯ и G♭ звучат одинаково, но при проверке различаются.',
@@ -29,6 +30,7 @@ const COPY = {
     types: ['Major', 'Natural minor', 'Harmonic minor', 'Melodic minor (jazz)'],
     skills: ['Scales', 'Triads', 'Seventh chords', 'Triad inversions', 'Chord tones'],
     settings: 'Study settings', add: 'Add to queue', remove: 'Remove', limit: 'New cards per day',
+    random: 'Random tonic · major', randomHelp: 'A major scale from a random tonic across all 12 keys, independently of your selected collections and skills. Daily limits and review intervals still apply.',
     hint: 'Recall the notes, then check your answer. Play and sing at a comfortable tempo. All tasks use concert pitch.',
     input: 'Notes in order', placeholder: 'For example: C D E F G A B',
     keyboard: 'Note keyboard', clear: 'Clear answer', spelling: 'Use the scale’s note spelling: F♯ and G♭ sound the same but are different answers here.',
@@ -110,6 +112,13 @@ export function initRecallPractice(getLang) {
     const limitLabel = element('label', s.limit), limit = element('input'); limit.type = 'number'; limit.min = 0; limit.max = 50; limit.value = state.newLimit;
     limit.addEventListener('change', () => { state.newLimit = Math.max(0, Math.min(50, Math.round(Number(limit.value) || 0))); save(); reset(); render(true); });
     limitLabel.append(limit); settings.append(limitLabel); root.append(settings);
+    const randomLabel = element('label', '', 'check'), randomInput = element('input');
+    randomInput.id = 'recall-random'; randomInput.type = 'checkbox'; randomInput.checked = state.randomOrder;
+    randomInput.setAttribute('aria-describedby', 'recall-random-help');
+    randomInput.addEventListener('change', () => { state.randomOrder = randomInput.checked; save(); reset(); render(); root.querySelector('#recall-random').focus(); });
+    randomLabel.append(randomInput, element('span', s.random));
+    const randomHelp = element('p', s.randomHelp, 'textbook-help'); randomHelp.id = 'recall-random-help';
+    root.append(randomLabel, randomHelp);
     root.append(element('p', s.counts(queue.due, queue.remaining, queue.fresh), 'textbook-help'));
     const task = element('div', '', 'recall-task'); root.append(task);
     if (card) {
@@ -159,10 +168,10 @@ export function initRecallPractice(getLang) {
         task.append(ratings);
       }
     } else {
-      task.append(element('h4', s.done), element('p', !state.collections.length || !state.skills.length ? s.empty : s.finished));
+      task.append(element('h4', s.done), element('p', !state.randomOrder && (!state.collections.length || !state.skills.length) ? s.empty : s.finished));
       if (Number.isFinite(queue.next)) task.append(element('p', `${s.next}: ${new Date(queue.next).toLocaleString(lang)}`));
     }
-    if (checked > 0 && state.collections.length) {
+    if (checked > 0 && (lastStudied || state.collections.length)) {
       const item = lastStudied ?? state.collections[0], harmony = scaleHarmony(item.key, item.type);
       const music = element('section', '', 'recall-music'); music.append(element('h4', `${s.music} · ${item.key}`), element('p', s.application));
       const triads = learningDeck(item.key, item.type).filter(entry => entry.skill === 'triad');
