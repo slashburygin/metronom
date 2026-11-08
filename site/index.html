@@ -116,14 +116,22 @@
       </svg>
 
       <div class="tempo">
-        <button class="round" id="bpm-down" data-i18n-aria="slower" aria-label="Медленнее">−</button>
+        <div class="tempo-buttons">
+          <button class="round" id="bpm-down" data-i18n-aria="slower" aria-label="Медленнее">−</button>
+          <button class="round round--small" id="bpm-down-five" data-i18n-aria="slowerFive" aria-label="Медленнее на 5 уд/мин">−5</button>
+          <button class="round round--small" id="bpm-down-three" data-i18n-aria="slowerThree" aria-label="Медленнее на 3 уд/мин">−3</button>
+        </div>
         <div class="bpm-readout">
           <input id="bpm" type="number" min="30" max="300" value="120" inputmode="numeric" data-i18n-aria="tempo" aria-label="Темп">
           <div class="meta">
             <span data-i18n="bpm">уд/мин</span> · <span id="marking">Allegro</span> · <span id="signature">4/4</span>
           </div>
         </div>
-        <button class="round" id="bpm-up" data-i18n-aria="faster" aria-label="Быстрее">+</button>
+        <div class="tempo-buttons">
+          <button class="round" id="bpm-up" data-i18n-aria="faster" aria-label="Быстрее">+</button>
+          <button class="round round--small" id="bpm-up-five" data-i18n-aria="fasterFive" aria-label="Быстрее на 5 уд/мин">+5</button>
+          <button class="round round--small" id="bpm-up-three" data-i18n-aria="fasterThree" aria-label="Быстрее на 3 уд/мин">+3</button>
+        </div>
       </div>
 
       <input type="range" id="bpm-slider" min="30" max="300" value="120" data-i18n-aria="tempo" aria-label="Темп">
@@ -146,6 +154,16 @@
         <span data-i18n="stressFirst">Акцент на первую долю</span>
       </label>
       <p class="remaining" id="remaining" role="timer" hidden>0:00</p>
+      <details class="gap-controls">
+        <summary data-i18n="gapTitle">Внутренний пульс · тихие такты</summary>
+        <label class="check"><input id="gap-enabled" type="checkbox"><span data-i18n="gapEnabled">Чередовать клик и тишину</span></label>
+        <div class="song-fields">
+          <label><span data-i18n="gapPlay">Тактов с кликом</span><input id="gap-play" type="number" min="1" max="16" value="2"></label>
+          <label><span data-i18n="gapSilent">Тихих тактов</span><input id="gap-silent" type="number" min="1" max="16" value="2"></label>
+        </div>
+        <label class="check"><input id="gap-hide" type="checkbox" checked><span data-i18n="gapHide">Скрывать движение долей во время тишины</span></label>
+        <p class="textbook-help" data-i18n="gapHelp">Продолжайте играть в тишине и проверьте, совпали ли с возвращением клика. Начните с 2 тактов клика и 1 тихого. Цикл начинается заново при старте.</p>
+      </details>
 
       <div class="actions">
         <button id="play" class="btn btn--primary btn--lg" data-i18n="start">Старт</button>
@@ -211,9 +229,13 @@
           <button id="daily-mode" aria-pressed="true" data-i18n="dailyPractice">По дням</button>
           <button id="scales-mode" aria-pressed="false" data-i18n="scalePractice">Гаммы и аккорды</button>
           <button id="technique-mode" aria-pressed="false" data-i18n="fingerPractice">Техника пальцев</button>
+          <button id="recall-mode" aria-pressed="false" data-i18n="recallPractice">Запоминание</button>
+          <button id="jazz-mode" aria-pressed="false" data-i18n="jazzPractice">Джаз и саксофон</button>
         </div>
         <div id="scale-practice" hidden></div>
         <div id="technique-practice" hidden></div>
+        <div id="recall-practice" hidden></div>
+        <div id="jazz-practice" hidden></div>
         <div id="daily-practice" class="lesson-layout">
           <div id="lesson-days" class="lesson-days" role="group" data-i18n-aria="lessonDay"></div>
           <div class="lesson-pages">
@@ -239,24 +261,6 @@
     </aside>
   </main>
   <section id="recording-panel" class="recording-panel card"></section>
-  <section class="guide card" aria-labelledby="guide-title">
-    <h2 id="guide-title" data-i18n="guideTitle">Как пользоваться метрономом</h2>
-    <ol>
-      <li data-i18n="guideTempo">Установите темп ползунком или введите число BPM. Кнопка «Тап» определяет темп по нескольким нажатиям в нужном ритме.</li>
-      <li data-i18n="guideRhythm">Выберите музыкальный размер, например 3/4 или 4/4, и ритм: четверти, восьмые, триоли или шестнадцатые. Нажмите на долю, чтобы изменить акцент или отключить её звук.</li>
-      <li data-i18n="guideStart">Нажмите «Старт» или пробел. Клавиши ↑ и ↓ меняют темп на 1 BPM, а с Shift — на 5 BPM. Клавиша T работает как «Тап».</li>
-      <li data-i18n="guidePractice">Выберите звук, громкость и таймер занятия. В разделе «Учебник» можно открыть PDF с нотами: файл остаётся на вашем устройстве.</li>
-    </ol>
-    <h2 data-i18n="faqTitle">Вопросы о метрономе</h2>
-    <h3 data-i18n="faqBpmTitle">Что означает BPM?</h3>
-    <p data-i18n="faqBpm">BPM — число ударов в минуту. При темпе 60 BPM метроном отмечает одну долю в секунду, при 120 BPM — две. Темп произведения обычно указан над нотами.</p>
-    <h3 data-i18n="faqPracticeTitle">Как заниматься с метрономом?</h3>
-    <p data-i18n="faqPractice">Начните с темпа, в котором можете сыграть фрагмент ровно и без ошибок. Слушайте доли и сохраняйте пульс в паузах. Повышайте темп небольшими шагами, когда исполнение станет уверенным.</p>
-    <h3 data-i18n="faqTunerTitle">Как настроить инструмент с помощью тюнера?</h3>
-    <p data-i18n="faqTuner">Включите микрофон в разделе «Тюнер» и сыграйте одну протяжную ноту. Тюнер покажет ноту и отклонение в центах; эталон — ля первой октавы, 440 Гц. Для точного показания остановите метроном или используйте наушники. Звук обрабатывается на устройстве.</p>
-    <h3 data-i18n="faqMobileTitle">Работает ли метроном на телефоне?</h3>
-    <p data-i18n="faqMobile">Метроном работает в современных браузерах на телефонах и компьютерах с поддержкой Web Audio API. Для запуска звука нажмите «Старт». Для тюнера потребуется разрешение на доступ к микрофону.</p>
-  </section>
   <footer class="app-footer"><a href="https://github.com/slashburygin/metronom" target="_blank" rel="noopener noreferrer">GitHub · slashburygin/metronom</a></footer>
   <script type="module" src="src/app.js"></script>
 </body>

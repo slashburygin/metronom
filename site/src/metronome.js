@@ -6,6 +6,7 @@ import { playbackOutput } from './audio-output.js';
 import { DEFAULTS, PITCHES, SUBDIVISIONS, DENOMINATORS, resizeAccents } from './tempo.js';
 import { fraction, multiply } from './musical-time.js';
 import { Transport } from './transport.js';
+import { normalizeGap, gapPhase } from './gap-training.js';
 
 const LEVEL_GAIN = { accent: 1, normal: 0.65, sub: 0.35 };
 const LEVEL_PITCH = { accent: 1.4, normal: 1, sub: 0.8 };
@@ -34,6 +35,7 @@ export class Metronome {
     this.pitch = DEFAULTS.pitch;
     this.volume = DEFAULTS.volume;
     this.timerMinutes = DEFAULTS.timerMinutes;
+    this.gap = normalizeGap();
 
     this.ctx = null;
     this.master = null;
@@ -42,17 +44,18 @@ export class Metronome {
       nextStep: index => {
         const beat = index % this.beatsPerBar;
         const duration = fraction(1, this.noteValue);
+        const silent = gapPhase(index, this.beatsPerBar, this.gap);
         return { duration, beatIndex: beat, events: (SUBDIVISIONS[this.subdivision] ?? SUBDIVISIONS.quarter).map((onset, sub) => ({
-          kind: 'click', beat, sub,
+          kind: 'click', beat, sub, silent,
           offset: multiply(duration, fraction(Math.round(onset * 24), 24)),
           level: sub === 0 ? this.accents[beat] : 'sub',
         })) };
       },
       durationSeconds: () => this.timerSeconds,
       onSchedule: (event, timing) => {
-        if (event.level !== 'mute') this.playClick(timing.time, event.level);
+        if (event.level !== 'mute' && !event.silent) this.playClick(timing.time, event.level);
       },
-      onEvent: event => this.onTick?.(event.beat, event.sub),
+      onEvent: event => this.onTick?.(event.beat, event.sub, event.silent),
       onStop: () => this.onStop?.(),
     });
     this.setNoteValue(DEFAULTS.noteValue);
