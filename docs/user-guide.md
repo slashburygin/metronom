@@ -2,6 +2,41 @@
 
 Metronom — браузерный инструмент для занятий с аккордовыми сетками, басом, клавишами и ударными. Начните с вкладки «Композиции». Библиотека сохраняется на этом устройстве; перенос на другое выполняется через JSON. Серверной синхронизации нет.
 
+
+## Как пользоваться метрономом
+
+1. Установите темп ползунком или введите число BPM. Кнопка «Тап» определяет темп по нескольким нажатиям в нужном ритме.
+2. Выберите музыкальный размер, например 3/4 или 4/4, и ритм: четверти, восьмые, триоли или шестнадцатые. Нажмите на долю, чтобы изменить акцент или отключить её звук.
+3. Нажмите «Старт» или пробел. Клавиши ↑ и ↓ меняют темп на 1 BPM, а с Shift — на 5 BPM. Клавиша T работает как «Тап».
+4. Выберите звук, громкость и таймер занятия. В разделе «Учебник» можно открыть PDF с нотами: файл остаётся на вашем устройстве.
+
+## Вопросы о метрономе
+
+
+### Что означает BPM?
+
+
+BPM — число ударов в минуту. При темпе 60 BPM метроном отмечает одну долю в секунду, при 120 BPM — две. Темп произведения обычно указан над нотами.
+
+
+### Как заниматься с метрономом?
+
+
+Начните с темпа, в котором можете сыграть фрагмент ровно и без ошибок. Слушайте доли и сохраняйте пульс в паузах. Повышайте темп небольшими шагами, когда исполнение станет уверенным.
+
+
+### Как настроить инструмент с помощью тюнера?
+
+
+Включите микрофон в разделе «Тюнер» и сыграйте одну протяжную ноту. Тюнер покажет ноту и отклонение в центах; эталон — ля первой октавы, 440 Гц. Для точного показания остановите метроном или используйте наушники. Звук обрабатывается на устройстве.
+
+
+### Работает ли метроном на телефоне?
+
+
+Метроном работает в современных браузерах на телефонах и компьютерах с поддержкой Web Audio API. Для запуска звука нажмите «Старт». Для тюнера потребуется разрешение на доступ к микрофону.
+
+
 ## Запоминание гамм и аккордов
 
 Откройте «Занятия» → «Запоминание». По умолчанию изучаются гамма до мажор и её трезвучия: до пяти новых заданий в день. В «Что изучать» можно добавить другие тональности, включить септаккорды, обращения трезвучий и отдельные ступени аккорда, а также изменить лимит от 0 до 50. Удаление тональности из очереди не удаляет её прогресс.
@@ -163,6 +198,40 @@ Share and export offers Print/PDF, MIDI, WAV, MusicXML and iReal HTML. MIDI/WAV 
 For recording, use wired headphones, press Record, allow microphone access, then start the backing track. Takes remain on this device in a separate history. If saving fails, download the available take before leaving. Recording limits are ten minutes per take and 50 takes or 200 MB in history. Device latency and background playback depend on your browser and hardware.
 
 Export JSON backs up the song library and playlists. Import it on another device to transfer your library; divergent edits retain conflict copies. Server synchronization is intentionally absent. After the production app reports offline readiness, it and the practice materials can reopen offline.
+
+
+## How to use the metronome
+
+1. Set the tempo with the slider or enter a BPM value. Tap the Tap button several times in rhythm to find your tempo.
+2. Choose a time signature such as 3/4 or 4/4, and a rhythm: quarters, eighths, triplets or sixteenths. Click a beat to change its accent or mute it.
+3. Press Start or Space. The up and down arrow keys change the tempo by 1 BPM, or 5 BPM with Shift. Press T to tap the tempo.
+4. Choose a sound, volume and practice timer. Open PDF sheet music in the Textbook section: the file stays on your device.
+
+## Metronome questions
+
+
+### What does BPM mean?
+
+
+BPM means beats per minute. At 60 BPM the metronome marks one beat per second; at 120 BPM it marks two. The tempo of a piece is usually printed above the score.
+
+
+### How do I practise with a metronome?
+
+
+Start at a tempo where you can play a passage evenly without mistakes. Listen to the beats and keep the pulse through rests. Increase the tempo in small steps as your playing becomes confident.
+
+
+### How do I tune an instrument?
+
+
+Enable the microphone in the Tuner section and play one sustained note. The tuner shows the note and deviation in cents, with A4 at 440 Hz. Pause the metronome or use headphones for a clear reading. Audio is processed on your device.
+
+
+### Does it work on a phone?
+
+
+The metronome works in modern phone and desktop browsers with Web Audio API support. Press Start to enable sound. The tuner requires permission to access your microphone.
 
 ## Исходный код и обратная связь
 
