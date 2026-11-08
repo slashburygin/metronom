@@ -1,6 +1,8 @@
 import { initScalePractice } from './scale-practice.js';
 import { initSongEditor } from './song-editor.js';
 import { initFingerPractice } from './finger-practice.js';
+import { initRecallPractice } from './recall-practice.js';
+import { initJazzPractice } from './jazz-practice.js';
 
 const BASE = 'lessons/haimovich/';
 const DAYS = {
@@ -10,17 +12,24 @@ const DAYS = {
 
 export function initLessons(getLang, onTempo, playback) {
   const $ = (id) => document.getElementById(id);
-  const scales = initScalePractice(getLang, onTempo, { ...playback, getContext() { songs.stop(); return playback.getContext(); } });
-  const songs = initSongEditor({ getLang, getContext() { scales.stop(); return playback.getContext(); } });
+  const scales = initScalePractice(getLang, onTempo, { ...playback, getContext() { songs.stop(); jazz.stop(); return playback.getContext(); } });
+  const songs = initSongEditor({ getLang, getContext() { scales.stop(); jazz.stop(); return playback.getContext(); } });
   const technique = initFingerPractice(getLang, playback.configureMetronome);
+  const recall = initRecallPractice(getLang);
   let mode = 'daily';
-  for (const name of ['daily', 'scales', 'technique']) {
+  const jazz = initJazzPractice(getLang, { ...playback, getContext() { scales.stop(); songs.stop(); return playback.getContext(); } }, () => { mode = 'scales'; renderMode(); });
+  for (const name of ['daily', 'scales', 'technique', 'recall', 'jazz']) {
     $(`${name}-mode`).addEventListener('click', () => {
       mode = name;
+      if (name === 'recall') recall.render();
+      if (name === 'jazz') jazz.render();
       renderMode();
     });
   }
   function renderMode() {
+    if (mode !== 'jazz') jazz.stop();
+    $('jazz-practice').hidden = mode !== 'jazz';
+    $('jazz-mode').setAttribute('aria-pressed', mode === 'jazz');
     if (mode !== 'scales') scales.stop();
     $('daily-practice').hidden = mode !== 'daily';
     $('scale-practice').hidden = mode !== 'scales';
@@ -28,6 +37,8 @@ export function initLessons(getLang, onTempo, playback) {
     $('scales-mode').setAttribute('aria-pressed', mode === 'scales');
     $('technique-practice').hidden = mode !== 'technique';
     $('technique-mode').setAttribute('aria-pressed', mode === 'technique');
+    $('recall-practice').hidden = mode !== 'recall';
+    $('recall-mode').setAttribute('aria-pressed', mode === 'recall');
   }
   let day = new Date().getDay();
   let schedule;
@@ -41,11 +52,12 @@ export function initLessons(getLang, onTempo, playback) {
     $('practice-toggle').setAttribute('aria-expanded', open);
     app.classList.toggle('practice-open', open);
     app.classList.toggle('songs-workspace', open && active === 'songs');
-    if (!open) { scales.stop(); songs.stop(); }
+    if (!open) { scales.stop(); songs.stop(); jazz.stop(); }
   }
   $('practice-toggle').addEventListener('click', () => setPracticeOpen(!practiceOpen));
   const tabs = ['lessons', 'songs', 'textbook'];
   function showTab(id, open = true) {
+    if (id !== 'lessons') jazz.stop();
     if (id !== 'lessons') scales.stop();
     if (id !== 'songs') songs.stop();
     if(id==='songs')playback.stopMetronome?.();
@@ -70,6 +82,8 @@ export function initLessons(getLang, onTempo, playback) {
   function render() {
     scales.render();
     technique.render();
+    recall.render();
+    jazz.render();
     songs.render();
     renderMode();
     const lang = getLang();
@@ -125,5 +139,5 @@ export function initLessons(getLang, onTempo, playback) {
     if (!response.ok) throw new Error(response.status);
     return response.json();
   }).then((data) => { schedule = data; render(); }).catch(() => { failed = true; render(); });
-  return { handleShortcut: event => practiceOpen && active==='songs' && songs.handleShortcut(event), render, stopPlayback() { scales.stop(); songs.stop(); }, setBpm: scales.setBpm };
+  return { handleShortcut: event => practiceOpen && active==='songs' && songs.handleShortcut(event), render, stopPlayback() { scales.stop(); songs.stop(); jazz.stop(); }, setBpm: scales.setBpm };
 }

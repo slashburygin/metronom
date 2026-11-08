@@ -6,6 +6,7 @@ import { Metronome } from './metronome.js';
 import { STRINGS, detectLang } from './i18n.js';
 import { rhythmSvg } from './notation.js';
 import { createSelect } from './select.js';
+import { normalizeGap } from './gap-training.js';
 import {
   DEFAULTS, DENOMINATORS, MAX_BEATS, MAX_BPM, MIN_BPM, PITCHES, SOUNDS, SUBDIVISIONS,
   TIMER_MINUTES, TapTempo, formatClock, nextAccent, resizeAccents, tempoMarking,
@@ -49,8 +50,9 @@ const offline = initOffline(() => ui.lang);
 
 let activeDot = null;
 const metronome = new Metronome({
-  onTick(beat, sub) {
+  onTick(beat, sub, silent) {
     if (sub !== 0) return;
+    $('metronome-stage').classList.toggle('gap-hidden', silent && metronome.gap.hideVisual);
     activeDot?.classList.remove('active');
     activeDot = els.beats.children[beat];
     activeDot?.classList.add('active');
@@ -147,7 +149,7 @@ const selects = {
 
 function save() {
   const { bpm, beatsPerBar, subdivision, accents, sound, pitch, volume, timerMinutes } = metronome;
-  const data = { bpm, beatsPerBar, subdivision, accents, sound, pitch, volume, timerMinutes, ...ui };
+  const data = { bpm, beatsPerBar, subdivision, accents, sound, pitch, volume, timerMinutes, gap: metronome.gap, ...ui };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* not persisted */ }
 }
 
@@ -160,6 +162,7 @@ function load() {
 
 // Applies a settings object, ignoring anything invalid.
 function apply(s) {
+  if (s.gap) metronome.gap = normalizeGap(s.gap);
   if (s.bpm) metronome.setBpm(s.bpm);
   if (Number.isInteger(s.beatsPerBar) && s.beatsPerBar >= 1 && s.beatsPerBar <= MAX_BEATS) {
     metronome.setBeatsPerBar(s.beatsPerBar);
@@ -183,6 +186,7 @@ function apply(s) {
 }
 
 function reset() {
+  metronome.gap = normalizeGap();
   lessons.stopPlayback();
   metronome.accents = resizeAccents([], DEFAULTS.beatsPerBar);
   apply({ ...DEFAULTS, lang: ui.lang, view: ui.view });
@@ -336,6 +340,7 @@ function renderStressFirst() {
 }
 
 function renderPlay() {
+  if (!metronome.playing) $('metronome-stage').classList.remove('gap-hidden');
   els.play.textContent = metronome.playing ? t().stop : t().start;
   els.play.classList.toggle('playing', metronome.playing);
   els.play.setAttribute('aria-pressed',String(metronome.playing));
@@ -368,6 +373,10 @@ function renderFullscreen() {
 }
 
 function renderAll() {
+  $('gap-enabled').checked = metronome.gap.enabled;
+  $('gap-play').value = metronome.gap.playBars;
+  $('gap-silent').value = metronome.gap.silentBars;
+  $('gap-hide').checked = metronome.gap.hideVisual;
   selects.beatsPerBar.setValue(metronome.beatsPerBar);
   selects.noteValue.setValue(ui.noteValue);
   selects.sound.setValue(metronome.sound);
@@ -428,6 +437,14 @@ requestAnimationFrame(animateFrame);
 
 els.slider.addEventListener('input', () => setBpm(els.slider.value));
 els.bpm.addEventListener('change', () => setBpm(els.bpm.value));
+for (const [id, name] of [['gap-enabled', 'enabled'], ['gap-play', 'playBars'], ['gap-silent', 'silentBars'], ['gap-hide', 'hideVisual']]) {
+  $(id).addEventListener('change', event => {
+    const input = event.target;
+    metronome.gap = normalizeGap({ ...metronome.gap, [name]: input.type === 'checkbox' ? input.checked : Number(input.value) });
+    $('metronome-stage').classList.remove('gap-hidden');
+    save(); renderAll();
+  });
+}
 els.up.addEventListener('click', (e) => setBpm(metronome.bpm + (e.shiftKey ? 5 : 1)));
 els.down.addEventListener('click', (e) => setBpm(metronome.bpm - (e.shiftKey ? 5 : 1)));
 $('bpm-up-five').addEventListener('click', () => setBpm(metronome.bpm + 5));

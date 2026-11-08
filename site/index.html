@@ -152,6 +152,16 @@
         <span data-i18n="stressFirst">Акцент на первую долю</span>
       </label>
       <p class="remaining" id="remaining" role="timer" hidden>0:00</p>
+      <details class="gap-controls">
+        <summary data-i18n="gapTitle">Внутренний пульс · тихие такты</summary>
+        <label class="check"><input id="gap-enabled" type="checkbox"><span data-i18n="gapEnabled">Чередовать клик и тишину</span></label>
+        <div class="song-fields">
+          <label><span data-i18n="gapPlay">Тактов с кликом</span><input id="gap-play" type="number" min="1" max="16" value="2"></label>
+          <label><span data-i18n="gapSilent">Тихих тактов</span><input id="gap-silent" type="number" min="1" max="16" value="2"></label>
+        </div>
+        <label class="check"><input id="gap-hide" type="checkbox" checked><span data-i18n="gapHide">Скрывать движение долей во время тишины</span></label>
+        <p class="textbook-help" data-i18n="gapHelp">Продолжайте играть в тишине и проверьте, совпали ли с возвращением клика. Начните с 2 тактов клика и 1 тихого. Цикл начинается заново при старте.</p>
+      </details>
 
       <div class="actions">
         <button id="play" class="btn btn--primary btn--lg" data-i18n="start">Старт</button>
@@ -217,9 +227,13 @@
           <button id="daily-mode" aria-pressed="true" data-i18n="dailyPractice">По дням</button>
           <button id="scales-mode" aria-pressed="false" data-i18n="scalePractice">Гаммы и аккорды</button>
           <button id="technique-mode" aria-pressed="false" data-i18n="fingerPractice">Техника пальцев</button>
+          <button id="recall-mode" aria-pressed="false" data-i18n="recallPractice">Запоминание</button>
+          <button id="jazz-mode" aria-pressed="false" data-i18n="jazzPractice">Джаз и саксофон</button>
         </div>
         <div id="scale-practice" hidden></div>
         <div id="technique-practice" hidden></div>
+        <div id="recall-practice" hidden></div>
+        <div id="jazz-practice" hidden></div>
         <div id="daily-practice" class="lesson-layout">
           <div id="lesson-days" class="lesson-days" role="group" data-i18n-aria="lessonDay"></div>
           <div class="lesson-pages">

@@ -823,3 +823,22 @@ kbd {
 .songs:not(.song-editing) .song-cell { min-height: 115px; }
 #song-select { padding: 4px; }
 #song-select option { padding: 7px 5px; }
+
+/* Recall practice */
+#recall-practice details { margin-bottom: 16px; }
+#recall-practice summary { cursor: pointer; padding: 10px 0; }
+.recall-skills { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.recall-collections { padding-left: 20px; }
+.recall-collections li { margin: 8px 0; }
+.recall-task { padding: 16px 0; }
+#recall-answer { display: block; width: 100%; margin-top: 8px; }
+.recall-task h4, .recall-music h4 { margin: 0 0 12px; }
+.recall-feedback { overflow-wrap: anywhere; }
+.recall-ratings button { white-space: normal; }
+.recall-music { border-top: 1px solid var(--btn-secondary-border); padding-top: 16px; }
+.recall-keyboard { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.recall-keyboard button { min-width: 40px; min-height: 44px; }
+.gap-controls { margin: 14px 0; }
+.gap-controls summary { cursor: pointer; padding: 8px 0; }
+.gap-controls .check { margin: 10px 0; }
+.gap-hidden #beats, .gap-hidden .pendulum { visibility: hidden; }
