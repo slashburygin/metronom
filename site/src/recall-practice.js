@@ -1,5 +1,5 @@
 import { SCALE_TYPES, keysFor, scaleHarmony } from './harmony.js';
-import { RECALL_KEY, RECALL_SKILLS, normalizeLearning, learningQueue, recordRecall, checkRecallAnswer, rateRecall, learningDeck } from './recall.js';
+import { RECALL_SKILLS, normalizeLearning, learningQueue, recordRecall, checkRecallAnswer, rateRecall, learningDeck } from './recall.js';
 
 const COPY = {
   ru: {
@@ -22,8 +22,8 @@ const COPY = {
     finished: 'Сегодняшняя очередь завершена. Новые задания появятся завтра; повторения — в назначенное время.',
     next: 'Ближайшее повторение', counts: (due, remaining, fresh) => `Повторений: ${due} · Новых на сегодня: ${Math.min(remaining, fresh)} · Не изучено: ${fresh}`,
     music: 'Примените в музыке', application: 'Сыграйте по такту на аккорд: I–IV–V–I. Затем придумайте короткую фразу из нот гаммы и завершите её на тонике.',
-    musicDone: 'Сыграл', session: n => `Проверено за занятие: ${n}`, saved: 'Прогресс сохраняется на этом устройстве. Проверка игры на инструменте — самостоятельная.',
-    warning: 'Прогресс не удалось сохранить. После перезагрузки результаты могут потеряться.', shortcuts: 'Enter — проверить. После ответа: 1 — повторить, 2 — с трудом, 3 — уверенно.',
+    musicDone: 'Сыграл',
+    shortcuts: 'Enter — проверить. После ответа: 1 — повторить, 2 — с трудом, 3 — уверенно.',
   },
   en: {
     title: 'Scale and chord recall', key: 'Tonic', type: 'Scale',
@@ -45,8 +45,8 @@ const COPY = {
     finished: 'Today’s queue is complete. New cards return tomorrow; reviews appear when due.',
     next: 'Next review', counts: (due, remaining, fresh) => `Reviews: ${due} · New today: ${Math.min(remaining, fresh)} · Unseen: ${fresh}`,
     music: 'Make music', application: 'Play one bar per chord: I–IV–V–I. Then invent a short phrase using the scale notes and resolve to the tonic.',
-    musicDone: 'Played it', session: n => `Checked this session: ${n}`, saved: 'Progress is saved on this device. Instrument performance is self-assessed.',
-    warning: 'Progress could not be saved. Results may be lost after reloading.', shortcuts: 'Enter — check. After answering: 1 — repeat, 2 — with effort, 3 — confident.',
+    musicDone: 'Played it',
+    shortcuts: 'Enter — check. After answering: 1 — repeat, 2 — with effort, 3 — confident.',
   },
 };
 const element = (tag, text = '', className = '') => {
@@ -58,19 +58,14 @@ const button = (label, action, primary = false) => {
 
 export function initRecallPractice(getLang) {
   const root = document.getElementById('recall-practice');
-  let state, warning = false;
-  try { state = normalizeLearning(JSON.parse(localStorage.getItem(RECALL_KEY))); }
-  catch { state = normalizeLearning(); }
-  let key = 'C', type = 'major', card = null, result = null, revealed = false, draft = '', settingsOpen = false, checked = 0, musicDone = false, lastStudied = null;
-  function save() {
-    try { localStorage.setItem(RECALL_KEY, JSON.stringify(state)); warning = false; } catch { warning = true; }
-  }
+  let state = normalizeLearning();
+  let key = 'C', type = 'major', card = null, result = null, revealed = false, draft = '', settingsOpen = false, musicDone = false, lastStudied = null;
   function reset() { card = null; result = null; revealed = false; draft = ''; }
   function rate(rating) {
     if (!card || !revealed || (rating !== 'again' && !result?.correct)) return;
-    state = recordRecall(state, card, rating, Date.now()); checked++; musicDone = false;
+    state = recordRecall(state, card, rating, Date.now()); musicDone = false;
     lastStudied = { key: card.key, type: card.type };
-    save(); reset(); render(true);
+    reset(); render(true);
   }
   function render(focus = false) {
     const lang = getLang(), s = COPY[lang], now = Date.now(), queue = learningQueue(state, now);
@@ -91,13 +86,13 @@ export function initRecallPractice(getLang) {
     select(s.type, SCALE_TYPES, s.types, type, value => { const pitch = keysFor(type).indexOf(key); type = value; key = keysFor(type)[pitch]; });
     toolbar.append(button(s.add, () => {
       if (!state.collections.some(item => item.key === key && item.type === type)) state.collections.push({ key, type });
-      save(); reset(); render(true);
+      reset(); render(true);
     }));
     settings.append(toolbar);
     const collections = element('ul', '', 'recall-collections');
     for (const item of state.collections) {
       const row = element('li', `${item.key} · ${s.types[SCALE_TYPES.indexOf(item.type)]} `);
-      const remove = button(s.remove, () => { state.collections = state.collections.filter(entry => entry !== item); save(); reset(); render(true); });
+      const remove = button(s.remove, () => { state.collections = state.collections.filter(entry => entry !== item); reset(); render(true); });
       remove.setAttribute('aria-label', `${s.remove}: ${item.key} ${s.types[SCALE_TYPES.indexOf(item.type)]}`);
       row.append(remove); collections.append(row);
     }
@@ -105,17 +100,17 @@ export function initRecallPractice(getLang) {
     const skills = element('fieldset', '', 'recall-skills'); skills.append(element('legend', s.settings));
     RECALL_SKILLS.forEach((skill, i) => {
       const label = element('label', '', 'check'), input = element('input'); input.type = 'checkbox'; input.checked = state.skills.includes(skill);
-      input.addEventListener('change', () => { state.skills = RECALL_SKILLS.filter(value => value === skill ? input.checked : state.skills.includes(value)); save(); reset(); render(true); });
+      input.addEventListener('change', () => { state.skills = RECALL_SKILLS.filter(value => value === skill ? input.checked : state.skills.includes(value)); reset(); render(true); });
       label.append(input, element('span', s.skills[i])); skills.append(label);
     });
     settings.append(skills);
     const limitLabel = element('label', s.limit), limit = element('input'); limit.type = 'number'; limit.min = 0; limit.max = 50; limit.value = state.newLimit;
-    limit.addEventListener('change', () => { state.newLimit = Math.max(0, Math.min(50, Math.round(Number(limit.value) || 0))); save(); reset(); render(true); });
+    limit.addEventListener('change', () => { state.newLimit = Math.max(0, Math.min(50, Math.round(Number(limit.value) || 0))); reset(); render(true); });
     limitLabel.append(limit); settings.append(limitLabel); root.append(settings);
     const randomLabel = element('label', '', 'check'), randomInput = element('input');
     randomInput.id = 'recall-random'; randomInput.type = 'checkbox'; randomInput.checked = state.randomOrder;
     randomInput.setAttribute('aria-describedby', 'recall-random-help');
-    randomInput.addEventListener('change', () => { state.randomOrder = randomInput.checked; save(); reset(); render(); root.querySelector('#recall-random').focus(); });
+    randomInput.addEventListener('change', () => { state.randomOrder = randomInput.checked; reset(); render(); root.querySelector('#recall-random').focus(); });
     randomLabel.append(randomInput, element('span', s.random));
     const randomHelp = element('p', s.randomHelp, 'textbook-help'); randomHelp.id = 'recall-random-help';
     root.append(randomLabel, randomHelp);
@@ -171,7 +166,7 @@ export function initRecallPractice(getLang) {
       task.append(element('h4', s.done), element('p', !state.randomOrder && (!state.collections.length || !state.skills.length) ? s.empty : s.finished));
       if (Number.isFinite(queue.next)) task.append(element('p', `${s.next}: ${new Date(queue.next).toLocaleString(lang)}`));
     }
-    if (checked > 0 && (lastStudied || state.collections.length)) {
+    if (lastStudied) {
       const item = lastStudied ?? state.collections[0], harmony = scaleHarmony(item.key, item.type);
       const music = element('section', '', 'recall-music'); music.append(element('h4', `${s.music} · ${item.key}`), element('p', s.application));
       const triads = learningDeck(item.key, item.type).filter(entry => entry.skill === 'triad');
@@ -180,8 +175,7 @@ export function initRecallPractice(getLang) {
       if (item.type !== 'major') music.append(element('p', lang === 'ru' ? 'В миноре используйте аккорды выбранной гаммы, указанные выше.' : 'In minor, use the selected scale’s chords shown above.', 'textbook-help'));
       music.append(button(musicDone ? '✓ ' + s.musicDone : s.musicDone, () => { musicDone = true; render(); })); root.append(music);
     }
-    root.append(element('p', s.session(checked), 'textbook-help'), element('p', s.saved, 'textbook-help'), element('p', s.shortcuts, 'textbook-help'));
-    if (warning) { const notice = element('p', s.warning); notice.setAttribute('role', 'status'); root.append(notice); }
+    root.append(element('p', s.shortcuts, 'textbook-help'));
     if (focus) {
       const target = revealed ? root.querySelector('.recall-ratings button') : root.querySelector('#recall-answer') ?? root.querySelector('.recall-task h4');
       target.tabIndex = target.tagName === 'H4' ? -1 : 0; target.focus();

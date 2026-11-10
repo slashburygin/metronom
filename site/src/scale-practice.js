@@ -1,3 +1,4 @@
+import { parseChord } from './chords.js';
 import { openChordReference } from './chord-reference-ui.js';
 import { createTaskHelp } from './practice-help.js';
 import { SCALE_TYPES, keysFor, scaleHarmony } from './harmony.js';
@@ -31,6 +32,24 @@ const COPY = {
     tempo: 'Set 60 BPM', tempoDone: 'Tempo set: 60 BPM', previous: 'Back', next: 'Next', done: 'Step mastered', finish: 'Repeat cycle', formula: 'Degree · chord · tones 1–3–5–7',
   },
 };
+
+const CHORD_NAMES = {
+  maj7: ['большой мажорный септаккорд', 'major seventh chord'],
+  m7: ['малый минорный септаккорд', 'minor seventh chord'],
+  '7': ['доминантсептаккорд', 'dominant seventh chord'],
+  m7b5: ['полууменьшённый септаккорд', 'half-diminished seventh chord'],
+  'm(maj7)': ['большой минорный септаккорд', 'minor major seventh chord'],
+  augmaj7: ['увеличенный септаккорд с большой септимой', 'augmented major seventh chord'],
+  dim7: ['уменьшённый септаккорд', 'diminished seventh chord'],
+};
+function chordName(symbol, lang) {
+  const { root, quality } = parseChord(symbol);
+  const tonic = lang === 'ru'
+    ? root.replace(/[A-G]/, letter => ({ C: 'до', D: 'ре', E: 'ми', F: 'фа', G: 'соль', A: 'ля', B: 'си' })[letter])
+      .replaceAll('♯', '-диез').replaceAll('♭', '-бемоль')
+    : root;
+  return `${tonic} — ${CHORD_NAMES[quality][lang === 'ru' ? 0 : 1]}`;
+}
 
 export function initScalePractice(getLang, onTempo, playback) {
   const root = document.getElementById('scale-practice');
@@ -114,7 +133,7 @@ export function initScalePractice(getLang, onTempo, playback) {
       harmony.chords.forEach((chord) => {
         const row = element('tr');
         const name = element('th');
-        const reference=element('button',`${chord.roman} · ${chord.symbol}`,'btn btn--ghost');reference.type='button';reference.addEventListener('click',()=>openChordReference(chord.symbol,getLang()));name.append(reference);
+        const reference=element('button',`${chord.roman} · ${chord.symbol}`,'btn btn--ghost');reference.type='button';reference.addEventListener('click',()=>openChordReference(chord.symbol,getLang()));name.append(reference, element('div', chordName(chord.symbol, getLang()), 'textbook-help'));
         name.scope = 'row';
         row.append(name, element('td', chord.notes.join(' – ')));
         body.append(row);
@@ -122,7 +141,16 @@ export function initScalePractice(getLang, onTempo, playback) {
       table.append(body);
       score.append(table);
     } else {
-      const reference=element('div','','song-toolbar');for(const chord of harmony.progression){const button=element('button',chord.symbol,'btn btn--secondary');button.type='button';button.addEventListener('click',()=>openChordReference(chord.symbol,getLang()));reference.append(button);}score.append(reference);
+      const reference = element('div', '', 'song-toolbar');
+      for (const chord of harmony.progression) {
+        const item = element('div');
+        const button = element('button', chord.symbol, 'btn btn--secondary');
+        button.type = 'button';
+        button.addEventListener('click', () => openChordReference(chord.symbol, getLang()));
+        item.append(button, element('div', chordName(chord.symbol, getLang()), 'textbook-help'));
+        reference.append(item);
+      }
+      score.append(reference);
       score.append(element('p', s.tones, 'field-label'));
       for (const line of harmony.guideTones) score.append(element('p', line.join(' → '), 'scale-notes'));
     }
