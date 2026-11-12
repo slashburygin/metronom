@@ -97,5 +97,16 @@ test('continuous systems preserve note order, beats, signatures and the final re
       assert.ok(!/NaN|undefined|Infinity/.test(fingerStaffSvg(row)));
     }
   }
-  assert.ok(fingerScoreSystems('C', 'up', 'quarter', 4, 1400).length < fingerScoreSystems('C', 'up', 'quarter', 4, 375).length);
+  assert.ok(fingerScoreSystems('C', 'up', 'quarter', 4, 1400).length < fingerScoreSystems('C', 'up', 'quarter', 4, 240).length);
+});
+
+test('systems fit three measures and use the available width without an empty measure', () => {
+  for (const key of MAJOR_KEYS) for (const level of ['quarter', 'eighths', 'sixteenths']) {
+    const rows = fingerScoreSystems(key, 'up', level, 4, 900);
+    assert.equal(rows[0].notes.length, rows[0].perBeat * 12);
+    for (const row of rows) {
+      assert.ok(row.notes.length <= row.perBeat * 12);
+      assert.ok(Math.abs(row.width - row.notes.at(-1).x - (row.finalRest ? 70 : 26)) < 0.001);
+    }
+  }
 });

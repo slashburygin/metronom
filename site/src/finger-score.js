@@ -69,14 +69,20 @@ export function fingerScoreSystems(key, direction, level, tonicOctave = 4, avail
   while (offset < notes.length) {
     const showTime = offset === 0;
     const start = 64 + template.keySignature.length * 10 + (showTime ? 28 : 8);
-    const xFor = index => start + index * 24 + Math.floor(((offset % perBar) + index) / perBar) * 10;
+    // Fit up to three measures instead of leaving the unused part of a
+    // measure empty. Keep a readable minimum spacing on narrow screens.
+    const targetCount = Math.min(perBar * 3, notes.length - offset);
+    const targetRest = offset + targetCount === notes.length && source.at(-1).finalRest;
+    const barGaps = Math.floor(((offset % perBar) + targetCount - 1) / perBar) * 10;
+    const spacing = Math.max(14, (width - start - barGaps - (targetRest ? 70 : 26)) / (targetCount - 1));
+    const xFor = index => start + index * spacing + Math.floor(((offset % perBar) + index) / perBar) * 10;
     let count = 0;
-    while (offset + count < notes.length && xFor(count + template.perBeat - 1) + 26 <= width) count += template.perBeat;
+    while (count < targetCount && xFor(count + template.perBeat - 1) + 26 <= width + 0.001) count += template.perBeat;
     count = Math.max(template.perBeat, count);
     if (count >= perBar && offset + count < notes.length) count -= (offset + count) % perBar;
     // Reserve the final half-note rest; move a whole beat to the next system
     // if it would otherwise collide with the closing barline.
-    if (offset + count === notes.length && source.at(-1).finalRest && count > template.perBeat && xFor(count - 1) + 70 > width) count -= template.perBeat;
+    if (offset + count === notes.length && source.at(-1).finalRest && count > template.perBeat && xFor(count - 1) + 70 > width + 0.001) count -= template.perBeat;
     const systemNotes = notes.slice(offset, offset + count).map((note, index) => ({ ...note, x: xFor(index) }));
     const last = offset + count === notes.length;
     const finalRest = last && source.at(-1).finalRest;
