@@ -101,6 +101,7 @@ export function initFingerPractice(getLang, configure) {
         previousWidth = width;
         rows.replaceChildren(...fingerScoreSystems(key, direction, level, octave, width, view === 'both').map(row => {
           const item = node('li'), staff = node('div', '', 'finger-staff');
+          staff.style.width = `${row.width}px`;
           staff.innerHTML = fingerStaffSvg(row);
           staff.querySelector('svg').setAttribute('aria-label', `${s.score} · ${row.notes.map(note => note.label).join(', ')}`);
           item.append(staff);

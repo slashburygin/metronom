@@ -64,6 +64,9 @@ export function fingerScoreSystems(key, direction, level, tonicOctave = 4, avail
   })));
   const width = Math.max(240, availableWidth);
   const perBar = template.perBeat * 4;
+  // Use the same note spacing on every system, including the short last one.
+  const firstStart = 92 + template.keySignature.length * 10;
+  const spacing = Math.max(14, (width - firstStart - 20 - 26) / (perBar * 3 - 1));
   const systems = [];
   let offset = 0;
   while (offset < notes.length) {
@@ -72,9 +75,6 @@ export function fingerScoreSystems(key, direction, level, tonicOctave = 4, avail
     // Fit up to three measures instead of leaving the unused part of a
     // measure empty. Keep a readable minimum spacing on narrow screens.
     const targetCount = Math.min(perBar * 3, notes.length - offset);
-    const targetRest = offset + targetCount === notes.length && source.at(-1).finalRest;
-    const barGaps = Math.floor(((offset % perBar) + targetCount - 1) / perBar) * 10;
-    const spacing = Math.max(14, (width - start - barGaps - (targetRest ? 70 : 26)) / (targetCount - 1));
     const xFor = index => start + index * spacing + Math.floor(((offset % perBar) + index) / perBar) * 10;
     let count = 0;
     while (count < targetCount && xFor(count + template.perBeat - 1) + 26 <= width + 0.001) count += template.perBeat;
@@ -90,7 +90,7 @@ export function fingerScoreSystems(key, direction, level, tonicOctave = 4, avail
     const labelY = Math.min(42, ...systemNotes.map(note => note.y - 16), ...stems.map(group => group.beamY - 12));
     const bottom = Math.max(136, ...systemNotes.map(note => note.y + 6), ...stems.map(group => group.beamY + 5));
     systems.push({ ...template, notes: systemNotes, showTime, last, finalRest, showNames, labelY,
-      width: Math.max(width, systemNotes.at(-1).x + (finalRest ? 70 : 26)),
+      width: systemNotes.at(-1).x + (finalRest ? 70 : 26),
       top: labelY - 16, bottom: bottom + (showNames ? 16 : 0), nameY: bottom + 10 });
     offset += count;
   }

@@ -107,6 +107,8 @@ test('systems fit three measures and use the available width without an empty me
     for (const row of rows) {
       assert.ok(row.notes.length <= row.perBeat * 12);
       assert.ok(Math.abs(row.width - row.notes.at(-1).x - (row.finalRest ? 70 : 26)) < 0.001);
+      assert.ok(Math.abs((row.notes[1].x - row.notes[0].x) - (rows[0].notes[1].x - rows[0].notes[0].x)) < 0.001);
     }
+    assert.ok(rows.at(-1).width < rows[0].width);
   }
 });
