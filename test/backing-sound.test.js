@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeSound, roomImpulse } from '../site/src/backing-sound.js';
+import { loadTrioSamples, selectSample, TRIO_SAMPLES } from '../site/src/backing-samples.js';
 import { BackingPlayer } from '../site/src/backing-player.js';
 import { arrangeSong } from '../site/src/song-arrangement.js';
 import { compileDraft, newDraft } from '../site/src/song-draft.js';
@@ -9,7 +10,7 @@ function context() {
   const nodes = [], sources = [];
   const param = () => ({ value: 0, events: [], setValueAtTime(value, time) { this.events.push([value,time]); },
     exponentialRampToValueAtTime(value, time) { this.events.push([value,time]); }, setTargetAtTime(value) { this.value = value; } });
-  const node = kind => { const n = { kind, connections: [], gain: param(), frequency: param(), Q: param(),
+  const node = kind => { const n = { kind, connections: [], gain: param(), frequency: param(), playbackRate: param(), Q: param(),
     connect(destination) { this.connections.push(destination); return destination; }, disconnect() { this.connections = []; this.disconnected = true; } }; nodes.push(n); return n; };
   const source = kind => { const n = { ...node(kind), start(time) { this.startTime = time; }, stop(time) { this.stopTime = time; }, addEventListener() {} }; sources.push(n); return n; };
   return { currentTime: 0, sampleRate: 44100, destination: node('destination'), nodes, sources, resume: async () => {},
@@ -18,7 +19,7 @@ function context() {
     createBuffer: (count, length) => { const data = Array.from({ length: count }, () => new Float32Array(length)); return { getChannelData: channel => data[channel] }; } };
 }
 const options = { tickerFactory: () => ({ start() {}, stop() {}, dispose() {} }), requestFrame: () => 1, cancelFrame() {} };
-const makePlayer = ctx => new BackingPlayer({ context: ctx, transportOptions: options });
+const makePlayer = ctx => new BackingPlayer({ sampleLoader: null, context: ctx, transportOptions: options });
 const note = (part = 'piano') => ({ kind: 'note', part, frequency: 220, duration: 0.3, velocity: 0.5 });
 
 test('saved sound settings reject unknown tones and normalize reverb without coercion', () => {
@@ -106,7 +107,7 @@ test('finite end, loop and seek clip effects before visual frames and do not reu
   assert.ok(beforeLoop.every(g => Number.isFinite(g.end)));
   assert.ok([...player.reverb.graphs].some(g => !beforeLoop.includes(g)));
   player.dispose(); assert.equal(player.reverb.graphs.size, 0);
-  const timed = new BackingPlayer({ context: ctx, transportOptions: { ...options, durationSeconds: () => 0.1 } });
+  const timed = new BackingPlayer({ sampleLoader: null, context: ctx, transportOptions: { ...options, durationSeconds: () => 0.1 } });
   await timed.start(compiled, { bpm: 120, repeats: 0, countIn: false, sound: { reverb: 1 } });
   assert.ok([...timed.reverb.graphs].every(g => Math.abs(g.end - (ctx.currentTime + 0.15)) < 1e-8));
   timed.dispose();
@@ -121,4 +122,54 @@ test('arranger emits exact effect boundaries for Break, N.C. and empty harmony',
   assert.deepEqual(silence.offset, { n: 1, d: 8 });
   assert.deepEqual(result.steps[1].events.find(e => e.kind === 'silence').parts, ['bass','piano']);
   assert.deepEqual(result.steps[4].events.find(e => e.kind === 'silence').parts, ['bass','piano']);
+});
+
+
+test('recordings select velocity layers, nearest pitch and alternate takes', () => {
+  const bank = TRIO_SAMPLES.map(sample => ({ ...sample, buffer: { name: sample.file, duration: 2 } }));
+  const sound = normalizeSound();
+  const soft = selectSample(bank, { part: 'piano', midi: 60, velocity: .3 }, sound);
+  assert.match(soft.buffer.name, /piano-57-soft/);
+  assert.equal(soft.rate, 2 ** (3 / 12));
+  assert.match(selectSample(bank, { part: 'piano', midi: 65, velocity: .6 }, sound).buffer.name, /medium/);
+  assert.notEqual(selectSample(bank, { part: 'bass', midi: 40 }, sound, 0).buffer,
+    selectSample(bank, { part: 'bass', midi: 40 }, sound, 1).buffer);
+  assert.equal(selectSample(bank, { part: 'piano', midi: 60 }, normalizeSound({ pianoTone: 'organ' })), null);
+});
+
+test('sample loading is shared per context and failed downloads can be retried', async t => {
+  let requests = 0, fail = true;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requests++;
+    return { ok: !fail, arrayBuffer: async () => new ArrayBuffer(4) };
+  });
+  const ctx = { decodeAudioData: async () => ({ duration: 2 }) };
+  await assert.rejects(loadTrioSamples(ctx), /Could not load instrument/);
+  fail = false;
+  const a = loadTrioSamples(ctx), b = loadTrioSamples(ctx);
+  assert.equal(a, b);
+  assert.equal((await a).length, TRIO_SAMPLES.length);
+  assert.equal(requests, TRIO_SAMPLES.length * 2);
+});
+
+test('cancel during sample preparation cannot start audio; recorded voices stop and disconnect', async () => {
+  let finish;
+  const ctx = context();
+  const bank = TRIO_SAMPLES.map(sample => ({ ...sample, buffer: { duration: 2 } }));
+  const player = new BackingPlayer({ context: ctx, transportOptions: options,
+    sampleLoader: () => new Promise(resolve => { finish = resolve; }) });
+  const compiled = arrangeSong(compileDraft(newDraft()).compiled.song);
+  const pending = player.start(compiled, { countIn: false });
+  assert.equal(player.transport.pending, true);
+  player.stop(); finish(bank); await pending;
+  assert.equal(player.transport.playing, false);
+  assert.equal(ctx.sources.length, 0);
+  player.voice({ ...note(), midi: 60 }, .05);
+  player.voice({ ...note('bass'), midi: 40 }, .05);
+  player.voice({ part: 'drums', sound: 'hat', duration: .1, velocity: .3 }, .05);
+  assert.equal(ctx.sources.length, 3);
+  assert.ok(ctx.sources.every(source => source.kind === 'bufferSource' && bank.some(sample => sample.buffer === source.buffer)));
+  player.stop();
+  assert.ok(ctx.sources.every(source => source.disconnected && source.stopTime === 0));
+  player.dispose();
 });

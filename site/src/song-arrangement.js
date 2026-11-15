@@ -42,7 +42,7 @@ export function arrangeSong(song, { style = 'swing', seed = 1, arrangement } = {
       if (compare(from, to) >= 0) return [];
       return [{ from: subtract(from, start), to: subtract(to, start), chord: parseChord(chord.symbol), source: chord, chordIndex }];
     });
-    const offbeat = multiply(step.duration, style === 'swing' ? f(2, 3) : f(1, 2));
+    const offbeat = multiply(step.duration, ['swing', 'jazzTrio'].includes(style) ? f(2, 3) : f(1, 2));
     const silence = (from, to, all = false) => events.push({ kind: 'silence', parts: all ? ['bass', 'piano', 'drums'] : ['bass', 'piano'], offset: from, duration: subtract(to, from) });
     let covered = ZERO;
     for (const segment of segments) {
@@ -62,7 +62,7 @@ export function arrangeSong(song, { style = 'swing', seed = 1, arrangement } = {
       const ending = bar === measures.length - 1 && finalPulse;
       const target = compare(add(source.offset, source.duration), end) === 0 ? following(bar, chordIndex) : null;
       const bass = bassNote(chord, onset || ending ? 0 : step.beatIndex, previousBass,
-        { walking: style === 'swing', target: !onset && !ending ? target : null });
+        { walking: ['swing', 'jazzTrio'].includes(style), target: !onset && !ending ? target : null });
       if (groove) {
         const endingHit = ornaments.fills && ending;
         const emitNotes = (part, pattern, midis, strength) => {
@@ -76,13 +76,14 @@ export function arrangeSong(song, { style = 'swing', seed = 1, arrangement } = {
             const duration = multiply(subtract(limit, hit.offset), endingHit ? f(1,2) : groove.gate);
             for (const midi of midis) events.push({ kind: 'note', part, midi, offset: hit.offset, duration,
               velocity: velocity(strength * hit.velocity),
+              ...(part === 'bass' && bass.approach ? { approach: true } : {}),
               ...(part === 'piano' && voicingColors.includes(midi % 12) ? { color: true } : {}),
               ...(endingHit ? { ending: true } : {}) });
           });
           return positions.length > 0;
         };
         if (emitNotes('bass', groove.bass, [bass.midi], .7)) previousBass = bass.midi;
-        emitNotes('piano', groove.piano, voicing, style === 'bolero' ? .34 : .43);
+        emitNotes('piano', groove.piano, voicing, style === 'jazzTrio' ? .33 : style === 'bolero' ? .34 : .43);
       } else {
       // Ballads leave space on alternate pulses; changes always get a new bass.
       if (style !== 'ballad' || step.beatIndex % 2 === 0 || onset || ending) {

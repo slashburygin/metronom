@@ -3,13 +3,15 @@ import { Transport } from './transport.js';
 import { midiFrequency, PARTS } from './accompaniment.js';
 import { trainingState, trainingArrangement } from './training.js';
 import { normalizeSound, voiceProfile } from './backing-sound.js';
+import { loadTrioSamples, selectSample } from './backing-samples.js';
 import { BackingReverb } from './backing-reverb.js';
 
-// Small procedural voices for practice. Every source has an explicit lifetime;
-// no samples, network requests or third-party sound assets are needed.
+// Recorded acoustic voices and procedural electric tones share transport ownership.
 export class BackingPlayer {
-  constructor({ context, onStep, onStop, transportOptions = {} }) {
+  constructor({ context, onStep, onStop, transportOptions = {}, sampleLoader = loadTrioSamples }) {
     this.context = context;
+    this.sampleLoader = sampleLoader;
+    this.sampleVariation = {};
     this.onStep = onStep;
     this.onStop = onStop;
     this.sound = normalizeSound();
@@ -50,6 +52,7 @@ export class BackingPlayer {
     if (!Number.isInteger(repeats) || repeats < 0 || repeats > 32) throw new RangeError('Invalid repeat count');
     this.stop();
     this.sound = normalizeSound(sound);
+    this.sampleVariation = {};
     const length = compiled.steps.length;
     const cache = new Map();
     const arrangement = state => {
@@ -69,7 +72,11 @@ export class BackingPlayer {
     const first = this.transport.nextStep(0);
     const firstBar = arrangement(first.training).steps;
     const boundary = firstBar.findIndex((step, index) => index > 0 && step.beatIndex === 0);
-    await this.transport.start({ index: 0, countIn: countIn ? firstBar.slice(0, boundary < 0 ? firstBar.length : boundary) : [] });
+    await this.transport.start({ index: 0, prepare: () => this.prepareSamples(), countIn: countIn ? firstBar.slice(0, boundary < 0 ? firstBar.length : boundary) : [] });
+  }
+
+  async prepareSamples() {
+    if (this.sampleLoader) this.samples = await this.sampleLoader(this.context);
   }
 
   stop() { this.transport.stop(); }
@@ -86,6 +93,14 @@ export class BackingPlayer {
   }
 
   voice(event, time) {
+    const key = event.part === 'drums' ? event.sound : event.part;
+    const variation = this.sampleVariation[key] ?? 0;
+    const sample = selectSample(this.samples, event, this.sound, variation);
+    if (sample) {
+      this.sampleVariation[key] = variation + 1;
+      this.sampleVoice(event, sample, time);
+      return;
+    }
     const ctx = this.context;
     const duration = Math.max(0.0001, event.duration);
     const profile = voiceProfile(event.part, this.sound);
@@ -121,7 +136,16 @@ export class BackingPlayer {
         source.type = profile.wave;
         source.frequency.setValueAtTime((event.frequency ?? 140) * ratio, time);
         if (event.sound === 'kick') source.frequency.exponentialRampToValueAtTime(45, time + duration);
-        partial.gain.value = level;
+        // Hammer/pluck harmonics fade faster than the fundamental. Loud notes
+        // open the spectrum; organ and electric timbres keep their own profiles.
+        const acoustic = (event.part === 'piano' && this.sound.pianoTone === 'piano')
+          || (event.part === 'bass' && this.sound.bassTone === 'acoustic');
+        if (acoustic && ratio > 1) {
+          const brightness = .45 + Math.min(1, event.velocity) * .55;
+          partial.gain.setValueAtTime(level * brightness, time);
+          partial.gain.exponentialRampToValueAtTime(Math.max(.0001, level * .06),
+            time + duration / Math.sqrt(ratio));
+        } else partial.gain.value = level;
         source.connect(partial).connect(destination);
         nodes.push(partial); sources.push(source);
       }
@@ -134,6 +158,23 @@ export class BackingPlayer {
         if (--remaining === 0) nodes.forEach(node => node.disconnect());
       }, time + duration);
     }
+  }
+
+  sampleVoice(event, sample, time) {
+    const source = this.context.createBufferSource();
+    source.buffer = sample.buffer;
+    source.playbackRate.setValueAtTime(sample.rate, time);
+    const duration = Math.max(.0001, Math.min(event.duration, sample.buffer.duration / sample.rate));
+    const gain = this.context.createGain();
+    const peak = Math.max(.0001, event.velocity * (event.part === 'piano' ? .55 : event.part === 'bass' ? .8 : .5));
+    gain.gain.setValueAtTime(.0001, time);
+    gain.gain.exponentialRampToValueAtTime(peak, time + Math.min(.003, duration * .1));
+    gain.gain.setValueAtTime(peak, time + duration * .8);
+    gain.gain.exponentialRampToValueAtTime(.0001, time + duration);
+    source.connect(gain).connect(this.channels[event.part]);
+    this.reverb.connect(event.part, gain, time, this.sound.reverb, Math.min(this.transport.until, this.transport.endTime));
+    source.start(time);
+    this.transport.track(source, () => { source.disconnect(); gain.disconnect(); }, time + duration);
   }
 
   dispose() {

@@ -12,11 +12,11 @@ import { createTrainingControls, readTraining, trainingLabel } from './training-
 const COPY = {
   ru: { title: 'Аккомпанемент', form: 'Упражнение', forms: ['ii–V–I · 4 такта', 'Мажорный блюз · 12 тактов', 'Минорный блюз · 12 тактов'],
     style: 'Ритм', repeats: 'Круги', forever: 'До остановки', countIn: 'Отсчёт · 1 такт', play: 'Играть аккомпанемент', stop: 'Остановить аккомпанемент', cancel: 'Отменить запуск',
-    parts: ['Бас', 'Клавиши', 'Ударные'], mute: 'Отключить', volume: 'Громкость', ready: 'Выберите темп и начните играть.', counting: 'Отсчёт', pass: 'Круг', bar: 'Такт', beat: 'Доля', error: 'Не удалось включить звук. Попробуйте запустить ещё раз.',
+    parts: ['Бас', 'Клавиши', 'Ударные'], mute: 'Отключить', volume: 'Громкость', loading: 'Подготовка инструментов…', ready: 'Выберите темп и начните играть.', counting: 'Отсчёт', pass: 'Круг', bar: 'Такт', beat: 'Доля', error: 'Не удалось включить звук. Попробуйте запустить ещё раз.',
     help: 'Аккорды звучат в выбранной тональности, сетка показывает партию выбранного инструмента. Мажорный блюз: I7–IV7–V7; минорный: i7–iv7–V7.' },
   en: { title: 'Backing band', form: 'Exercise', forms: ['ii–V–I · 4 bars', 'Major blues · 12 bars', 'Minor blues · 12 bars'],
     style: 'Feel', repeats: 'Choruses', forever: 'Until stopped', countIn: 'Count-in · 1 bar', play: 'Play backing band', stop: 'Stop backing band', cancel: 'Cancel start',
-    parts: ['Bass', 'Keys', 'Drums'], mute: 'Mute', volume: 'Volume', ready: 'Choose a tempo and start playing.', counting: 'Count-in', pass: 'Chorus', bar: 'Bar', beat: 'Beat', error: 'Could not start audio. Try starting again.',
+    parts: ['Bass', 'Keys', 'Drums'], mute: 'Mute', volume: 'Volume', loading: 'Preparing instruments…', ready: 'Choose a tempo and start playing.', counting: 'Count-in', pass: 'Chorus', bar: 'Bar', beat: 'Beat', error: 'Could not start audio. Try starting again.',
     help: 'Chords sound in the selected key; the chart shows the selected instrument’s part. Major blues: I7–IV7–V7; minor blues: i7–iv7–V7.' },
 };
 const FORMS = ['cadence', 'majorBlues', 'minorBlues'];
@@ -28,16 +28,16 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
   try { training = readTraining(localStorage, 'metronome-backing-training'); } catch {}
   const element = document.createElement('section');
   element.className = 'backing-player';
-  let harmony, compiled, engine, lastPosition, failed = false, run = 0;
-  const settings = { form: 'cadence', style: 'swing', seed: 1, repeats: 4, countIn: true, sound: normalizeSound(), arrangement: normalizeArrangement(),
+  let harmony, compiled, engine, lastPosition, failed = false, run = 0, advancedOpen = false;
+  const settings = { form: 'cadence', style: 'jazzTrio', seed: 1, repeats: 4, countIn: true, sound: normalizeSound({ reverb: .18 }), arrangement: normalizeArrangement({ colors: true, fills: true }),
     mix: Object.fromEntries(PARTS.map(part => [part, { volume: part === 'drums' ? 0.55 : 0.75, muted: false }])) };
   try {
     const saved = JSON.parse(localStorage.getItem('metronome-backing'));
     if (FORMS.includes(saved?.form)) settings.form = saved.form;
     if (STYLES.includes(saved?.style)) settings.style = saved.style;
     settings.seed = normalizeSeed(saved?.seed);
-    settings.sound = normalizeSound(saved?.sound);
-    settings.arrangement = normalizeArrangement(saved?.arrangement);
+    if (saved?.sound) settings.sound = normalizeSound(saved.sound);
+    if (saved?.arrangement) settings.arrangement = normalizeArrangement(saved.arrangement);
     if (REPEATS.includes(saved?.repeats)) settings.repeats = saved.repeats;
     if (typeof saved?.countIn === 'boolean') settings.countIn = saved.countIn;
     for (const part of PARTS) {
@@ -60,7 +60,7 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
     const s = COPY[getLang()];
     play.textContent = engine?.transport.pending ? s.cancel : engine?.transport.playing ? s.stop : s.play;
     play.setAttribute('aria-pressed', String(busy()));
-    status.textContent = failed ? s.error : !lastPosition ? s.ready : lastPosition.countIn
+    status.textContent = failed ? s.error : engine?.transport.pending ? s.loading : !lastPosition ? s.ready : lastPosition.countIn
       ? `${s.counting} · ${lastPosition.step.beatIndex + 1} / 4`
       : `${s.pass} ${lastPosition.step.pass}${settings.repeats ? ` / ${settings.repeats}` : ''} · ${s.bar} ${lastPosition.step.barIndex + 1} / ${compiled.symbols.length} · ${s.beat} ${lastPosition.step.beatIndex + 1} / 4`;
     const state = lastPosition?.step.training ?? trainingState(compiled.song.key, 1, getBpm(), training);
@@ -91,7 +91,23 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
     element.replaceChildren();
     element.setAttribute('aria-label', s.title);
     element.append(node('h3', s.title));
-    const controls = node('div', '', 'backing-controls');
+    const trio = node('button', getLang() === 'ru' ? 'Мягкое джазовое трио' : 'Soft jazz trio', 'btn');
+    trio.type = 'button'; trio.id = 'backing-trio';
+    trio.addEventListener('click', () => {
+      stop();
+      settings.style = 'jazzTrio';
+      settings.sound = normalizeSound({ pianoTone: 'piano', bassTone: 'acoustic', reverb: .18 });
+      settings.arrangement = normalizeArrangement({ colors: true, fills: true });
+      settings.mix = Object.fromEntries(PARTS.map(part => [part, { volume: part === 'drums' ? .45 : .75, muted: false }]));
+      save(); render(); element.querySelector('#backing-trio').focus();
+    });
+
+    const controls = node('div', '', 'backing-controls backing-controls--compact');
+    const advanced = node('details', '', 'backing-advanced');
+    advanced.open = advancedOpen;
+    advanced.addEventListener('toggle', () => { advancedOpen = advanced.open; });
+    advanced.append(node('summary', getLang() === 'ru' ? 'Дополнительные настройки' : 'More settings'));
+    const advancedControls = node('div', '', 'backing-controls');
     function selectField(label, id, values, labels, value, change) {
       const wrapper = node('label', label);
       const select = node('select'); select.id = id;
@@ -99,11 +115,11 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
         const el = node('option', labels[i]); el.value = option; el.selected = value === option; select.append(el);
       });
       select.addEventListener('change', () => { stop(); change(select.value); save(); render(); element.querySelector(`#${id}`).focus(); });
-      wrapper.append(select); controls.append(wrapper);
+      wrapper.append(select); (id === 'backing-repeats' ? advancedControls : controls).append(wrapper);
     }
     selectField(s.form, 'backing-form', FORMS, [harmony.progressionLabel + ' · ' + (getLang() === 'ru' ? '4 такта' : '4 bars'), ...s.forms.slice(1)], settings.form, value => { settings.form = value; });
     selectField(s.style, 'backing-style', STYLES, STYLE_NAMES[getLang()], settings.style, value => { settings.style = value; });
-    controls.append(seedControl({ prefix: 'backing', lang: getLang(), seed: settings.seed, onChange(value) { stop(); settings.seed = value; save(); render(); element.querySelector('#backing-seed').focus(); } }));
+    advancedControls.append(seedControl({ prefix: 'backing', lang: getLang(), seed: settings.seed, onChange(value) { stop(); settings.seed = value; save(); render(); element.querySelector('#backing-seed').focus(); } }));
     const bpmLabel = node('label', 'BPM');
     bpmInput = node('input'); bpmInput.type = 'number'; bpmInput.id = 'backing-bpm'; bpmInput.min = 30; bpmInput.max = 300; bpmInput.step = 1; bpmInput.value = getBpm();
     bpmInput.addEventListener('change', () => { const bpm = clampBpm(bpmInput.value); bpmInput.value = bpm; engine?.transport.setBpm(bpm); onTempo(bpm); });
@@ -163,7 +179,8 @@ export function createPracticePlayer({ getLang, getContext, getBpm, onTempo }) {
       onChange(value, name) { stop(); settings.arrangement = value; save(); render(); element.querySelector(`#backing-${name}`).focus(); },
     });
     keyStatus = node('p', '', 'backing-key-status'); keyStatus.id = 'backing-key-status'; keyStatus.setAttribute('role', 'status');
-    element.append(controls, countLabel, trainingControls, keyStatus, grid, play, status, mixer, soundControls, arrangementControls, node('p', s.help, 'textbook-help'));
+    advanced.append(trio, advancedControls, countLabel, trainingControls, mixer, soundControls, arrangementControls, node('p', s.help, 'textbook-help'));
+    element.append(controls, keyStatus, grid, play, status, advanced);
     update();
   }
 

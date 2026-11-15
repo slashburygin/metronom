@@ -1,0 +1,288 @@
+[
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn1_rr1_010.wav",
+    "file": "piano-41-soft.wav",
+    "part": "piano",
+    "midi": 41,
+    "layer": "soft",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn1_rr1_010.wav",
+    "sha256": "5d3872121767addd7ac844c51425f966a66314a929ae6e416e18fc6f9f6e98d9"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn1_rr1_014.wav",
+    "file": "piano-49-soft.wav",
+    "part": "piano",
+    "midi": 49,
+    "layer": "soft",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn1_rr1_014.wav",
+    "sha256": "1626f2baa4942ea1b08720a1d13dd4ef3dba9a14746bd2ac4ae229e9ad2e645c"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn1_rr1_018.wav",
+    "file": "piano-57-soft.wav",
+    "part": "piano",
+    "midi": 57,
+    "layer": "soft",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn1_rr1_018.wav",
+    "sha256": "936ef2d899e6df3b605c7efb3cde6f187a42d42ab9538309291615340666c288"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn1_rr1_022.wav",
+    "file": "piano-65-soft.wav",
+    "part": "piano",
+    "midi": 65,
+    "layer": "soft",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn1_rr1_022.wav",
+    "sha256": "0237bb5d09ea8fa4bf4a12c26049f2befa7b547cc3dde2805631bd6451c31434"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn1_rr1_026.wav",
+    "file": "piano-73-soft.wav",
+    "part": "piano",
+    "midi": 73,
+    "layer": "soft",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn1_rr1_026.wav",
+    "sha256": "1c5d8849cfc6e94ed10c18201262da6ae7657bdc6388d9bc55373bd9752a853b"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn1_rr1_030.wav",
+    "file": "piano-81-soft.wav",
+    "part": "piano",
+    "midi": 81,
+    "layer": "soft",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn1_rr1_030.wav",
+    "sha256": "51b123cac87db5bd1b06ffc69878641d72f942214405431b29713bc4ad1d98fb"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn2_rr1_010.wav",
+    "file": "piano-41-medium.wav",
+    "part": "piano",
+    "midi": 41,
+    "layer": "medium",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn2_rr1_010.wav",
+    "sha256": "97454908cefd69659461ced350991f47a713af744c427410a1df3788f8546448"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn2_rr1_014.wav",
+    "file": "piano-49-medium.wav",
+    "part": "piano",
+    "midi": 49,
+    "layer": "medium",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn2_rr1_014.wav",
+    "sha256": "1c08c443fc4d31b4e305f0d28b5a457530153d0333a3b534bd121cb053b53bb7"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn2_rr1_018.wav",
+    "file": "piano-57-medium.wav",
+    "part": "piano",
+    "midi": 57,
+    "layer": "medium",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn2_rr1_018.wav",
+    "sha256": "7404e5a795ad0c5eec36e48af0bfc3261605672989440688fbc0b06f661ef20e"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn2_rr1_022.wav",
+    "file": "piano-65-medium.wav",
+    "part": "piano",
+    "midi": 65,
+    "layer": "medium",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn2_rr1_022.wav",
+    "sha256": "305d6bc15d6755607677f2713afb299cfb5e54566d5bd462297047abfbf9969d"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn2_rr1_026.wav",
+    "file": "piano-73-medium.wav",
+    "part": "piano",
+    "midi": 73,
+    "layer": "medium",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn2_rr1_026.wav",
+    "sha256": "e2abf92e1d227071baf1c2f3d58a9b3d416508830aeada30c2a951386c88d7a7"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Keys/Upright Piano/Player_dyn2_rr1_030.wav",
+    "file": "piano-81-medium.wav",
+    "part": "piano",
+    "midi": 81,
+    "layer": "medium",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn2_rr1_030.wav",
+    "sha256": "8003357bdfcbef315743eb2aab6504edbe7d3877d4a77eadfba417da8e5befa3"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_C1_v1_rr1.wav",
+    "file": "bass-36-1.wav",
+    "part": "bass",
+    "midi": 36,
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_C1_v1_rr1.wav",
+    "sha256": "ff76fb5e0564d6a4f5cc46acfa17425730fc64f20c81ec83570c3c8da8263e9f"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_C1_v1_rr2.wav",
+    "file": "bass-36-2.wav",
+    "part": "bass",
+    "midi": 36,
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_C1_v1_rr2.wav",
+    "sha256": "10511c13f1177e7f4189a563724c83da674c9b89c4e2735ba094b2f0a08b9d24"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_E1_v1_rr1.wav",
+    "file": "bass-40-1.wav",
+    "part": "bass",
+    "midi": 40,
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_E1_v1_rr1.wav",
+    "sha256": "8247460cf1aff2ff03dc19e768fa66ecbdad0490f35b30227b20e826e30de230"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_E1_v1_rr2.wav",
+    "file": "bass-40-2.wav",
+    "part": "bass",
+    "midi": 40,
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_E1_v1_rr2.wav",
+    "sha256": "2e316de4c30d0d61d9eabd0676abff05a10e409b4e02413d8882d020abe7ebd2"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_G#1_v1_rr1.wav",
+    "file": "bass-44-1.wav",
+    "part": "bass",
+    "midi": 44,
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_G%231_v1_rr1.wav",
+    "sha256": "279b8f6afa418af8970ac952231b94aea20ddfadf9a84deb4d9ae92bc0bdba52"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_G#1_v1_rr2.wav",
+    "file": "bass-44-2.wav",
+    "part": "bass",
+    "midi": 44,
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_G%231_v1_rr2.wav",
+    "sha256": "24fea03853ebece0b0b8e3400d7a53e71b7884f2d6fd45f331a8852b282a0f86"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_C#2_v1_rr1.wav",
+    "file": "bass-49-1.wav",
+    "part": "bass",
+    "midi": 49,
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_C%232_v1_rr1.wav",
+    "sha256": "35f1baccdac6b01257d36308e13f0fbbe46442bde473b902b0a2db7c70ed2bb5"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_C#2_v1_rr2.wav",
+    "file": "bass-49-2.wav",
+    "part": "bass",
+    "midi": 49,
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_C%232_v1_rr2.wav",
+    "sha256": "cb849f6e359e1cdee0e2858c3f7953c731943dd2c2657c7a552a1fbb60a701d2"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_E2_v1_rr1.wav",
+    "file": "bass-52-1.wav",
+    "part": "bass",
+    "midi": 52,
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_E2_v1_rr1.wav",
+    "sha256": "44b24c67c9ed1b88195ee8849449275b032fb78c9fd310c50113244baa140a24"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_E2_v1_rr2.wav",
+    "file": "bass-52-2.wav",
+    "part": "bass",
+    "midi": 52,
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_E2_v1_rr2.wav",
+    "sha256": "7557ec4310d11e09260b892c4312b3ea2f7961dd4ccb29944797b81809577084"
+  },
+  {
+    "repo": "VCSL",
+    "path": "Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitC_v2_rr1_Mid.wav",
+    "file": "hat-1.wav",
+    "part": "hat",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Hi-Hat%20Cymbal/HiHat_HitC_v2_rr1_Mid.wav",
+    "sha256": "d852620e59f6b543f18708d88bfe0cb305e3a8b5e2778dbfb66f17384376555b"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Percussion/Snare2-HitSN_v3_rr1_Sum.wav",
+    "file": "snare-1.wav",
+    "part": "snare",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Percussion/Snare2-HitSN_v3_rr1_Sum.wav",
+    "sha256": "e115817b151149835aa34f9e1a64cb1b1c67a357768e7fc69f1fc8101354a42f"
+  },
+  {
+    "repo": "VCSL",
+    "path": "Membranophones/Struck Membranophones/Bass Drum 1/BDrumNew_hit_v2_rr1_Sum.wav",
+    "file": "kick-1.wav",
+    "part": "kick",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Bass%20Drum%201/BDrumNew_hit_v2_rr1_Sum.wav",
+    "sha256": "a63359f18a7db80a192a2851e58b8c5d24707da8ba4c746f0b3faec5ccf9bd54"
+  },
+  {
+    "repo": "VCSL",
+    "path": "Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitC_v2_rr2_Mid.wav",
+    "file": "hat-2.wav",
+    "part": "hat",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Hi-Hat%20Cymbal/HiHat_HitC_v2_rr2_Mid.wav",
+    "sha256": "fc6f1c1e13397fb7232507fb151693dd35ae2bd9e5d694218c3408f25d93da50"
+  },
+  {
+    "repo": "VSCO-2-CE",
+    "path": "Percussion/Snare2-HitSN_v3_rr2_Sum.wav",
+    "file": "snare-2.wav",
+    "part": "snare",
+    "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Percussion/Snare2-HitSN_v3_rr2_Sum.wav",
+    "sha256": "097ce48244bf95b431ea92be9db00fb49428e5aaeac00026d634c370db3ea318"
+  },
+  {
+    "repo": "VCSL",
+    "path": "Membranophones/Struck Membranophones/Bass Drum 1/BDrumNew_hit_v2_rr2_Sum.wav",
+    "file": "kick-2.wav",
+    "part": "kick",
+    "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Bass%20Drum%201/BDrumNew_hit_v2_rr2_Sum.wav",
+    "sha256": "6d6ad19dbbaa402617e4177a676536c21cfe73f0b9671c9ed8a3438ca42ebfba"
+  }
+]

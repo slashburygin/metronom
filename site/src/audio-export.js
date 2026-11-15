@@ -8,6 +8,7 @@ export async function renderWav(performance, { signal } = {}) {
   const player=new BackingPlayer({context});player.sound=performance.sound;player.transport.endTime=performance.duration;
   for(const [part,mix] of Object.entries(performance.mix))player.channels[part].gain.setValueAtTime(mix.muted?0:mix.volume,0);
   try {
+    await player.prepareSamples();signal?.throwIfAborted();
     for(const item of performance.events)player.schedule(item.event,{time:item.at,duration:item.duration,countIn:item.countIn});
     player.transport.clipAudio(performance.duration);
     const buffer=await context.startRendering();signal?.throwIfAborted();
