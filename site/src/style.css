@@ -857,3 +857,8 @@ kbd {
 .pentatonic-pattern { display: flex; flex-wrap: wrap; gap: 8px 16px; line-height: 1.8; }
 .pentatonic-pattern > span { white-space: nowrap; }
 .pentatonic-material section { margin: 16px 0; }
+
+.chord-mode-plan { padding-left: 24px; }
+.chord-mode-plan > li { margin: 12px 0; padding-left: 4px; }
+.chord-mode-plan summary { cursor: pointer; line-height: 1.5; }
+.chord-mode-notes { line-height: 1.8; overflow-wrap: anywhere; }

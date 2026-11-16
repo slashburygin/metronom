@@ -1,3 +1,4 @@
+import { createChordModeMaterial } from './chord-mode-exercises.js';
 import { createPentatonicMaterial } from './pentatonic-exercises.js';
 import { parseChord } from './chords.js';
 import { openChordReference } from './chord-reference-ui.js';
@@ -58,15 +59,17 @@ export function initScalePractice(getLang, onTempo, playback) {
   let key = 'C';
   let type = 'major';
   let step = 0;
+  let modeDegree = 0;
   let mastered = {};
   try {
     const saved = JSON.parse(localStorage.getItem('metronome-scale-practice'));
+    if (Number.isInteger(saved?.modeDegree) && saved.modeDegree >= 0 && saved.modeDegree < 7) modeDegree = saved.modeDegree;
     if (SCALE_TYPES.includes(saved?.type)) type = saved.type;
     if (saved && keysFor(type).includes(saved.key)) key = saved.key;
     if (saved?.mastered && typeof saved.mastered === 'object') mastered = saved.mastered;
   } catch { /* Use defaults when storage is unavailable. */ }
   function save() {
-    try { localStorage.setItem('metronome-scale-practice', JSON.stringify({ key, type, mastered })); } catch {}
+    try { localStorage.setItem('metronome-scale-practice', JSON.stringify({ key, type, mastered, modeDegree })); } catch {}
   }
   function element(tag, text, className) {
     const node = document.createElement(tag);
@@ -123,6 +126,24 @@ export function initScalePractice(getLang, onTempo, playback) {
     });
     const heading = element('h3', `${stepNames[step]} · ${s.times[step]}`);
     const score = element('div', '', 'scale-material');
+    function appendChordModePlan() {
+      const modeLabel = element('label', getLang() === 'ru' ? 'Аккорд / лад от ступени гаммы' : 'Chord / mode from scale degree');
+      const modeSelect = element('select'); modeSelect.id = 'chord-mode-degree';
+      const modeNames = getLang() === 'ru'
+        ? ['Ионийский', 'Дорийский', 'Фригийский', 'Лидийский', 'Миксолидийский', 'Эолийский', 'Локрийский']
+        : ['Ionian', 'Dorian', 'Phrygian', 'Lydian', 'Mixolydian', 'Aeolian', 'Locrian'];
+      harmony.chords.forEach((chord, i) => {
+        const option = element('option', `${chord.roman} · ${chord.symbol}${type === 'major' ? ' · ' + modeNames[i] : ''}`);
+        option.value = i; option.selected = modeDegree === i; modeSelect.append(option);
+      });
+      modeSelect.addEventListener('change', () => { modeDegree = Number(modeSelect.value); save(); render(); root.querySelector('#chord-mode-degree').focus(); });
+      modeLabel.append(modeSelect);
+      const modeControls = element('div', '', 'scale-toolbar'); modeControls.append(modeLabel); score.append(modeControls);
+      const taskKey = id => `mode:${type}:${key}:${modeDegree}:task:${id}`;
+      const completed = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i + 1, mastered[taskKey(i + 1)]]));
+      score.append(createChordModeMaterial({ key, type, start: modeDegree, lang: getLang(), completed,
+        onComplete(id, value) { mastered[taskKey(id)] = value; save(); } }));
+    }
     if (step === 4) {
       score.append(createPentatonicMaterial(key, type, getLang()));
     } else if (step === 0) {
@@ -143,6 +164,8 @@ export function initScalePractice(getLang, onTempo, playback) {
       });
       table.append(body);
       score.append(table);
+      score.append(element('h4', getLang() === 'ru' ? 'План работы над аккордами и ладами · 12 упражнений' : 'Chords and modes · 12 exercises'));
+      appendChordModePlan();
     } else {
       const reference = element('div', '', 'song-toolbar');
       for (const chord of harmony.progression) {
@@ -165,7 +188,7 @@ export function initScalePractice(getLang, onTempo, playback) {
       : ['2 min: sing the five notes, then ascend and descend. Finish on the tonic.',
         '5 min: play groups of three, groups of four and skips. Repeat each pattern four times without stopping; speed up only when steady.',
         '3 min: invent a two-bar phrase using three notes, rest for two bars, then answer with another phrase. Use only the five pentatonic notes.'];
-    (step === 4 ? pentatonicTasks : s.tasks[step]).forEach((task, index) => {
+    (step === 1 ? [] : step === 4 ? pentatonicTasks : s.tasks[step]).forEach((task, index) => {
       const item = element('li', task.replaceAll('ii–V–I', harmony.progressionLabel));
       if (step !== 4) item.append(' ', ...createTaskHelp(harmony, step, index, getLang()));
       tasks.append(item);
@@ -197,13 +220,13 @@ export function initScalePractice(getLang, onTempo, playback) {
     if (step === 4 && type !== 'major') modeHelp.textContent = getLang() === 'ru'
       ? 'Здесь используется обычная минорная пентатоника 1–♭3–4–5–♭7: VII ступень не повышается даже при выбранном гармоническом или мелодическом миноре.'
       : 'This step uses standard minor pentatonic, 1–♭3–4–5–♭7: the seventh stays lowered even with harmonic or melodic minor selected.';
-    modeHelp.hidden = type === 'major';
+    modeHelp.hidden = type === 'major' || step === 1;
     root.append(toolbar, modeHelp, steps, heading, score);
     if (step === 2 || step === 3) {
       backing.setHarmony(harmony);
       root.append(backing.element);
     } else backing.stop();
-    const criterion = step === 4 ? (getLang() === 'ru' ? 'Готово, когда можете сыграть все рисунки ровно вверх и обратно, спеть пять нот и закончить свою фразу на тонике.' : 'Move on when you can play every pattern steadily in both directions, sing the five notes and resolve your phrase to the tonic.') : s.criterion;
+    const criterion = step === 1 ? (getLang() === 'ru' ? 'Переходите дальше, когда можете сыграть рисунки без остановок, назвать ступени и услышать возвращение к тонике лада.' : 'Move on when you can play the patterns without stopping, name the degrees and hear the return to the mode tonic.') : step === 4 ? (getLang() === 'ru' ? 'Готово, когда можете сыграть все рисунки ровно вверх и обратно, спеть пять нот и закончить свою фразу на тонике.' : 'Move on when you can play every pattern steadily in both directions, sing the five notes and resolve your phrase to the tonic.') : s.criterion;
     root.append(tasks, element('p', criterion, 'textbook-help'), checkLabel, navigation, element('p', s.help, 'textbook-help'));
   }
   return { render, stop: backing.stop, setBpm: backing.setBpm };
