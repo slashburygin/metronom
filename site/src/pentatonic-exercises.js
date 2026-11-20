@@ -21,8 +21,9 @@ export function pentatonicExercises(key = 'C', type = 'major') {
   return { major, notes, formula: major ? '1–2–3–5–6' : '1–♭3–4–5–♭7', patterns };
 }
 
-// Short scale-index cells checked against the lesson's public notation. Generate
-// five starts in the selected key; these are not the author's complete score.
+// Scale-index cells and phrase ranges checked against the lesson's four public
+// notation pages (alto part in D minor). Index 0 is the tonic, 5 its octave;
+// negative indices retain the lower register instead of shifting a phrase up.
 const LESSON_CELLS = [
   [46, [0,1,2,3,4,3,2,0]],
   [100, [0,1,2,3]],
@@ -35,30 +36,33 @@ const LESSON_CELLS = [
   [408, [0,-1,-2,0,-1,1,0,-2]],
   [468, [0,1,2]],
 ];
+// [first cell base, number of cells, base increment, cell direction, tail].
+// The last tail note is a quarter; preceding tail notes keep the pattern rhythm.
+const LESSON_PHRASES = [
+  [[0,5,1,1,[5]], [8,4,-1,-1,[4,3,2,1,0]]],
+  [[0,6,1,1,[6]], [8,7,-1,-1,[0]]],
+  [[-1,7,1,1,[8]], [9,8,-1,-1,[-1]]],
+  [[0,5,1,1,[5]], [8,6,-1,-1,[0]]],
+  [[0,4,2,1,[8]], [9,4,-2,-1,[1]]],
+  [[0,8,1,1,[8]], [9,9,-1,-1,[0]]],
+  [[0,5,1,1,[5]], [8,6,-1,-1,[2,0,1,-1,0]]],
+  [[0,8,1,1,[8]], [9,8,-1,-1,[]]],
+  [[8,8,-1,1,[0]], [0,7,1,-1,[7]]],
+  [[0,8,1,1,[8]], [9,8,-1,-1,[0]]],
+];
 
 export function betterSaxPentatonicExercises(key = 'C', type = 'major') {
   const { notes } = pentatonicExercises(key, type);
   const noteAt = index => ({ note: notes[((index % 5) + 5) % 5], octave: Math.floor(index / 5) });
   return LESSON_CELLS.map(([seconds, cell], index) => {
-    const descendingFirst = index === 8;
-    const rows = [1, -1].map(direction => {
-      const descending = descendingFirst ? direction === 1 : direction === -1;
-      // Keep each generated row in a nonnegative relative register.
-      const min = Math.min(...cell.map(offset => offset * direction));
-      const base = -min + (descending ? 4 : 0);
-      return {
-        direction: descending ? 'down' : 'up',
-        groups: Array.from({ length: 5 }, (_, start) => {
-          const shift = (descending ? -start : start) * (index === 4 ? 2 : 1);
-          return cell.map(offset => base + shift + offset * direction);
-        }),
-      };
+    const rows = LESSON_PHRASES[index].map(([base, count, stride, sign, tail]) => {
+      const groups = Array.from({ length: count }, (_, start) =>
+        cell.map(offset => noteAt(base + start * stride + offset * sign)));
+      if (tail.length) groups.push(tail.map((degree, i) => ({
+        ...noteAt(degree), ...(i === tail.length - 1 ? { quarter: true } : {}),
+      })));
+      return { direction: stride > 0 ? 'up' : 'down', groups };
     });
-    // The every-other-start Bergonzi cell spans farther than the other cells.
-    for (const row of rows) {
-      const min = Math.min(...row.groups.flat());
-      row.groups = row.groups.map(group => group.map(i => noteAt(i - Math.min(0, min))));
-    }
     return { id: `betterSax${index + 1}`, number: index + 1, seconds,
       url: `https://www.youtube.com/watch?v=27njCPeYtEg&t=${seconds}s`,
       notesPerBeat: index === 9 ? 3 : 2, rows };
@@ -94,8 +98,8 @@ export function createPentatonicMaterial(key, type, lang) {
   source.append(node('span', 'Jay Metcalf / Better Sax'),
     node('span', ' · '), link(ru ? 'Оригинальные ноты' : 'Original sheet music', 'https://bettersax.com/shed/?video=27njCPeYtEg'));
   root.append(source, node('p', ru
-    ? 'Учебные варианты коротких ячеек из урока: пять начальных позиций в выбранной концертной тональности, в обе стороны. В видео — фа минор (концерт). Выберите 2–3 рисунка на занятие, играйте медленно и чисто; чередуйте рисунки по дням.'
-    : 'Practice versions of the lesson’s short cells: five starting positions in the selected concert key, in both directions. The video uses concert F minor. Pick 2–3 patterns per session, play slowly and cleanly, and rotate your selection each day.', 'textbook-help'));
+    ? 'Рисунки из урока в выбранной концертной тональности: полный диапазон последовательностей и завершающие ноты, в обе стороны. В видео — фа минор (концерт). Выберите 2–3 рисунка на занятие, играйте медленно и чисто; чередуйте рисунки по дням.'
+    : 'Lesson patterns in the selected concert key: full sequence ranges and ending notes, in both directions. The video uses concert F minor. Pick 2–3 patterns per session, play slowly and cleanly, and rotate your selection each day.', 'textbook-help'));
   const names = ru
     ? ['Вверх и вниз со скачком', 'Четыре соседние ноты', 'Смещённое начало', 'Скачки и возвраты', 'Ячейка Бергонци', 'Три ноты и возврат', 'Вариант скачков', 'Тройки восьмыми', 'Сначала вниз', 'Тройки триолями']
     : ['Up and down with a skip', 'Four adjacent notes', 'Displaced start', 'Skips and returns', 'Bergonzi cell', 'Three notes and return', 'Skip variation', 'Threes as eighth notes', 'Descending first', 'Threes as triplets'];

@@ -244,11 +244,16 @@ The pentatonic step now includes ten generated cell exercises based on
 https://www.youtube.com/watch?v=27njCPeYtEg. Cells were checked against the four
 public notation images in the matching Better Sax article
 (https://bettersax.com/practice-pentatonics-like-this-everyday-for-killer-solos/).
-These are five-start transposable practice rows, not a reproduction of the
-complete score: phrase endings, rests and instrument-specific ranges remain in
-the linked original. Pattern 5 advances starts by two pentatonic notes; pattern 9
+Phrase ranges and ending notes follow the public alto notation (D minor),
+transposed by pentatonic scale index into the selected key. Each direction has
+its own start, repetition count and ending; negative indices preserve notes
+below the tonic. Terminal quarters render without eighth-note flags or tuplet
+numbers. Rests are omitted in the continuous, unmetered practice display. Pattern 5 advances starts by two pentatonic notes; pattern 9
 starts descending; pattern 8 uses straight eighths and pattern 10 triplets.
-Both ascending and descending rows preserve cell shape by interval reflection.
+Ascending and descending cells use interval reflection with source-specific
+ranges and tails. Source note counts by exercise (up/down, except no. 9 which
+starts down): 41/37, 25/29, 29/33, 41/49, 17/17, 33/37, 41/53, 25/24,
+65/57, 25/25. A regression fixture checks the entire second exercise in D minor.
 All study notes remain in the selected concert key, as in the existing scale step.
 
 Project reference: metronom `87174eb0588ead4fa034ea8deeb39531eb9635a8`,

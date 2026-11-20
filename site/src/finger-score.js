@@ -130,11 +130,11 @@ export function fingerStaffSvg(row) {
   }
   for (const { notes: group, up, beamY } of stemGroups(row.notes, row.perBeat)) {
     for (const note of group) parts.push(line(note.x+(up?4.6:-4.6),note.y,note.x+(up?4.6:-4.6),beamY,'staff-stem'));
-    if (row.triplets) {
+    if (row.triplets && !group[0].quarter) {
       parts.push(`<text class="staff-tuplet" x="${(group[0].x + group.at(-1).x) / 2}" y="${up ? beamY - 7 : beamY + 16}" text-anchor="middle" font-size="12">3</text>`);
     }
     // An incomplete last beat still needs a flag on its isolated eighth note.
-    if (group.length === 1 && row.beams > 0) {
+    if (group.length === 1 && row.beams > 0 && !group[0].quarter) {
       const x = group[0].x + (up ? 4.6 : -4.6);
       parts.push(`<path class="staff-flag" d="M${x} ${beamY} q12 ${up ? 8 : -8} 5 ${up ? 19 : -19}" fill="none" stroke="currentColor" stroke-width="2"/>`);
     }

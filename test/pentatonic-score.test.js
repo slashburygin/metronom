@@ -27,7 +27,7 @@ test('pentatonic staves retain every pitch and octave across all supported keys'
         const svg = fingerStaffSvg(system);
         assert.equal((svg.match(/class="staff-note"/g) || []).length, system.notes.length);
         assert.equal((svg.match(/class="staff-stem"/g) || []).length, system.notes.length);
-        assert.equal((svg.match(/class="staff-tuplet"/g) || []).length, perBeat === 3 ? system.notes.length / 3 : 0);
+        assert.equal((svg.match(/class="staff-tuplet"/g) || []).length, perBeat === 3 ? system.notes.filter(n => !n.quarter).length / 3 : 0);
         assert.ok(!svg.includes('NaN'));
         assert.ok(system.notes.every(n => n.y > system.top && n.y < system.bottom));
       }
@@ -35,11 +35,14 @@ test('pentatonic staves retain every pitch and octave across all supported keys'
   }
 });
 
-test('last isolated eighth has a flag, and triplets differ from straight eighths', () => {
+test('ending quarter has no flag or tuplet; isolated eighths still have flags', () => {
   const patterns = betterSaxPentatonicExercises('F', 'naturalMinor');
   const eighths = pentatonicScore(patterns[7].rows[0].groups, 'F', 'naturalMinor', 2);
   const triplets = pentatonicScore(patterns[9].rows[0].groups, 'F', 'naturalMinor', 3);
-  assert.match(fingerStaffSvg(eighths.at(-1)), /class="staff-flag"/);
+  assert.doesNotMatch(fingerStaffSvg(eighths.at(-1)), /class="staff-flag"/);
+  assert.equal(eighths[0].notes.at(-1).quarter, true);
+  const isolated = pentatonicScore([[{note: 'F', octave: 0}]], 'F', 'naturalMinor', 2);
+  assert.match(fingerStaffSvg(isolated[0]), /class="staff-flag"/);
   assert.doesNotMatch(fingerStaffSvg(eighths[0]), /staff-tuplet/);
   assert.match(fingerStaffSvg(triplets[0]), /class="staff-tuplet"/);
   assert.deepEqual(triplets[0].keySignature.map(a => a.symbol), ['♭','♭','♭','♭']);

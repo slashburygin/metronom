@@ -22,7 +22,7 @@ export function pentatonicScore(groups, key, type, perBeat = 1) {
   for (let offset = 0; offset < source.length; offset += capacity) {
     const notes = source.slice(offset, offset + capacity).map((n, i) => {
       const step = 28 + tonic + (LETTERS.indexOf(n.note[0]) - tonic + 7) % 7 + n.octave * 7;
-      return { label: `${n.note}${Math.floor(step / 7)}`, step,
+      return { label: `${n.note}${Math.floor(step / 7)}`, step, quarter: n.quarter === true,
         x: 72 + keySignature.length * 10 + i * 27, y: 100 - (step - 30) * 5,
         barAfter: offset + i === source.length - 1 };
     });
