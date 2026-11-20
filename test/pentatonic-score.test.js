@@ -14,7 +14,10 @@ test('pentatonic staves retain every pitch and octave across all supported keys'
     ];
     for (const {groups, perBeat} of exercises) {
       const systems = pentatonicScore(groups, key, type, perBeat);
-      assert.equal(systems.length, 1, 'one continuous staff per direction');
+      assert.equal(systems.length, Math.ceil(groups.flat().length / 24));
+      assert.ok(systems.every(s => s.notes.length <= 24));
+      assert.ok(systems.slice(0, -1).every(s => s.notes.length === 24 && !s.last));
+      assert.equal(systems.at(-1).last, true);
       const actual = systems.flatMap(s => s.notes);
       assert.equal(actual.length, groups.flat().length);
       groups.flat().forEach((n, i) => {
@@ -40,7 +43,7 @@ test('ending quarter has no flag or tuplet; isolated eighths still have flags', 
   const eighths = pentatonicScore(patterns[7].rows[0].groups, 'F', 'naturalMinor', 2);
   const triplets = pentatonicScore(patterns[9].rows[0].groups, 'F', 'naturalMinor', 3);
   assert.doesNotMatch(fingerStaffSvg(eighths.at(-1)), /class="staff-flag"/);
-  assert.equal(eighths[0].notes.at(-1).quarter, true);
+  assert.equal(eighths.at(-1).notes.at(-1).quarter, true);
   const isolated = pentatonicScore([[{note: 'F', octave: 0}]], 'F', 'naturalMinor', 2);
   assert.match(fingerStaffSvg(isolated[0]), /class="staff-flag"/);
   assert.doesNotMatch(fingerStaffSvg(eighths[0]), /staff-tuplet/);

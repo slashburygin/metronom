@@ -17,8 +17,8 @@ export function pentatonicScore(groups, key, type, perBeat = 1) {
   const tonic = LETTERS.indexOf(key[0]);
   const source = groups.flat();
   const rows = [];
-  // One continuous staff per exercise direction, with one clef and signature.
-  const capacity = source.length;
+  // At most 24 notes per staff; this keeps eighth-note and triplet beats intact.
+  const capacity = 24;
   for (let offset = 0; offset < source.length; offset += capacity) {
     const notes = source.slice(offset, offset + capacity).map((n, i) => {
       const step = 28 + tonic + (LETTERS.indexOf(n.note[0]) - tonic + 7) % 7 + n.octave * 7;
