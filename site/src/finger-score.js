@@ -13,7 +13,7 @@ const yFor = step => BOTTOM - (step - 30) * 5;
 const round = n => Math.round(n * 100) / 100;
 
 function stemGroups(notes, perBeat) {
-  return Array.from({ length: notes.length / perBeat }, (_, i) => {
+  return Array.from({ length: Math.ceil(notes.length / perBeat) }, (_, i) => {
     const group = notes.slice(i * perBeat, (i + 1) * perBeat);
     const up = group.reduce((sum, note) => sum + note.y, 0) / group.length >= 80;
     const beamY = up ? Math.min(...group.map(note => note.y)) - 32 : Math.max(...group.map(note => note.y)) + 32;
@@ -130,7 +130,15 @@ export function fingerStaffSvg(row) {
   }
   for (const { notes: group, up, beamY } of stemGroups(row.notes, row.perBeat)) {
     for (const note of group) parts.push(line(note.x+(up?4.6:-4.6),note.y,note.x+(up?4.6:-4.6),beamY,'staff-stem'));
-    for (let beam = 0; beam < row.beams; beam++) {
+    if (row.triplets && !group[0].quarter) {
+      parts.push(`<text class="staff-tuplet" x="${(group[0].x + group.at(-1).x) / 2}" y="${up ? beamY - 7 : beamY + 16}" text-anchor="middle" font-size="12">3</text>`);
+    }
+    // An incomplete last beat still needs a flag on its isolated eighth note.
+    if (group.length === 1 && row.beams > 0 && !group[0].quarter) {
+      const x = group[0].x + (up ? 4.6 : -4.6);
+      parts.push(`<path class="staff-flag" d="M${x} ${beamY} q12 ${up ? 8 : -8} 5 ${up ? 19 : -19}" fill="none" stroke="currentColor" stroke-width="2"/>`);
+    }
+    for (let beam = 0; beam < row.beams && group.length > 1; beam++) {
       const x = group[0].x+(up?4.6:-4.6);
       const y = beamY + (up ? beam*5 : -beam*5-3);
       parts.push(`<rect class="staff-beam" x="${x}" y="${y}" width="${group.at(-1).x-group[0].x}" height="3"/>`);

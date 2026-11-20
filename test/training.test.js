@@ -97,7 +97,7 @@ function context() {
 
 test('twelve-key ii–V–I uses correct tempo on each boundary despite lookahead peeks', async () => {
   const ctx=context(),heard=[],scheduled=[];
-  const player=new BackingPlayer({context:ctx,onStep:p=>heard.push(p),transportOptions:{tickerFactory:()=>({start(){},stop(){},dispose(){}}),requestFrame:()=>1,cancelFrame(){}}});
+  const player=new BackingPlayer({ sampleLoader: null,context:ctx,onStep:p=>heard.push(p),transportOptions:{tickerFactory:()=>({start(){},stop(){},dispose(){}}),requestFrame:()=>1,cancelFrame(){}}});
   player.schedule=(event,timing)=>{if(event.kind==='note')scheduled.push({event,timing});};
   const compiled=buildAccompaniment(scaleHarmony('C'));
   await player.start(compiled,{bpm:90,repeats:12,countIn:false,training:{keyStep:5,tempoIncrement:5,maxBpm:120,instrument:'Bb'}});

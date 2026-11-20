@@ -56,14 +56,14 @@ export class Transport {
     this.loop = { start, end };
   }
 
-  async start({ index = this.startIndex, countIn = [] } = {}) {
+  async start({ index = this.startIndex, countIn = [], prepare } = {}) {
     if (this.playing || this.pending) return;
     if (!Number.isInteger(index) || index < 0 || !this.nextStep(index)) throw new RangeError('Invalid start position');
     if (!Array.isArray(countIn)) throw new TypeError('Expected count-in pulses');
     const generation = ++this.generation;
     this.pending = true;
     try {
-      await this.context.resume();
+      await Promise.all([this.context.resume(), prepare?.()]);
       if (generation !== this.generation) return;
       this.pending = false;
       this.playing = true;

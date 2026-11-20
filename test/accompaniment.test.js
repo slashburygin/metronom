@@ -51,7 +51,7 @@ test('all styles stay inside pulses; only marked walking approaches leave chord 
         if (event.part && event.duration) assert.ok(compare(add(event.offset, event.duration), step.duration) <= 0);
         if (event.kind === 'note') {
           if (event.approach) {
-            assert.equal(style, 'swing'); assert.equal(event.part, 'bass'); assert.equal(step.beatIndex, 3);
+            assert.ok(['swing', 'jazzTrio'].includes(style)); assert.equal(event.part, 'bass'); assert.equal(step.beatIndex, 3);
             const next = chords[step.barIndex + 1]; assert.ok(next);
             const root = typeof next.notes[0] === 'number' ? next.notes[0] : pitchClass(next.notes[0]);
             assert.equal((event.midi + 1) % 12, root);
@@ -79,7 +79,7 @@ test('player count-in is click-only; finite repetitions stop all voices and live
   const context = audioContext();
   const heard = [];
   let finished = 0;
-  const player = new BackingPlayer({ context, onStep: t => heard.push(t), onStop: () => finished++,
+  const player = new BackingPlayer({ sampleLoader: null, context, onStep: t => heard.push(t), onStop: () => finished++,
     transportOptions: { tickerFactory: () => ({ start() {}, stop() {}, dispose() {} }), requestFrame: () => 1, cancelFrame() {} } });
   const compiled = buildAccompaniment(scaleHarmony('C'));
   await player.start(compiled, { bpm: 300, repeats: 2, countIn: true });
@@ -98,4 +98,19 @@ test('player count-in is click-only; finite repetitions stop all voices and live
   assert.equal(player.transport.sources.size, 0);
   assert.ok(context.sources.every(source => Number.isFinite(source.stopTime)));
   player.dispose();
+});
+
+test('jazz trio leaves solo space, varies comping by bar and keeps a walking pulse', () => {
+  const harmony = scaleHarmony('C');
+  const trio = buildAccompaniment(harmony, { style: 'jazzTrio', form: 'majorBlues', seed: 42 });
+  const swing = buildAccompaniment(harmony, { style: 'swing', form: 'majorBlues', seed: 42 });
+  const notes = result => result.steps.flatMap(step => step.events.filter(e => e.part === 'piano'));
+  assert.ok(notes(trio).length < notes(swing).length * .8);
+  assert.deepEqual(trio, buildAccompaniment(harmony, { style: 'jazzTrio', form: 'majorBlues', seed: 42 }));
+  assert.ok(trio.steps.every(step => step.events.some(e => e.part === 'bass')));
+  const pattern = bar => trio.steps.slice(bar * 4, bar * 4 + 4)
+    .map(step => step.events.filter(e => e.part === 'piano').map(e => e.offset));
+  assert.notDeepEqual(pattern(0), pattern(1));
+  assert.ok(trio.steps.some(step => step.events.some(e => e.approach)));
+  assert.ok(trio.steps.flatMap(step => step.events).filter(e => e.kind === 'drum').every(e => e.velocity < .3));
 });
