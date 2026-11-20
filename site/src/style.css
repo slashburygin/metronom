@@ -863,5 +863,5 @@ kbd {
 .chord-mode-plan summary { cursor: pointer; line-height: 1.5; }
 .chord-mode-notes { line-height: 1.8; overflow-wrap: anywhere; }
 
-.pentatonic-staves { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: start; }
+.pentatonic-staves { width: 100%; min-width: 0; }
 .pentatonic-staves .finger-staff svg { max-width: none; }

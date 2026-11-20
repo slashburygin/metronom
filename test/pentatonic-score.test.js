@@ -14,6 +14,7 @@ test('pentatonic staves retain every pitch and octave across all supported keys'
     ];
     for (const {groups, perBeat} of exercises) {
       const systems = pentatonicScore(groups, key, type, perBeat);
+      assert.equal(systems.length, 1, 'one continuous staff per direction');
       const actual = systems.flatMap(s => s.notes);
       assert.equal(actual.length, groups.flat().length);
       groups.flat().forEach((n, i) => {

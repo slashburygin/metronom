@@ -91,7 +91,7 @@ export function createPentatonicMaterial(key, type, lang) {
   const link = (text, href) => {
     const a = node('a', text); a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; return a;
   };
-  source.append(link('Jay Metcalf / Better Sax', 'https://www.youtube.com/watch?v=27njCPeYtEg'),
+  source.append(node('span', 'Jay Metcalf / Better Sax'),
     node('span', ' · '), link(ru ? 'Оригинальные ноты' : 'Original sheet music', 'https://bettersax.com/shed/?video=27njCPeYtEg'));
   root.append(source, node('p', ru
     ? 'Учебные варианты коротких ячеек из урока: пять начальных позиций в выбранной концертной тональности, в обе стороны. В видео — фа минор (концерт). Выберите 2–3 рисунка на занятие, играйте медленно и чисто; чередуйте рисунки по дням.'
@@ -101,9 +101,7 @@ export function createPentatonicMaterial(key, type, lang) {
     : ['Up and down with a skip', 'Four adjacent notes', 'Displaced start', 'Skips and returns', 'Bergonzi cell', 'Three notes and return', 'Skip variation', 'Threes as eighth notes', 'Descending first', 'Threes as triplets'];
   betterSaxPentatonicExercises(key, type).forEach(pattern => {
     const section = node('section'); section.dataset.pattern = pattern.id;
-    const time = `${Math.floor(pattern.seconds / 60)}:${String(pattern.seconds % 60).padStart(2, '0')}`;
     section.append(node('h4', `${pattern.number}. ${names[pattern.number - 1]}`),
-      link(`${ru ? 'Видео' : 'Video'} · ${time}`, pattern.url),
       node('p', pattern.notesPerBeat === 3
         ? (ru ? 'Три ноты на щелчок — триоли.' : 'Three notes per click — triplets.')
         : (ru ? 'Две ноты на щелчок — ровные восьмые.' : 'Two notes per click — straight eighth notes.'), 'textbook-help'));

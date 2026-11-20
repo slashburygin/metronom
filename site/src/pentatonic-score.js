@@ -17,8 +17,8 @@ export function pentatonicScore(groups, key, type, perBeat = 1) {
   const tonic = LETTERS.indexOf(key[0]);
   const source = groups.flat();
   const rows = [];
-  // Four beats per system for eighths/triplets, eight notes for basic quarters.
-  const capacity = perBeat === 1 ? 8 : perBeat * 4;
+  // One continuous staff per exercise direction, with one clef and signature.
+  const capacity = source.length;
   for (let offset = 0; offset < source.length; offset += capacity) {
     const notes = source.slice(offset, offset + capacity).map((n, i) => {
       const step = 28 + tonic + (LETTERS.indexOf(n.note[0]) - tonic + 7) % 7 + n.octave * 7;
@@ -43,7 +43,7 @@ export function createPentatonicStaff(groups, key, type, perBeat = 1) {
     const staff = document.createElement('div');
     staff.className = 'finger-staff';
     staff.innerHTML = fingerStaffSvg(row);
-    staff.style.width = `${row.width}px`;
+    staff.querySelector('svg').style.width = `${row.width}px`;
     container.append(staff);
   }
   return container;
