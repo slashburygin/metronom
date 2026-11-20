@@ -1,3 +1,4 @@
+import { createPentatonicStaff } from './pentatonic-score.js';
 import { SCALE_TYPES, scaleHarmony } from './harmony.js';
 
 // Select spelled degrees from the parent scale; minor pentatonic keeps b7
@@ -76,16 +77,14 @@ export function createPentatonicMaterial(key, type, lang) {
   root.append(node('h4', ru ? (data.major ? 'Мажорная пентатоника' : 'Минорная пентатоника')
     : (data.major ? 'Major pentatonic' : 'Minor pentatonic')),
   node('p', `${data.formula} · ${data.notes.join(' — ')}`, 'scale-notes'),
-  node('p', ru ? '60 BPM, одна нота на щелчок. ↑ — нота на октаву выше исходной. В группах и скачках сыграйте рисунок также в обратном порядке. Затем попробуйте по две ноты на щелчок.'
-    : '60 BPM, one note per click. ↑ means one octave above the starting register. Reverse the groups and skips as well. Then try two notes per click.', 'textbook-help'));
+  node('p', ru ? '60 BPM, одна нота на щелчок. В группах и скачках сыграйте рисунок также в обратном порядке. Затем попробуйте по две ноты на щелчок.'
+    : '60 BPM, one note per click. Reverse the groups and skips as well. Then try two notes per click.', 'textbook-help'));
   const labels = ru ? ['Вверх и вниз', 'Группы по три', 'Группы по четыре', 'Через одну ноту']
     : ['Up and down', 'Groups of three', 'Groups of four', 'Skip a note'];
   data.patterns.forEach((pattern, index) => {
     const section = node('section'); section.dataset.pattern = pattern.id;
     section.append(node('h4', `${index + 1}. ${labels[index]}`));
-    const line = node('div', '', 'pentatonic-pattern');
-    pattern.groups.forEach(group => line.append(node('span', group.map(n => n.note + (n.octave ? '↑' : '')).join(' – '))));
-    section.append(line); root.append(section);
+    section.append(createPentatonicStaff(pattern.groups, key, type)); root.append(section);
   });
   root.append(node('h4', ru ? 'Better Sax · 10 рисунков' : 'Better Sax · 10 patterns'));
   const source = node('p', '', 'textbook-help');
@@ -95,8 +94,8 @@ export function createPentatonicMaterial(key, type, lang) {
   source.append(link('Jay Metcalf / Better Sax', 'https://www.youtube.com/watch?v=27njCPeYtEg'),
     node('span', ' · '), link(ru ? 'Оригинальные ноты' : 'Original sheet music', 'https://bettersax.com/shed/?video=27njCPeYtEg'));
   root.append(source, node('p', ru
-    ? 'Учебные варианты коротких ячеек из урока: пять начальных позиций в выбранной концертной тональности, в обе стороны. ↑ / ↑↑ — на одну / две октавы выше. В видео — фа минор (концерт). Выберите 2–3 рисунка на занятие, играйте медленно и чисто; чередуйте рисунки по дням.'
-    : 'Practice versions of the lesson’s short cells: five starting positions in the selected concert key, in both directions. ↑ / ↑↑ means one / two octaves higher. The video uses concert F minor. Pick 2–3 patterns per session, play slowly and cleanly, and rotate your selection each day.', 'textbook-help'));
+    ? 'Учебные варианты коротких ячеек из урока: пять начальных позиций в выбранной концертной тональности, в обе стороны. В видео — фа минор (концерт). Выберите 2–3 рисунка на занятие, играйте медленно и чисто; чередуйте рисунки по дням.'
+    : 'Practice versions of the lesson’s short cells: five starting positions in the selected concert key, in both directions. The video uses concert F minor. Pick 2–3 patterns per session, play slowly and cleanly, and rotate your selection each day.', 'textbook-help'));
   const names = ru
     ? ['Вверх и вниз со скачком', 'Четыре соседние ноты', 'Смещённое начало', 'Скачки и возвраты', 'Ячейка Бергонци', 'Три ноты и возврат', 'Вариант скачков', 'Тройки восьмыми', 'Сначала вниз', 'Тройки триолями']
     : ['Up and down with a skip', 'Four adjacent notes', 'Displaced start', 'Skips and returns', 'Bergonzi cell', 'Three notes and return', 'Skip variation', 'Threes as eighth notes', 'Descending first', 'Threes as triplets'];
@@ -110,9 +109,7 @@ export function createPentatonicMaterial(key, type, lang) {
         : (ru ? 'Две ноты на щелчок — ровные восьмые.' : 'Two notes per click — straight eighth notes.'), 'textbook-help'));
     pattern.rows.forEach(row => {
       section.append(node('p', row.direction === 'up' ? (ru ? 'Вверх' : 'Ascending') : (ru ? 'Вниз' : 'Descending'), 'field-label'));
-      const line = node('div', '', 'pentatonic-pattern');
-      row.groups.forEach(group => line.append(node('span', group.map(n => n.note + '↑'.repeat(n.octave)).join(' – '))));
-      section.append(line);
+      section.append(createPentatonicStaff(row.groups, key, type, pattern.notesPerBeat));
     });
     root.append(section);
   });
