@@ -14,9 +14,9 @@ test('pentatonic staves retain every pitch and octave across all supported keys'
     ];
     for (const {groups, perBeat} of exercises) {
       const systems = pentatonicScore(groups, key, type, perBeat);
-      assert.equal(systems.length, Math.ceil(groups.flat().length / 24));
-      assert.ok(systems.every(s => s.notes.length <= 24));
-      assert.ok(systems.slice(0, -1).every(s => s.notes.length === 24 && !s.last));
+      assert.equal(systems.length, Math.ceil(groups.flat().length / 25));
+      assert.ok(systems.every(s => s.notes.length <= 25));
+      assert.ok(systems.slice(0, -1).every(s => s.notes.length === Math.floor(25 / perBeat) * perBeat && !s.last));
       assert.equal(systems.at(-1).last, true);
       const actual = systems.flatMap(s => s.notes);
       assert.equal(actual.length, groups.flat().length);
@@ -49,4 +49,17 @@ test('ending quarter has no flag or tuplet; isolated eighths still have flags', 
   assert.doesNotMatch(fingerStaffSvg(eighths[0]), /staff-tuplet/);
   assert.match(fingerStaffSvg(triplets[0]), /class="staff-tuplet"/);
   assert.deepEqual(triplets[0].keySignature.map(a => a.symbol), ['♭','♭','♭','♭']);
+});
+
+
+test('25-note phrases stay together without splitting beats in longer phrases', () => {
+  const patterns = betterSaxPentatonicExercises('D', 'naturalMinor');
+  for (const index of [1, 7, 9]) {
+    const pattern = patterns[index];
+    const score = pentatonicScore(pattern.rows[0].groups, 'D', 'naturalMinor', pattern.notesPerBeat);
+    assert.deepEqual(score.map(s => s.notes.length), [25]);
+    assert.equal(score[0].notes.at(-1).quarter, true);
+  }
+  const down = pentatonicScore(patterns[1].rows[1].groups, 'D', 'naturalMinor', 2);
+  assert.deepEqual(down.map(s => s.notes.length), [24, 5]);
 });

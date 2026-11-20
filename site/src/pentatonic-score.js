@@ -17,9 +17,10 @@ export function pentatonicScore(groups, key, type, perBeat = 1) {
   const tonic = LETTERS.indexOf(key[0]);
   const source = groups.flat();
   const rows = [];
-  // At most 24 notes per staff; this keeps eighth-note and triplet beats intact.
-  const capacity = 24;
-  for (let offset = 0; offset < source.length; offset += capacity) {
+  // Allow a closing quarter after 24 notes; keep full beats at other breaks.
+  for (let offset = 0; offset < source.length;) {
+    const remaining = source.length - offset;
+    const capacity = remaining <= 25 ? remaining : Math.floor(25 / perBeat) * perBeat;
     const notes = source.slice(offset, offset + capacity).map((n, i) => {
       const step = 28 + tonic + (LETTERS.indexOf(n.note[0]) - tonic + 7) % 7 + n.octave * 7;
       return { label: `${n.note}${Math.floor(step / 7)}`, step, quarter: n.quarter === true,
@@ -32,6 +33,7 @@ export function pentatonicScore(groups, key, type, perBeat = 1) {
       width: notes.at(-1).x + 26,
       top: Math.min(25, ...notes.map(n => n.y - 52)),
       bottom: Math.max(136, ...notes.map(n => n.y + 45)) });
+    offset += capacity;
   }
   return rows;
 }
