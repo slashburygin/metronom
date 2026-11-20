@@ -236,3 +236,27 @@ worker сохранил записи; отключение сети не пом�
 лицензия NONE-FOUND: код не копировался; рисунки заданы по плану пользователя.
 Проверены 170 unit-тестов, сборка, все тональности и семь стартовых ступеней,
 различие II/IX, смешанные маршруты и направление ломаных терций.
+
+
+### Better Sax pentatonic lesson
+
+The pentatonic step now includes ten generated cell exercises based on
+https://www.youtube.com/watch?v=27njCPeYtEg. Cells were checked against the four
+public notation images in the matching Better Sax article
+(https://bettersax.com/practice-pentatonics-like-this-everyday-for-killer-solos/).
+These are five-start transposable practice rows, not a reproduction of the
+complete score: phrase endings, rests and instrument-specific ranges remain in
+the linked original. Pattern 5 advances starts by two pentatonic notes; pattern 9
+starts descending; pattern 8 uses straight eighths and pattern 10 triplets.
+Both ascending and descending rows preserve cell shape by interval reflection.
+All study notes remain in the selected concert key, as in the existing scale step.
+
+Project reference: metronom `87174eb0588ead4fa034ea8deeb39531eb9635a8`,
+`site/src/pentatonic-exercises.js:5`, `site/src/harmony.js:37`,
+`site/src/scale-practice.js:152`. XERJ queries for `pentatonicExercises` in
+`exosrc` and `metronom-src` missed the module; the current files were read directly.
+Upstream formula check: XERJ `metronom-harmony`, tonaljs/tonal
+`e555422aef910daa87cb924028f71f0a013f3ed7`,
+`packages/scale-type/data.ts:5` and `:40`, read with surrounding definitions.
+The project has no Tonal dependency; this is a formula reference only, with no
+upstream code copied (corpus license metadata: NONE-FOUND).

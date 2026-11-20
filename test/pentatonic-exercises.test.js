@@ -40,3 +40,36 @@ test('groups of three and four continue ascending across the octave', () => {
     {note:'A',octave:0},{note:'C',octave:1},{note:'D',octave:1},{note:'E',octave:1},
   ]);
 });
+
+test('Better Sax practice covers ten linked patterns and preserves their cells in every key', async () => {
+  const { betterSaxPentatonicExercises } = await import('../site/src/pentatonic-exercises.js');
+  const cells = [[0,1,2,3,4,3,2,0], [0,1,2,3], [2,0,1,2],
+    [0,2,1,3,2,4,3,2], [0,2,3,1], [0,1,2,0],
+    [0,2,1,3,2,1,0,2], [0,1,2], [0,-1,-2,0,-1,1,0,-2], [0,1,2]];
+  for (const type of SCALE_TYPES) for (const key of keysFor(type)) {
+    const notes = pentatonicExercises(key, type).notes;
+    const patterns = betterSaxPentatonicExercises(key, type);
+    assert.equal(patterns.length, 10);
+    assert.equal(new Set(patterns.map(p => p.id)).size, 10);
+    patterns.forEach((pattern, i) => {
+      assert.equal(pattern.number, i + 1);
+      assert.equal(pattern.notesPerBeat, i === 9 ? 3 : 2);
+      assert.equal(new URL(pattern.url).searchParams.get('v'), '27njCPeYtEg');
+      assert.equal(new URL(pattern.url).searchParams.get('t'), `${pattern.seconds}s`);
+      assert.deepEqual(pattern.rows.map(r => r.direction), i === 8 ? ['down','up'] : ['up','down']);
+      pattern.rows.forEach((row, r) => {
+        assert.equal(row.groups.length, 5);
+        const indices = row.groups.map(group => group.map(n => {
+          assert.ok(notes.includes(n.note));
+          assert.ok(Number.isInteger(n.octave) && n.octave >= 0 && n.octave <= 2);
+          return notes.indexOf(n.note) + 5 * n.octave;
+        }));
+        indices.forEach((group, start) => {
+          assert.deepEqual(group.map(n => n - group[0]), cells[i].map(n => (n - cells[i][0]) * (r ? -1 : 1) || 0));
+          if (start) assert.equal(group[0] - indices[start - 1][0], (row.direction === 'up' ? 1 : -1) * (i === 4 ? 2 : 1));
+        });
+      });
+    });
+  }
+  assert.throws(() => betterSaxPentatonicExercises('H'), RangeError);
+});
