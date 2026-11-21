@@ -26,7 +26,7 @@ export function pentatonicScore(groups, key, type, perBeat = 1) {
     const notes = source.slice(offset, offset + capacity).map((n, i) => {
       const step = 28 + tonic + (LETTERS.indexOf(n.note[0]) - tonic + 7) % 7 + n.octave * 7;
       return { label: `${n.note}${Math.floor(step / 7)}`, step, quarter: n.quarter === true,
-        x: 72 + keySignature.length * 10 + i * 32, y: 100 - (step - 30) * 5,
+        x: 72 + keySignature.length * 10 + i * 27, y: 100 - (step - 30) * 5,
         groupAfter: n.groupEnd && i < capacity - 1,
         barAfter: offset + i === source.length - 1 };
     });
@@ -48,7 +48,7 @@ export function createPentatonicStaff(groups, key, type, perBeat = 1) {
     const staff = document.createElement('div');
     staff.className = 'finger-staff';
     staff.innerHTML = fingerStaffSvg(row);
-    staff.querySelector('svg').style.width = `${row.width * 1.4}px`;
+    staff.querySelector('svg').style.width = `${row.width}px`;
     container.append(staff);
   }
   return container;

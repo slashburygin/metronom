@@ -868,4 +868,4 @@ kbd {
 .pentatonic-staves .staff-line { stroke-width: 1; opacity: .8; }
 .pentatonic-staves .finger-staff svg { max-width: none; }
 
-.pentatonic-staves .staff-group-divider { stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
+.pentatonic-staves .staff-group-divider { stroke-width: 1; opacity: .7; }
