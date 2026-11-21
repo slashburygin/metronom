@@ -91,7 +91,7 @@ export function createPentatonicMaterial(key, type, lang) {
     section.append(node('h4', `${index + 1}. ${labels[index]}`));
     section.append(createPentatonicStaff(pattern.groups, key, type)); root.append(section);
   });
-  const lessonIntro = node('div');
+  const lessonIntro = node('div', '', 'pentatonic-intro');
   root.append(lessonIntro);
   lessonIntro.append(node('h4', ru ? 'Better Sax · 10 рисунков' : 'Better Sax · 10 patterns'));
   const source = node('p', '', 'textbook-help');
@@ -141,7 +141,9 @@ export function createPentatonicMaterial(key, type, lang) {
   paperLabel.append(checkbox, node('span', ru ? 'Нотная бумага' : 'Sheet paper'));
   const previous = node('button', ru ? 'Назад' : 'Previous', 'btn btn--secondary'); previous.type = 'button';
   const next = node('button', ru ? 'Далее' : 'Next', 'btn btn--secondary'); next.type = 'button';
-  controls.append(label, paperLabel, previous, next);
+  const focus = node('button', ru ? 'Фокус с метрономом' : 'Focus with metronome', 'btn btn--secondary pentatonic-focus');
+  focus.type = 'button';
+  controls.append(label, paperLabel, previous, next, focus);
   root.insertBefore(controls, basicHelp);
   const apply = (save = true) => {
     root.classList.toggle('pentatonic-paper', paper);
@@ -163,6 +165,10 @@ export function createPentatonicMaterial(key, type, lang) {
   };
   previous.addEventListener('click', () => move(-1));
   next.addEventListener('click', () => move(1));
+  root.addEventListener('enter-practice-focus', () => {
+    if (selected === 'all') { selected = 'betterSax1'; apply(); }
+  });
+  focus.addEventListener('click', () => root.dispatchEvent(new CustomEvent('request-practice-focus', { bubbles: true })));
   apply(false);
   return root;
 }

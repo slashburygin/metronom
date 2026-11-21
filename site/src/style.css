@@ -897,3 +897,62 @@ kbd {
 .pentatonic-paper .staff-group-divider { stroke: #726754; opacity: 1; }
 .pentatonic-paper .pentatonic-staves { gap: 24px; margin-block: 12px 24px; }
 .pentatonic-paper section[hidden] { display: none; }
+
+
+/* Exercise focus reuses the live metronome and the selected score. */
+.exercise-focus header,
+.exercise-focus .practice-tabs,
+.exercise-focus .lesson-modes,
+.exercise-focus #scale-practice > :not(.scale-material),
+.exercise-focus .pentatonic-material > h4,
+.exercise-focus .pentatonic-material > p,
+.exercise-focus .pentatonic-intro,
+.exercise-focus .pentatonic-material .textbook-help,
+.exercise-focus .pentatonic-paper-toggle,
+.exercise-focus .pentatonic-focus,
+.exercise-focus .stage #bpm-slider,
+.exercise-focus .stage .signature-presets,
+.exercise-focus .stage .tempo-shortcuts,
+.exercise-focus .stage .gap-controls,
+.exercise-focus .stage .tempo-buttons .round--small,
+.exercise-focus .stage .meta { display: none; }
+.focus-mode.exercise-focus .app { display: grid; grid-template-columns: 260px minmax(0, 1fr); max-width: 1600px; gap: 20px; padding: 20px; align-items: start; }
+.focus-mode.exercise-focus .practice-column { display: block; position: static; min-width: 0; }
+.focus-mode.exercise-focus .metronome-column { position: sticky; top: 20px; }
+.focus-mode.exercise-focus .stage { min-height: 0; gap: 16px; padding: 16px; }
+.focus-mode.exercise-focus #bpm { font-size: 56px; }
+.exercise-focus .lessons { max-height: none; overflow: visible; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.exercise-focus .scale-material { padding: 0; background: transparent; }
+.exercise-focus .pentatonic-reading-controls { margin-top: 0; }
+.exercise-focus .pentatonic-material { padding: 16px; }
+.exercise-focus .pentatonic-material section h4 { margin-top: 20px; }
+.exercise-paper { --color-bg: #f3ecd9; --color-bg-soft: #f3ecd9; --color-bg-elevated: #f3ecd9; --color-text: #37332c; --color-text-muted: #635a4b; --color-border: #bdb29c; background: #f3ecd9; }
+@media (max-width: 900px) {
+  .focus-mode.exercise-focus .app { grid-template-columns: minmax(0, 1fr); padding: 12px; gap: 12px; }
+  .focus-mode.exercise-focus .metronome-column { position: static; }
+  .focus-mode.exercise-focus .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .exercise-focus .stage-toolbar { grid-column: 1 / -1; }
+  .exercise-focus .stage .beats, .exercise-focus .stage .remaining { grid-column: 1 / -1; }
+  .focus-mode.exercise-focus #bpm { font-size: 40px; }
+  .focus-mode.exercise-focus .actions { grid-template-columns: 1fr; }
+  .focus-mode.exercise-focus .actions .btn { min-height: 40px; }
+}
+.exercise-focus .stage,
+.exercise-focus .pentatonic-material,
+.exercise-focus .pentatonic-staves .finger-staff { background: transparent; border: 0; box-shadow: none; }
+.exercise-paper {
+  --color-bg-muted: #e7dec9;
+  --btn-primary-bg: #514a3b;
+  --btn-primary-fg: #f3ecd9;
+  --btn-primary-hover: #37332c;
+  --btn-secondary-bg: #e7dec9;
+  --btn-secondary-fg: #37332c;
+  --btn-secondary-border: #bdb29c;
+  --btn-secondary-hover: #daceb6;
+  color-scheme: light;
+}
+@media (max-width: 900px) {
+  .exercise-focus .stage .tempo, .exercise-focus .stage .actions { grid-column: 1 / -1; }
+  .focus-mode.exercise-focus .actions { grid-template-columns: 2fr 1fr; }
+  .exercise-focus .pentatonic-reading-controls > label:first-child { flex-basis: 100%; }
+}

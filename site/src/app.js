@@ -50,6 +50,8 @@ const ui = { lang: detectLang(), view: 'digital', noteValue: DEFAULTS.noteValue,
 const offline = initOffline(() => ui.lang);
 
 let activeDot = null;
+let exerciseFocus = false;
+let focusOrigin = null;
 const metronome = new Metronome({
   onTick(beat, sub, silent) {
     if (sub !== 0) return;
@@ -295,6 +297,7 @@ function renderSignature() {
 
 function renderFocus() {
   document.body.classList.toggle('focus-mode', ui.focus);
+  document.body.classList.toggle('exercise-focus', ui.focus && exerciseFocus);
   els.focusMode.setAttribute('aria-pressed', ui.focus);
   els.focusMode.textContent = ui.focus ? t().exitFocus : t().focusMode;
   els.focusMode.setAttribute('aria-label', ui.focus ? t().exitFocusLabel : t().focusModeLabel);
@@ -303,13 +306,24 @@ function renderFocus() {
 
 function setFocus(enabled) {
   if (enabled) {
+    focusOrigin = document.activeElement;
+    const exercise = document.querySelector('.pentatonic-material');
+    exerciseFocus = Boolean(exercise?.getClientRects().length);
+    if (exerciseFocus) exercise.dispatchEvent(new Event('enter-practice-focus'));
+    document.body.classList.toggle('exercise-paper', exerciseFocus && exercise.classList.contains('pentatonic-paper'));
     lessons.stopPlayback();
     tuner.stop();
     renderTuner();
   }
   ui.focus = enabled;
   renderFocus();
-  els.focusMode.focus();
+  if (enabled) {
+    els.focusMode.focus();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  } else {
+    document.body.classList.remove('exercise-paper');
+    (focusOrigin?.isConnected ? focusOrigin : els.focusMode).focus();
+  }
 }
 
 function beatTitle(i, level) {
@@ -458,6 +472,7 @@ els.play.addEventListener('click', togglePlay);
 els.tap.addEventListener('click', tap);
 els.reset.addEventListener('click', reset);
 els.focusMode.addEventListener('click', () => setFocus(!ui.focus));
+document.addEventListener('request-practice-focus', () => setFocus(true));
 els.signaturePresets.addEventListener('click', (event) => {
   const signature = event.target.closest('[data-signature]')?.dataset.signature;
   if (!signature) return;
