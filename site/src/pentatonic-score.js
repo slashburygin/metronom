@@ -15,7 +15,9 @@ export function pentatonicScore(groups, key, type, perBeat = 1) {
   const keySignature = order.filter(note => scale.some(name => name[0] === note[0] && name.length > 1))
     .map(note => ({ symbol: sharps ? '♯' : '♭', step: Number(note[1]) * 7 + LETTERS.indexOf(note[0]) }));
   const tonic = LETTERS.indexOf(key[0]);
-  const source = groups.flat();
+  const source = groups.flatMap(group => group.map((note, index) => ({
+    ...note, groupEnd: index === group.length - 1,
+  })));
   const rows = [];
   // Allow a closing quarter after 24 notes; keep full beats at other breaks.
   for (let offset = 0; offset < source.length;) {
@@ -24,7 +26,8 @@ export function pentatonicScore(groups, key, type, perBeat = 1) {
     const notes = source.slice(offset, offset + capacity).map((n, i) => {
       const step = 28 + tonic + (LETTERS.indexOf(n.note[0]) - tonic + 7) % 7 + n.octave * 7;
       return { label: `${n.note}${Math.floor(step / 7)}`, step, quarter: n.quarter === true,
-        x: 72 + keySignature.length * 10 + i * 27, y: 100 - (step - 30) * 5,
+        x: 72 + keySignature.length * 10 + i * 32, y: 100 - (step - 30) * 5,
+        groupAfter: n.groupEnd && i < capacity - 1,
         barAfter: offset + i === source.length - 1 };
     });
     rows.push({ notes, keySignature, perBeat, beams: perBeat === 1 ? 0 : 1,
@@ -45,7 +48,7 @@ export function createPentatonicStaff(groups, key, type, perBeat = 1) {
     const staff = document.createElement('div');
     staff.className = 'finger-staff';
     staff.innerHTML = fingerStaffSvg(row);
-    staff.querySelector('svg').style.width = `${row.width}px`;
+    staff.querySelector('svg').style.width = `${row.width * 1.4}px`;
     container.append(staff);
   }
   return container;

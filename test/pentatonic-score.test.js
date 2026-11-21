@@ -63,3 +63,17 @@ test('25-note phrases stay together without splitting beats in longer phrases', 
   const down = pentatonicScore(patterns[1].rows[1].groups, 'D', 'naturalMinor', 2);
   assert.deepEqual(down.map(s => s.notes.length), [24, 5]);
 });
+
+
+test('dividers follow exercise cells, including three-note cells played as eighths', () => {
+  const patterns = betterSaxPentatonicExercises('C');
+  for (const index of [1, 7, 9]) {
+    const pattern = patterns[index];
+    const score = pentatonicScore(pattern.rows[0].groups, 'C', 'major', pattern.notesPerBeat);
+    const size = index === 1 ? 4 : 3;
+    assert.deepEqual(score[0].notes.flatMap((n, i) => n.groupAfter ? [i + 1] : []),
+      Array.from({ length: 24 / size }, (_, i) => (i + 1) * size));
+    assert.equal((fingerStaffSvg(score[0]).match(/class="staff-group-divider"/g) || []).length, 24 / size);
+    assert.equal(score[0].notes.at(-1).groupAfter, false);
+  }
+});
