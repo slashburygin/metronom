@@ -869,3 +869,31 @@ kbd {
 .pentatonic-staves .finger-staff svg { max-width: none; }
 
 .pentatonic-staves .staff-group-divider { stroke-width: 1; opacity: .7; }
+
+
+.pentatonic-reading-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 16px 0; }
+.pentatonic-reading-controls > label:first-child { display: grid; gap: 6px; flex: 1 1 240px; min-width: 0; }
+.pentatonic-reading-controls select { width: 100%; min-width: 0; min-height: 40px; padding: 8px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-text); font: inherit; }
+.pentatonic-paper-toggle { display: flex; align-items: center; gap: 8px; min-height: 40px; cursor: pointer; }
+.pentatonic-paper-toggle input { width: 18px; height: 18px; accent-color: #61543f; }
+.pentatonic-reading-controls .btn { min-height: 40px; }
+.pentatonic-paper {
+  --color-bg: #f3ecd9;
+  --color-text: #37332c;
+  --color-text-muted: #635a4b;
+  --color-border: #bdb29c;
+  --btn-secondary-bg: #e7dec9;
+  --btn-secondary-fg: #37332c;
+  --btn-secondary-border: #bdb29c;
+  --btn-secondary-hover: #daceb6;
+  color-scheme: light;
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: 16px;
+  border-radius: 8px;
+}
+.pentatonic-paper a { color: #514a3b; }
+.pentatonic-paper .staff-line { stroke: #938977; opacity: 1; }
+.pentatonic-paper .staff-group-divider { stroke: #726754; opacity: 1; }
+.pentatonic-paper .pentatonic-staves { gap: 24px; margin-block: 12px 24px; }
+.pentatonic-paper section[hidden] { display: none; }

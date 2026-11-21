@@ -83,6 +83,7 @@ export function createPentatonicMaterial(key, type, lang) {
   node('p', `${data.formula} · ${data.notes.join(' — ')}`, 'scale-notes'),
   node('p', ru ? '60 BPM, одна нота на щелчок. В группах и скачках сыграйте рисунок также в обратном порядке. Затем попробуйте по две ноты на щелчок.'
     : '60 BPM, one note per click. Reverse the groups and skips as well. Then try two notes per click.', 'textbook-help'));
+  const basicHelp = root.lastElementChild;
   const labels = ru ? ['Вверх и вниз', 'Группы по три', 'Группы по четыре', 'Через одну ноту']
     : ['Up and down', 'Groups of three', 'Groups of four', 'Skip a note'];
   data.patterns.forEach((pattern, index) => {
@@ -90,14 +91,16 @@ export function createPentatonicMaterial(key, type, lang) {
     section.append(node('h4', `${index + 1}. ${labels[index]}`));
     section.append(createPentatonicStaff(pattern.groups, key, type)); root.append(section);
   });
-  root.append(node('h4', ru ? 'Better Sax · 10 рисунков' : 'Better Sax · 10 patterns'));
+  const lessonIntro = node('div');
+  root.append(lessonIntro);
+  lessonIntro.append(node('h4', ru ? 'Better Sax · 10 рисунков' : 'Better Sax · 10 patterns'));
   const source = node('p', '', 'textbook-help');
   const link = (text, href) => {
     const a = node('a', text); a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; return a;
   };
   source.append(node('span', 'Jay Metcalf / Better Sax'),
     node('span', ' · '), link(ru ? 'Оригинальные ноты' : 'Original sheet music', 'https://bettersax.com/shed/?video=27njCPeYtEg'));
-  root.append(source, node('p', ru
+  lessonIntro.append(source, node('p', ru
     ? 'Рисунки из урока в выбранной концертной тональности: полный диапазон последовательностей и завершающие ноты, в обе стороны. В видео — фа минор (концерт). Выберите 2–3 рисунка на занятие, играйте медленно и чисто; чередуйте рисунки по дням.'
     : 'Lesson patterns in the selected concert key: full sequence ranges and ending notes, in both directions. The video uses concert F minor. Pick 2–3 patterns per session, play slowly and cleanly, and rotate your selection each day.', 'textbook-help'));
   const names = ru
@@ -115,5 +118,51 @@ export function createPentatonicMaterial(key, type, lang) {
     });
     root.append(section);
   });
+  const sections = [...root.querySelectorAll('section[data-pattern]')];
+  const settingsKey = 'metronome-pentatonic-reading';
+  let selected = 'betterSax1', paper = true;
+  try {
+    const saved = JSON.parse(localStorage.getItem(settingsKey));
+    if (saved?.selected === 'all' || sections.some(section => section.dataset.pattern === saved?.selected)) selected = saved.selected;
+    if (typeof saved?.paper === 'boolean') paper = saved.paper;
+  } catch { /* Reading preferences are optional when storage is unavailable. */ }
+  const controls = node('div', '', 'pentatonic-reading-controls');
+  const label = node('label', ru ? 'Упражнение' : 'Exercise');
+  const select = node('select'); select.className = 'pentatonic-exercise-select';
+  const all = node('option', ru ? 'Все упражнения' : 'All exercises'); all.value = 'all'; select.append(all);
+  sections.forEach(section => {
+    const category = section.dataset.pattern.startsWith('betterSax') ? 'Better Sax' : (ru ? 'Основы' : 'Basics');
+    const option = node('option', `${category} · ${section.querySelector('h4').textContent}`);
+    option.value = section.dataset.pattern; select.append(option);
+  });
+  select.value = selected; label.append(select);
+  const paperLabel = node('label', '', 'pentatonic-paper-toggle');
+  const checkbox = node('input'); checkbox.type = 'checkbox'; checkbox.checked = paper;
+  paperLabel.append(checkbox, node('span', ru ? 'Нотная бумага' : 'Sheet paper'));
+  const previous = node('button', ru ? 'Назад' : 'Previous', 'btn btn--secondary'); previous.type = 'button';
+  const next = node('button', ru ? 'Далее' : 'Next', 'btn btn--secondary'); next.type = 'button';
+  controls.append(label, paperLabel, previous, next);
+  root.insertBefore(controls, basicHelp);
+  const apply = (save = true) => {
+    root.classList.toggle('pentatonic-paper', paper);
+    sections.forEach(section => { section.hidden = selected !== 'all' && section.dataset.pattern !== selected; });
+    basicHelp.hidden = selected !== 'all' && selected.startsWith('betterSax');
+    lessonIntro.hidden = selected !== 'all' && !selected.startsWith('betterSax');
+    const index = sections.findIndex(section => section.dataset.pattern === selected);
+    previous.disabled = index <= 0;
+    next.disabled = index < 0 || index === sections.length - 1;
+    select.value = selected;
+    if (save) try { localStorage.setItem(settingsKey, JSON.stringify({ selected, paper })); } catch {}
+  };
+  select.addEventListener('change', () => { selected = select.value; apply(); });
+  checkbox.addEventListener('change', () => { paper = checkbox.checked; apply(); });
+  const move = delta => {
+    const index = sections.findIndex(section => section.dataset.pattern === selected);
+    const section = sections[index + delta];
+    if (section) { selected = section.dataset.pattern; apply(); }
+  };
+  previous.addEventListener('click', () => move(-1));
+  next.addEventListener('click', () => move(1));
+  apply(false);
   return root;
 }
