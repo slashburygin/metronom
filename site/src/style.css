@@ -877,7 +877,7 @@ kbd {
 .pentatonic-paper-toggle { display: flex; align-items: center; gap: 8px; min-height: 40px; cursor: pointer; }
 .pentatonic-paper-toggle input { width: 18px; height: 18px; accent-color: #61543f; }
 .pentatonic-reading-controls .btn { min-height: 40px; }
-.pentatonic-paper {
+:is(.pentatonic-paper, .finger-paper) {
   --color-bg: #f3ecd9;
   --color-text: #37332c;
   --color-text-muted: #635a4b;
@@ -892,8 +892,8 @@ kbd {
   padding: 16px;
   border-radius: 8px;
 }
-.pentatonic-paper a { color: #514a3b; }
-.pentatonic-paper .staff-line { stroke: #938977; opacity: 1; }
+:is(.pentatonic-paper, .finger-paper) a { color: #514a3b; }
+:is(.pentatonic-paper, .finger-paper) .staff-line { stroke: #938977; opacity: 1; }
 .pentatonic-paper .staff-group-divider { stroke: #726754; opacity: 1; }
 .pentatonic-paper .pentatonic-staves { gap: 24px; margin-block: 12px 24px; }
 .pentatonic-paper section[hidden] { display: none; }
@@ -956,3 +956,12 @@ kbd {
   .focus-mode.exercise-focus .actions { grid-template-columns: 2fr 1fr; }
   .exercise-focus .pentatonic-reading-controls > label:first-child { flex-basis: 100%; }
 }
+
+
+.finger-focus-caption { display: none; }
+.exercise-focus #technique-practice > :not(.scale-toolbar):not(.finger-rows):not(.finger-focus-caption),
+.exercise-focus #technique-practice .scale-toolbar > label:not([data-setting="finger-key"]):not([data-setting="finger-direction"]) { display: none; }
+.exercise-focus #technique-practice .finger-focus-caption { display: block; margin: 16px 0; }
+.exercise-focus #technique-practice { background: transparent; border: 0; box-shadow: none; padding: 16px; }
+.exercise-focus #technique-practice .scale-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.exercise-focus #technique-practice .finger-systems { width: 100%; min-width: 0; gap: 20px; }

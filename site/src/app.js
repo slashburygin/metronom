@@ -307,10 +307,11 @@ function renderFocus() {
 function setFocus(enabled) {
   if (enabled) {
     focusOrigin = document.activeElement;
-    const exercise = document.querySelector('.pentatonic-material');
+    const exercise = [...document.querySelectorAll('.pentatonic-material, #technique-practice')]
+      .find(element => element.getClientRects().length);
     exerciseFocus = Boolean(exercise?.getClientRects().length);
     if (exerciseFocus) exercise.dispatchEvent(new Event('enter-practice-focus'));
-    document.body.classList.toggle('exercise-paper', exerciseFocus && exercise.classList.contains('pentatonic-paper'));
+    document.body.classList.toggle('exercise-paper', exerciseFocus && exercise.matches('.pentatonic-paper, .finger-paper'));
     lessons.stopPlayback();
     tuner.stop();
     renderTuner();

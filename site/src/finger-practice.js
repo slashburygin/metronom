@@ -43,9 +43,10 @@ export function initFingerPractice(getLang, configure) {
   const root = document.getElementById('technique-practice');
   let scoreObserver;
   let key = 'C', level = 'quarter', direction = 'up', bpm = 60, configured = false;
-  let octave = 4, view = 'both';
+  let octave = 4, view = 'both', paper = true;
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE));
+    if (typeof saved?.paper === 'boolean') paper = saved.paper;
     if (MAJOR_KEYS.includes(saved?.key)) key = saved.key;
     if (Object.hasOwn(FINGER_LEVELS, saved?.level)) level = saved.level;
     if (['up', 'down'].includes(saved?.direction)) direction = saved.direction;
@@ -53,17 +54,19 @@ export function initFingerPractice(getLang, configure) {
     if ([3, 4, 5].includes(saved?.octave)) octave = saved.octave;
     if (['staff', 'names', 'both'].includes(saved?.view)) view = saved.view;
   } catch { /* Use defaults if storage is unavailable. */ }
-  function save() {
-    configured = false;
-    try { localStorage.setItem(STORAGE, JSON.stringify({ key, level, direction, bpm, octave, view })); } catch {}
+  function save(resetConfiguration = true) {
+    if (resetConfiguration) configured = false;
+    try { localStorage.setItem(STORAGE, JSON.stringify({ key, level, direction, bpm, octave, view, paper })); } catch {}
   }
   function render() {
     scoreObserver?.disconnect();
     const s = COPY[getLang()];
+    root.classList.toggle('finger-paper', paper);
     root.replaceChildren(node('h3', s.title));
+    const caption = node('h3', `${key} · ${s.levels[Object.keys(FINGER_LEVELS).indexOf(level)]}`, 'finger-focus-caption');
     const toolbar = node('div', '', 'scale-toolbar');
     function select(id, title, values, labels, current, change) {
-      const label = node('label', title), input = node('select'); input.id = id;
+      const label = node('label', title), input = node('select'); input.id = id; label.dataset.setting = id;
       values.forEach((value, i) => { const option = node('option', labels[i]); option.value = value; input.append(option); });
       input.value = current;
       input.addEventListener('change', () => { change(input.value); save(); render(); root.querySelector(`#${id}`).focus(); });
@@ -91,7 +94,18 @@ export function initFingerPractice(getLang, configure) {
     }
     const plan = node('ol', '', 'scale-tasks'); s.plan.forEach(text => plan.append(node('li', text)));
     const source = node('a', s.source); source.href = 'https://www.youtube.com/watch?v=WkRS9bX5ui8'; source.target = '_blank'; source.rel = 'noopener noreferrer';
-    root.append(toolbar, rows, apply, status);
+    const reading = node('div', '', 'pentatonic-reading-controls finger-reading-controls');
+    const paperLabel = node('label', '', 'pentatonic-paper-toggle');
+    const paperInput = node('input'); paperInput.type = 'checkbox'; paperInput.checked = paper;
+    paperLabel.append(paperInput, node('span', getLang() === 'ru' ? 'Нотная бумага' : 'Sheet paper'));
+    paperInput.addEventListener('change', () => {
+      paper = paperInput.checked; root.classList.toggle('finger-paper', paper); save(false);
+    });
+    const focus = node('button', getLang() === 'ru' ? 'Фокус с метрономом' : 'Focus with metronome', 'btn btn--secondary');
+    focus.type = 'button'; focus.id = 'finger-focus';
+    focus.addEventListener('click', () => root.dispatchEvent(new CustomEvent('request-practice-focus', { bubbles: true })));
+    reading.append(paperLabel, focus);
+    root.append(toolbar, reading, caption, rows, apply, status);
     if (view !== 'names') {
       rows.classList.add('finger-systems');
       let previousWidth = 0;
