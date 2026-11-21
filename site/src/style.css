@@ -868,7 +868,6 @@ kbd {
 .pentatonic-staves .staff-line { stroke-width: 1; opacity: .8; }
 .pentatonic-staves .finger-staff svg { max-width: none; }
 
-.pentatonic-staves .staff-group-divider { stroke-width: 1; opacity: .7; }
 
 
 .pentatonic-reading-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 16px 0; }
@@ -894,7 +893,6 @@ kbd {
 }
 :is(.pentatonic-paper, .finger-paper) a { color: #514a3b; }
 :is(.pentatonic-paper, .finger-paper) .staff-line { stroke: #938977; opacity: 1; }
-.pentatonic-paper .staff-group-divider { stroke: #726754; opacity: 1; }
 .pentatonic-paper .pentatonic-staves { gap: 24px; margin-block: 12px 24px; }
 .pentatonic-paper section[hidden] { display: none; }
 

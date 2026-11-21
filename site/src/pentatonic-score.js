@@ -15,9 +15,14 @@ export function pentatonicScore(groups, key, type, perBeat = 1) {
   const keySignature = order.filter(note => scale.some(name => name[0] === note[0] && name.length > 1))
     .map(note => ({ symbol: sharps ? '♯' : '♭', step: Number(note[1]) * 7 + LETTERS.indexOf(note[0]) }));
   const tonic = LETTERS.indexOf(key[0]);
-  const source = groups.flatMap(group => group.map((note, index) => ({
-    ...note, groupEnd: index === group.length - 1,
-  })));
+  // Count in subdivisions to keep triplet bar boundaries exact.
+  // Meter duration reference: CoderLine/alphaTab, commit above,
+  // packages/alphatab/src/model/MasterBar.ts:448-462 (approach only).
+  let elapsed = 0;
+  const source = groups.flat().map(note => {
+    elapsed += note.quarter ? perBeat : 1;
+    return { ...note, barAfter: elapsed % (4 * perBeat) === 0 };
+  });
   const rows = [];
   // Allow a closing quarter after 24 notes; keep full beats at other breaks.
   for (let offset = 0; offset < source.length;) {
@@ -26,12 +31,11 @@ export function pentatonicScore(groups, key, type, perBeat = 1) {
     const notes = source.slice(offset, offset + capacity).map((n, i) => {
       const step = 28 + tonic + (LETTERS.indexOf(n.note[0]) - tonic + 7) % 7 + n.octave * 7;
       return { label: `${n.note}${Math.floor(step / 7)}`, step, quarter: n.quarter === true,
-        x: 72 + keySignature.length * 10 + i * 27, y: 100 - (step - 30) * 5,
-        groupAfter: n.groupEnd && i < capacity - 1,
-        barAfter: offset + i === source.length - 1 };
+        x: (offset === 0 ? 92 : 72) + keySignature.length * 10 + i * 27, y: 100 - (step - 30) * 5,
+        barAfter: n.barAfter || offset + i === source.length - 1 };
     });
     rows.push({ notes, keySignature, perBeat, beams: perBeat === 1 ? 0 : 1,
-      triplets: perBeat === 3, showTime: false, finalRest: false,
+      triplets: perBeat === 3, showTime: offset === 0, finalRest: false,
       last: offset + capacity >= source.length,
       width: notes.at(-1).x + 26,
       top: Math.min(25, ...notes.map(n => n.y - 52)),

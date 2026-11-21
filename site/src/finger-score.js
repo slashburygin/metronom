@@ -126,7 +126,6 @@ export function fingerStaffSvg(row) {
     for (let y = 110; y <= note.y; y += 10) parts.push(line(note.x-9,y,note.x+9,y,'staff-ledger'));
     for (let y = 50; y >= note.y; y -= 10) parts.push(line(note.x-9,y,note.x+9,y,'staff-ledger'));
     parts.push(`<ellipse class="staff-note" data-note="${note.label}" cx="${note.x}" cy="${note.y}" rx="5.2" ry="3.7" transform="rotate(-18 ${note.x} ${note.y})"/>`);
-    if (note.groupAfter) parts.push(line(note.x+16,60,note.x+16,100,'staff-group-divider'));
     if (note.barAfter) parts.push(line(note.x+12,60,note.x+12,100,'staff-bar'));
   }
   for (const { notes: group, up, beamY } of stemGroups(row.notes, row.perBeat)) {

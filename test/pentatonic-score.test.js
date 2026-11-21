@@ -65,15 +65,26 @@ test('25-note phrases stay together without splitting beats in longer phrases', 
 });
 
 
-test('dividers follow exercise cells, including three-note cells played as eighths', () => {
-  const patterns = betterSaxPentatonicExercises('C');
-  for (const index of [1, 7, 9]) {
-    const pattern = patterns[index];
-    const score = pentatonicScore(pattern.rows[0].groups, 'C', 'major', pattern.notesPerBeat);
-    const size = index === 1 ? 4 : 3;
-    assert.deepEqual(score[0].notes.flatMap((n, i) => n.groupAfter ? [i + 1] : []),
-      Array.from({ length: 24 / size }, (_, i) => (i + 1) * size));
-    assert.equal((fingerStaffSvg(score[0]).match(/class="staff-group-divider"/g) || []).length, 24 / size);
-    assert.equal(score[0].notes.at(-1).groupAfter, false);
+test('barlines follow 4/4 duration independently of exercise cells and line breaks', () => {
+  const exercises = [
+    ...pentatonicExercises('C').patterns.map(p => ({ groups: p.groups, perBeat: 1 })),
+    ...betterSaxPentatonicExercises('C').flatMap(p => p.rows.map(r => ({ groups: r.groups, perBeat: p.notesPerBeat }))),
+  ];
+  for (const { groups, perBeat } of exercises) {
+    const score = pentatonicScore(groups, 'C', 'major', perBeat);
+    const notes = score.flatMap(row => row.notes);
+    let subdivisions = 0;
+    notes.forEach((note, index) => {
+      subdivisions += note.quarter ? perBeat : 1;
+      assert.equal(note.barAfter, subdivisions % (4 * perBeat) === 0 || index === notes.length - 1);
+    });
+    assert.equal(score[0].showTime, true);
+    assert.ok(score.slice(1).every(row => !row.showTime));
+    for (const row of score) assert.doesNotMatch(fingerStaffSvg(row), /staff-group-divider/);
+  }
+  for (const [patternIndex, boundaries] of [[7, [8, 16, 24, 25]], [9, [12, 24, 25]]]) {
+    const pattern = betterSaxPentatonicExercises('C')[patternIndex];
+    const notes = pentatonicScore(pattern.rows[0].groups, 'C', 'major', pattern.notesPerBeat)[0].notes;
+    assert.deepEqual(notes.flatMap((note, i) => note.barAfter ? [i + 1] : []), boundaries);
   }
 });
