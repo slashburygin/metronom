@@ -912,7 +912,8 @@ kbd {
 .exercise-focus .stage .signature-presets,
 .exercise-focus .stage .tempo-shortcuts,
 .exercise-focus .stage .gap-controls,
-.exercise-focus .stage .tempo-buttons .round--small,
+.exercise-focus .stage #bpm-down-three,
+.exercise-focus .stage #bpm-up-three,
 .exercise-focus .stage .meta { display: none; }
 .focus-mode.exercise-focus .app { display: grid; grid-template-columns: 260px minmax(0, 1fr); max-width: 1600px; gap: 20px; padding: 20px; align-items: start; }
 .focus-mode.exercise-focus .practice-column { display: block; position: static; min-width: 0; }
