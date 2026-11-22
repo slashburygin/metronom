@@ -84,7 +84,7 @@ test('one-bar count-in and training changes surround the entire expanded form', 
   const ctx = { currentTime: 0, sampleRate: 44100, destination: node(), resume: async () => {}, createGain: node, createDynamicsCompressor: node,
     createBuffer: (_, length) => ({ getChannelData: () => new Float32Array(length) }) };
   const heard = [], scheduled = [];
-  const player = new BackingPlayer({ context: ctx, onStep: p => heard.push(p),
+  const player = new BackingPlayer({ sampleLoader: null, context: ctx, onStep: p => heard.push(p),
     transportOptions: { tickerFactory: () => ({ start() {}, stop() {}, dispose() {} }), requestFrame: () => 1, cancelFrame() {} } });
   player.schedule = (event, timing) => { if (event.kind === 'note') scheduled.push({ event, timing }); };
   const compiled = arrangeSong(compileDraft(draftWith(['|:', '[1 :|', '[2 ]'])).compiled.song);

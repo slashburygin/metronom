@@ -27,6 +27,7 @@ const els = {
   down: $('bpm-down'),
   beats: $('beats'),
   stressFirst: $('stress-first'),
+  highlightBeat: $('highlight-beat'),
   play: $('play'),
   tap: $('tap'),
   reset: $('reset'),
@@ -44,17 +45,19 @@ const els = {
 };
 
 // UI-only state; audio state lives on the metronome instance.
-const ui = { lang: detectLang(), view: 'digital', noteValue: DEFAULTS.noteValue, focus: false };
+const ui = { lang: detectLang(), view: 'digital', noteValue: DEFAULTS.noteValue, focus: false, highlightBeat: true };
 
 const offline = initOffline(() => ui.lang);
 
 let activeDot = null;
+let exerciseFocus = false;
+let focusOrigin = null;
 const metronome = new Metronome({
   onTick(beat, sub, silent) {
     if (sub !== 0) return;
     $('metronome-stage').classList.toggle('gap-hidden', silent && metronome.gap.hideVisual);
     activeDot?.classList.remove('active');
-    activeDot = els.beats.children[beat];
+    activeDot = ui.highlightBeat ? els.beats.children[beat] : null;
     activeDot?.classList.add('active');
   },
   // The practice timer ended the run
@@ -181,6 +184,7 @@ function apply(s) {
     ui.noteValue = s.noteValue;
     metronome.setNoteValue(ui.noteValue);
   }
+  if (typeof s.highlightBeat === 'boolean') ui.highlightBeat = s.highlightBeat;
   if (s.lang in STRINGS) ui.lang = s.lang;
   if (s.view === 'digital' || s.view === 'pendulum') ui.view = s.view;
 }
@@ -189,7 +193,7 @@ function reset() {
   metronome.gap = normalizeGap();
   lessons.stopPlayback();
   metronome.accents = resizeAccents([], DEFAULTS.beatsPerBar);
-  apply({ ...DEFAULTS, lang: ui.lang, view: ui.view });
+  apply({ ...DEFAULTS, lang: ui.lang, view: ui.view, highlightBeat: true });
   lessons.setBpm(metronome.bpm);
   tapper.taps = [];
   save();
@@ -293,6 +297,7 @@ function renderSignature() {
 
 function renderFocus() {
   document.body.classList.toggle('focus-mode', ui.focus);
+  document.body.classList.toggle('exercise-focus', ui.focus && exerciseFocus);
   els.focusMode.setAttribute('aria-pressed', ui.focus);
   els.focusMode.textContent = ui.focus ? t().exitFocus : t().focusMode;
   els.focusMode.setAttribute('aria-label', ui.focus ? t().exitFocusLabel : t().focusModeLabel);
@@ -301,13 +306,25 @@ function renderFocus() {
 
 function setFocus(enabled) {
   if (enabled) {
+    focusOrigin = document.activeElement;
+    const exercise = [...document.querySelectorAll('.pentatonic-material, #technique-practice')]
+      .find(element => element.getClientRects().length);
+    exerciseFocus = Boolean(exercise?.getClientRects().length);
+    if (exerciseFocus) exercise.dispatchEvent(new Event('enter-practice-focus'));
+    document.body.classList.toggle('exercise-paper', exerciseFocus && exercise.matches('.pentatonic-paper, .finger-paper'));
     lessons.stopPlayback();
     tuner.stop();
     renderTuner();
   }
   ui.focus = enabled;
   renderFocus();
-  els.focusMode.focus();
+  if (enabled) {
+    els.focusMode.focus();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  } else {
+    document.body.classList.remove('exercise-paper');
+    (focusOrigin?.isConnected ? focusOrigin : els.focusMode).focus();
+  }
 }
 
 function beatTitle(i, level) {
@@ -373,6 +390,7 @@ function renderFullscreen() {
 }
 
 function renderAll() {
+  els.highlightBeat.checked = ui.highlightBeat;
   $('gap-enabled').checked = metronome.gap.enabled;
   $('gap-play').value = metronome.gap.playBars;
   $('gap-silent').value = metronome.gap.silentBars;
@@ -455,6 +473,7 @@ els.play.addEventListener('click', togglePlay);
 els.tap.addEventListener('click', tap);
 els.reset.addEventListener('click', reset);
 els.focusMode.addEventListener('click', () => setFocus(!ui.focus));
+document.addEventListener('request-practice-focus', () => setFocus(true));
 els.signaturePresets.addEventListener('click', (event) => {
   const signature = event.target.closest('[data-signature]')?.dataset.signature;
   if (!signature) return;
@@ -469,6 +488,14 @@ els.signaturePresets.addEventListener('click', (event) => {
   save();
 });
 els.volume.addEventListener('input', () => { metronome.setVolume(Number(els.volume.value)); save(); });
+els.highlightBeat.addEventListener('change', () => {
+  ui.highlightBeat = els.highlightBeat.checked;
+  if (!ui.highlightBeat) {
+    activeDot?.classList.remove('active');
+    activeDot = null;
+  }
+  save();
+});
 els.stressFirst.addEventListener('change', () => {
   metronome.accents[0] = els.stressFirst.checked ? 'accent' : 'normal';
   renderBeats();

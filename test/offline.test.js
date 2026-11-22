@@ -91,6 +91,8 @@ test('production offline manifest is deterministic, includes public lessons and 
   const directory = await mkdtemp(join(tmpdir(), 'metronom-offline-test-'));
   try {
     await mkdir(join(directory, 'assets'));
+    await mkdir(join(directory, 'samples/trio-v1'), { recursive: true });
+    await writeFile(join(directory, 'samples/trio-v1/piano-57-soft.wav'), 'sample');
     await mkdir(join(directory, 'lessons/haimovich'), { recursive: true });
     await writeFile(join(directory, 'index.html'), 'home');
     await writeFile(join(directory, 'assets/app.js'), 'code');
@@ -100,6 +102,7 @@ test('production offline manifest is deterministic, includes public lessons and 
     plugin.configResolved({ build: { outDir: directory } });
     await plugin.closeBundle();
     const first = await readFile(join(directory, 'sw.js'), 'utf8');
+    assert.ok(first.includes('samples/trio-v1/piano-57-soft.wav'));
     assert.match(first, /lessons\/haimovich\/schedule.json/);
     assert.ok(!first.includes('robots.txt'));
     await plugin.closeBundle();

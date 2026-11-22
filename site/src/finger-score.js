@@ -13,7 +13,7 @@ const yFor = step => BOTTOM - (step - 30) * 5;
 const round = n => Math.round(n * 100) / 100;
 
 function stemGroups(notes, perBeat) {
-  return Array.from({ length: notes.length / perBeat }, (_, i) => {
+  return Array.from({ length: Math.ceil(notes.length / perBeat) }, (_, i) => {
     const group = notes.slice(i * perBeat, (i + 1) * perBeat);
     const up = group.reduce((sum, note) => sum + note.y, 0) / group.length >= 80;
     const beamY = up ? Math.min(...group.map(note => note.y)) - 32 : Math.max(...group.map(note => note.y)) + 32;
@@ -97,8 +97,11 @@ export function fingerScoreSystems(key, direction, level, tonicOctave = 4, avail
   return systems;
 }
 
-// An original vector clef, avoiding a dependency on system music fonts.
-const clef = '<path class="staff-clef" d="M29 105 C10 101 9 83 22 73 C36 62 38 51 31 39 C28 33 23 41 24 51 L34 115 C37 129 20 134 19 123 C18 114 29 113 29 120 C29 126 22 127 22 122 M19 87 C22 74 40 79 38 90 C36 103 18 102 15 91" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>';
+// Bravura gClef (U+E050), SIL OFL 1.1; see /licenses/Bravura-OFL.txt.
+// Source: CoderLine/alphaTab 3984b321854a532f3456bbcdceac7abaa02c7381,
+// packages/alphatab/font/bravura/Bravura.svg, glyph uniE050.
+// 250 font units per staff space; anchor G4 on the second line (y=90).
+const clef = '<path class="staff-clef" transform="translate(14 90) scale(.04 -.04)" d="M364 -252c-245 0 -364 165 -364 339c0 202 153 345 297 464c12 10 11 12 9 24c-7 41 -14 106 -14 164c0 104 24 229 98 311c20 22 51 48 65 48c11 0 37 -28 52 -50c41 -60 65 -146 65 -233c0 -153 -82 -280 -190 -381c-6 -6 -8 -7 -6 -19l25 -145c3 -18 3 -18 29 -18 c147 0 241 -113 241 -241c0 -113 -67 -198 -168 -238c-14 -6 -15 -5 -13 -17c11 -62 29 -157 29 -214c0 -170 -130 -200 -197 -200c-151 0 -190 98 -190 163c0 62 40 115 107 115c61 0 96 -47 96 -102c0 -58 -36 -85 -67 -94c-23 -7 -32 -10 -32 -17c0 -13 26 -29 80 -29 c59 0 159 18 159 166c0 47 -15 134 -27 201c-2 12 -4 11 -15 9c-20 -4 -46 -6 -69 -6zM80 20c0 -139 113 -236 288 -236c20 0 40 2 56 5c15 3 16 3 14 14l-50 298c-2 11 -4 12 -20 8c-61 -17 -100 -60 -100 -117c0 -46 30 -89 72 -107c7 -3 15 -6 15 -13 c0 -6 -4 -11 -12 -11c-7 0 -19 3 -27 6c-68 23 -115 87 -115 177c0 85 57 164 145 194c18 6 18 5 15 24l-21 128c-2 11 -4 12 -14 4c-47 -38 -93 -75 -153 -142c-83 -94 -93 -173 -93 -232zM470 943c-61 0 -133 -96 -133 -252c0 -32 2 -66 6 -92c2 -13 6 -14 13 -8 c79 69 174 159 174 270c0 55 -27 82 -60 82zM441 117c-12 1 -13 -2 -11 -14l49 -285c2 -12 4 -12 16 -6c56 28 94 79 94 142c0 88 -67 156 -148 163z"/>';
 const line = (x1,y1,x2,y2,cls) => `<line class="${cls}" x1="${round(x1)}" y1="${round(y1)}" x2="${round(x2)}" y2="${round(y2)}" stroke="currentColor"/>`;
 
 export function fingerStaffSvg(row) {
@@ -130,7 +133,15 @@ export function fingerStaffSvg(row) {
   }
   for (const { notes: group, up, beamY } of stemGroups(row.notes, row.perBeat)) {
     for (const note of group) parts.push(line(note.x+(up?4.6:-4.6),note.y,note.x+(up?4.6:-4.6),beamY,'staff-stem'));
-    for (let beam = 0; beam < row.beams; beam++) {
+    if (row.triplets && !group[0].quarter) {
+      parts.push(`<text class="staff-tuplet" x="${(group[0].x + group.at(-1).x) / 2}" y="${up ? beamY - 7 : beamY + 16}" text-anchor="middle" font-size="12">3</text>`);
+    }
+    // An incomplete last beat still needs a flag on its isolated eighth note.
+    if (group.length === 1 && row.beams > 0 && !group[0].quarter) {
+      const x = group[0].x + (up ? 4.6 : -4.6);
+      parts.push(`<path class="staff-flag" d="M${x} ${beamY} q12 ${up ? 8 : -8} 5 ${up ? 19 : -19}" fill="none" stroke="currentColor" stroke-width="2"/>`);
+    }
+    for (let beam = 0; beam < row.beams && group.length > 1; beam++) {
       const x = group[0].x+(up?4.6:-4.6);
       const y = beamY + (up ? beam*5 : -beam*5-3);
       parts.push(`<rect class="staff-beam" x="${x}" y="${y}" width="${group.at(-1).x-group[0].x}" height="3"/>`);

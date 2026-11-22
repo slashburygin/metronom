@@ -142,3 +142,126 @@ Upstream-ориентир — [Tonejs/Tone.js](https://github.com/Tonejs/Tone.js
 Референсы найдены через локальный XERJ и прочитаны по исходникам: [tonaljs/tonal, e555422aef910daa87cb924028f71f0a013f3ed7](https://github.com/tonaljs/tonal/tree/e555422aef910daa87cb924028f71f0a013f3ed7), `packages/voicing-dictionary/index.ts:7` и `packages/voicing-dictionary/data.ts:10` — отделение символа аккорда от расположений с дополнительными красками; NONE-FOUND, использован только подход, код не копировался. [Tonejs/Tone.js, 28a689c4a80c3b840b9e08e457285584e09f9d5f](https://github.com/Tonejs/Tone.js/tree/28a689c4a80c3b840b9e08e457285584e09f9d5f), `Tone/event/Pattern.ts:95` — отделение выбора элемента рисунка от времени события. Этот корпус не содержит готовых музыкальных сбивок для наших пяти стилей; они заданы оригинальными таблицами без заимствования аранжировок. Зависимости не добавлены. Контракт проекта: metronom `e2bc377`, `site/src/song-arrangement.js:9`, `site/src/arrangement.js:22` и `site/src/transposition.js:66`.
 
 Проверено: 89 unit-тестов; исходные символы/бас, явные альтерации, подходящие гамме добавления, независимость потоков seed, повторяемость рисунков, переходы развёрнутой формы, секции, границы событий, паузы и транспонирование во всех тональностях. Chromium на dev/production проверяет опциональность флажков, отсутствие записи в исходный черновик, остановку при изменении, сохранение, независимость документов, RU/EN и 390 px. Ещё 30 OfflineAudioContext-рендеров с красками, сбивками и максимальной реверберацией дали peak 0,21–0,34 без клиппинга и нулевой хвост после окончания. Прослушивание и физические мобильные устройства остаются отдельной приёмкой.
+
+## Мягкое джазовое трио
+
+Стиль `jazzTrio` оставляет шагающий бас на каждой доле, но использует четыре
+чередующихся рисунка клавиш с паузами и свинговыми синкопами. Смены гармонии
+артикулируются явно. Тихие ударные поддерживают пульс; сбивки этого стиля
+ослаблены. События остаются в точных границах пульса и совместимы с MIDI/WAV.
+В упражнениях кнопка «Мягкое джазовое трио» выбирает этот стиль, акустические
+тембры, реверберацию 0,18, краски и сбивки и восстанавливает баланс партий.
+Новые настройки упражнений используют трио; сохранённый выбор пользователя
+загружается как прежде. Гармоники синтезированных акустических тембров затухают
+быстрее основного тона, яркость зависит от силы ноты. Это синтез, не записи
+настоящих инструментов. Время пульса не рандомизируется.
+
+Основания: metronom `c28d04eec9af6320264e1e824f72c3e8db31ad7e`,
+`site/src/song-arrangement.js:62`, `site/src/backing-player.js:100` — точные
+границы и конечный жизненный цикл голосов. Поиск выполнен через локальный XERJ.
+Upstream: Tonejs/Tone.js `28a689c4a80c3b840b9e08e457285584e09f9d5f`, MIT,
+`Tone/instrument/Synth.ts:130` и `:146` — огибающая и остановка источника;
+прочитаны определения с окружающим кодом. Tone.js не устанавливается,
+музыкальные рисунки и обработка гармоник реализованы самостоятельно.
+
+## Записанные акустические инструменты
+
+`backing-samples.js` загружает 28 локальных PCM WAV (около 4,9 МБ): два слоя
+громкости фортепиано, пять опорных нот щипкового контрабаса с двумя дублями,
+по два дубля малого барабана, бас-барабана и закрытого хай-хэта. `provenance.json`
+и полные CC0-лицензии поставляются в `site/public/samples/trio-v1/`.
+Записи VSCO 2 CE закреплены на `440300901dfe9275fd84e0b7763af1f8443ae62e`,
+VCSL — на `c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e` (sgossner на GitHub).
+В README набора перечислены преобразования; высоты сверены с таблицей piano
+MappingChart.txt и спектром контрабаса. Это заменяет синтез акустических тембров,
+описанный выше; электропиано, орган, электрический бас и отсчёт сохраняют синтез.
+
+Ближайшая опорная запись транспонируется через playbackRate. Загрузка и decode
+кэшируются на AudioContext; ошибка допускает повторную попытку. Transport.start
+ожидает подготовку инструментов вместе с resume, оставаясь pending, и проверяет
+поколение после ожидания: stop во время загрузки не запускает музыку позже.
+WAV-экспорт ожидает ту же подготовку. Каждый BufferSource принадлежит транспорту,
+использует существующие микшер, реверберацию и границы остановки. Production
+service worker проверяет и сохраняет записи вместе с офлайн-релизом.
+
+Upstream-ориентир найден через XERJ `metronom-audio`: Tonejs/Tone.js,
+`28a689c4a80c3b840b9e08e457285584e09f9d5f`, MIT,
+`Tone/instrument/Sampler.ts:237` и `:258` — выбор ближайшей записи и playbackRate;
+определения и окружающий код прочитаны. Код реализован самостоятельно без
+зависимости от Tone.js. Контракт проекта: metronom
+`c28d04eec9af6320264e1e824f72c3e8db31ad7e`, `site/src/transport.js:64`,
+`site/src/transport.js:96`, `site/src/audio-export.js:8`.
+
+Проверка записанных инструментов: 166 unit-тестов и production build прошли.
+Chromium проверил реальное декодирование всех 28 WAV, воспроизведение через
+BufferSource без осцилляторов для акустического трио, WAV-экспорт (peak 0,414),
+завершение голосов и тишину после задержки компрессора. На экране 390 px проверены
+компактная панель, отмена загрузки, повторный старт и stop. Production service
+worker сохранил записи; отключение сети не помешало загрузке и декодированию
+фортепиано. Автоматические проверки не заменяют прослушивание на целевом устройстве.
+
+## Упражнения для пентатоники
+
+`pentatonic-exercises.js` выбирает написанные ступени родительской гаммы из
+`scaleHarmony`: 1–2–3–5–6 для мажора, 1–♭3–4–5–♭7 из натурального минора для
+всех минорных вариантов. Структура сохраняет ноту и относительную октаву отдельно.
+Четыре собственных рисунка: вверх/вниз, последовательные тройки, четвёрки и
+скачки через ноту. Новый пятый шаг не сдвигает существующие ключи прогресса 0–3.
+
+Контракт проекта: metronom `ebe444a`, `site/src/harmony.js:37`,
+`site/src/scale-practice.js:79`. Найдены через XERJ и прочитаны исходники.
+Для проверки формул прочитан tonaljs/tonal, pin
+`e555422aef910daa87cb924028f71f0a013f3ed7`,
+`packages/scale-type/data.ts:5` и `:40` (локальный XERJ `metronom-harmony`).
+Лицензия корпуса NONE-FOUND: код не заимствуется, используются только
+общепринятые интервальные формулы. Педагогические рисунки реализованы самостоятельно.
+
+## План аккордов и ладов
+
+`chordModeExercises(key, type, start)` разворачивает присланный пользователем
+план из 12 заданий для каждого из семи ладов выбранной гаммы. Источник нот —
+`scaleHarmony`; порядок букв и альтерации сохраняются. Номер ступени остаётся
+целым (IX = 9), имя и относительная октава вычисляются отдельно. Для натурального
+минора здесь используются его диатонические аккорды, без подмены V на доминанту
+из гармонического минора. Мажорные лады подписаны общепринятыми названиями.
+
+Прежние ключи прогресса шагов 0–4 сохранены. План встроен в прежний шаг «Аккорды». Каждое задание использует отдельный
+ключ с типом гаммы, тоникой и стартовой ступенью. Панель показывает 12 свёрнутых заданий (первое раскрыто).
+
+Контракт найден через XERJ: metronom `f32e4255fb9e1f3a9551683e88a399638651e945`,
+`site/src/harmony.js:37`, `site/src/practice-help.js:8`,
+`site/src/finger-exercises.js:10`. Прочитан также tonaljs/tonal
+`e555422aef910daa87cb924028f71f0a013f3ed7`, `packages/scale/index.ts:263`,
+`:283` — разделение диапазона высот и номеров ступеней. Корпус metronom-harmony,
+лицензия NONE-FOUND: код не копировался; рисунки заданы по плану пользователя.
+Проверены 170 unit-тестов, сборка, все тональности и семь стартовых ступеней,
+различие II/IX, смешанные маршруты и направление ломаных терций.
+
+
+### Better Sax pentatonic lesson
+
+The pentatonic step now includes ten generated cell exercises based on
+https://www.youtube.com/watch?v=27njCPeYtEg. Cells were checked against the four
+public notation images in the matching Better Sax article
+(https://bettersax.com/practice-pentatonics-like-this-everyday-for-killer-solos/).
+Phrase ranges and ending notes follow the public alto notation (D minor),
+transposed by pentatonic scale index into the selected key. Each direction has
+its own start, repetition count and ending; negative indices preserve notes
+below the tonic. Terminal quarters render without eighth-note flags or tuplet
+numbers. Rests are omitted in the continuous, unmetered practice display. Pattern 5 advances starts by two pentatonic notes; pattern 9
+starts descending; pattern 8 uses straight eighths and pattern 10 triplets.
+Ascending and descending cells use interval reflection with source-specific
+ranges and tails. Source note counts by exercise (up/down, except no. 9 which
+starts down): 41/37, 25/29, 29/33, 41/49, 17/17, 33/37, 41/53, 25/24,
+65/57, 25/25. A regression fixture checks the entire second exercise in D minor.
+All study notes remain in the selected concert key, as in the existing scale step.
+
+Project reference: metronom `87174eb0588ead4fa034ea8deeb39531eb9635a8`,
+`site/src/pentatonic-exercises.js:5`, `site/src/harmony.js:37`,
+`site/src/scale-practice.js:152`. XERJ queries for `pentatonicExercises` in
+`exosrc` and `metronom-src` missed the module; the current files were read directly.
+Upstream formula check: XERJ `metronom-harmony`, tonaljs/tonal
+`e555422aef910daa87cb924028f71f0a013f3ed7`,
+`packages/scale-type/data.ts:5` and `:40`, read with surrounding definitions.
+The project has no Tonal dependency; this is a formula reference only, with no
+upstream code copied (corpus license metadata: NONE-FOUND).

@@ -5,12 +5,22 @@ import { fraction as f } from './musical-time.js';
 const hit = (at, velocity = 1) => ({ at: f(at, 12), velocity });
 const hits = values => values.map(value => hit(...(Array.isArray(value) ? value : [value])));
 const drums = (sound, values, velocity) => hits(values).map(h => ({ ...h, sound, velocity: h.velocity * velocity }));
-export const GROOVE_STYLES = ['jazzTwoFeel', 'shuffle', 'samba', 'mambo', 'bolero', 'funk', 'reggae', 'disco', 'pop', 'country'];
+export const GROOVE_STYLES = ['jazzTrio', 'jazzTwoFeel', 'shuffle', 'samba', 'mambo', 'bolero', 'funk', 'reggae', 'disco', 'pop', 'country'];
 
 export function grooveFor(style, beat, bar) {
   const b = beat % 4, even = b % 2 === 0;
   let bass, piano, drum, gate = f(3,4);
   switch (style) {
+    case 'jazzTrio': {
+      // Four original comping phrases: room for the solo, then a short answer.
+      const phrases = [[[0], [], [8], []], [[0], [8], [], [0]],
+        [[0], [], [], [8]], [[0], [8], [0], []]];
+      bass = [0]; piano = phrases[bar % phrases.length][b]; gate = f(4,5);
+      drum = [...drums('hat', even ? [0] : [0,[8,.65]], .24),
+        ...drums('kick', b === 0 ? [0] : [], .18),
+        ...drums('snare', even ? [] : [0], .12)];
+      break;
+    }
     case 'jazzTwoFeel':
       bass = even ? [0] : []; piano = even ? [0] : [8]; gate = f(11,12);
       drum = [...drums('hat', even ? [0] : [0,8], .3), ...drums(even ? 'kick' : 'snare', [0], .22)]; break;
