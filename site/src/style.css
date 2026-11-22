@@ -908,6 +908,7 @@ kbd {
 .exercise-focus .pentatonic-material .textbook-help,
 .exercise-focus .pentatonic-paper-toggle,
 .exercise-focus .pentatonic-focus,
+.exercise-focus .stage #beats,
 .exercise-focus .stage #bpm-slider,
 .exercise-focus .stage .signature-presets,
 .exercise-focus .stage .tempo-shortcuts,
@@ -917,7 +918,7 @@ kbd {
 .exercise-focus .stage .meta { display: none; }
 .focus-mode.exercise-focus .app { display: grid; grid-template-columns: 260px minmax(0, 1fr); max-width: 1600px; gap: 20px; padding: 20px; align-items: start; }
 .focus-mode.exercise-focus .practice-column { display: block; position: static; min-width: 0; }
-.focus-mode.exercise-focus .metronome-column { position: sticky; top: 20px; }
+.focus-mode.exercise-focus .metronome-column { position: sticky; top: 20px; min-height: calc(100dvh - 40px); justify-content: center; }
 .focus-mode.exercise-focus .stage { min-height: 0; gap: 16px; padding: 16px; }
 .focus-mode.exercise-focus #bpm { font-size: 56px; }
 .exercise-focus .lessons { max-height: none; overflow: visible; padding: 0; border: 0; background: transparent; box-shadow: none; }
@@ -928,7 +929,7 @@ kbd {
 .exercise-paper { --color-bg: #f3ecd9; --color-bg-soft: #f3ecd9; --color-bg-elevated: #f3ecd9; --color-text: #37332c; --color-text-muted: #635a4b; --color-border: #bdb29c; background: #f3ecd9; }
 @media (max-width: 900px) {
   .focus-mode.exercise-focus .app { grid-template-columns: minmax(0, 1fr); padding: 12px; gap: 12px; }
-  .focus-mode.exercise-focus .metronome-column { position: static; }
+  .focus-mode.exercise-focus .metronome-column { position: static; min-height: 0; }
   .focus-mode.exercise-focus .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .exercise-focus .stage-toolbar { grid-column: 1 / -1; }
   .exercise-focus .stage .beats, .exercise-focus .stage .remaining { grid-column: 1 / -1; }
